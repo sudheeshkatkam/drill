@@ -25,6 +25,7 @@ import io.netty.channel.socket.SocketChannel;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
@@ -67,8 +68,8 @@ public class UserServer extends BasicServer<RpcType, UserServer.UserClientConnec
   final UserAuthenticator authenticator;
 
   public UserServer(DrillConfig config, BufferAllocator alloc, EventLoopGroup eventLoopGroup,
-      UserWorker worker) throws DrillbitStartupException {
-    super(UserRpcConfig.getMapping(config), alloc.getUnderlyingAllocator(), eventLoopGroup);
+      UserWorker worker, Executor executor) throws DrillbitStartupException {
+    super(UserRpcConfig.getMapping(config, executor), alloc.getUnderlyingAllocator(), eventLoopGroup);
     this.worker = worker;
     this.alloc = alloc;
     if (config.getBoolean(ExecConstants.USER_AUTHENTICATION_ENABLED)) {

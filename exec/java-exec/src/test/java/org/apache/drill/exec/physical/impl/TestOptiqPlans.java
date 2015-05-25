@@ -104,7 +104,7 @@ public class TestOptiqPlans extends ExecTest {
     };
     RemoteServiceSet lss = RemoteServiceSet.getLocalServiceSet();
     DrillbitContext bitContext = new DrillbitContext(DrillbitEndpoint.getDefaultInstance(), context, coord, controller,
-        com, workBus, new LocalPStoreProvider(DrillConfig.create()), null);
+        com, workBus, new LocalPStoreProvider(DrillConfig.create()));
     QueryContext qc = new QueryContext(UserSession.Builder.newBuilder().setSupportComplexTypes(true).build(),
         bitContext);
     PhysicalPlanReader reader = bitContext.getPlanReader();
