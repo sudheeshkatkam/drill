@@ -28,9 +28,10 @@ import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.config.BroadcastSender;
 import org.apache.drill.exec.physical.impl.BaseRootExec;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
-import org.apache.drill.exec.proto.ExecProtos;
+import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
 import org.apache.drill.exec.record.FragmentWritableBatch;
 import org.apache.drill.exec.record.RecordBatch;
+import org.apache.drill.exec.record.RecordBatch.IterOutcome;
 import org.apache.drill.exec.record.WritableBatch;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -46,8 +47,8 @@ public class BroadcastSenderRootExec extends BaseRootExec {
   private final BroadcastSender config;
   private final int[][] receivingMinorFragments;
   private final AccountingDataTunnel[] tunnels;
-  private final ExecProtos.FragmentHandle handle;
-  private volatile boolean ok;
+  private final FragmentHandle handle;
+  private volatile boolean done = false;
   private final RecordBatch incoming;
 
   public enum Metric implements MetricDef {
@@ -63,7 +64,6 @@ public class BroadcastSenderRootExec extends BaseRootExec {
                                  RecordBatch incoming,
                                  BroadcastSender config) throws OutOfMemoryException {
     super(context, context.newOperatorContext(config, null, false), config);
-    this.ok = true;
     this.context = context;
     this.incoming = incoming;
     this.config = config;
@@ -95,7 +95,13 @@ public class BroadcastSenderRootExec extends BaseRootExec {
 
   @Override
   public boolean innerNext() {
-    RecordBatch.IterOutcome out = next(incoming);
+    final IterOutcome out;
+    if (!done) {
+      out = next(incoming);
+    } else {
+      incoming.kill(true);
+      out = IterOutcome.NONE;
+    }
     logger.debug("Outcome of sender next {}", out);
     switch(out){
       case OUT_OF_MEMORY:
@@ -141,13 +147,17 @@ public class BroadcastSenderRootExec extends BaseRootExec {
             stats.stopWait();
           }
         }
-
-        return ok;
+        return true;
 
       case NOT_YET:
       default:
         throw new IllegalStateException();
     }
+  }
+
+  @Override
+  public void receivingFragmentFinished(final FragmentHandle handle) {
+    done = true;
   }
 
   public void updateStats(FragmentWritableBatch writableBatch) {

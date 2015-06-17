@@ -99,11 +99,6 @@ public abstract class BaseRootExec implements RootExec {
   public abstract boolean innerNext();
 
   @Override
-  public void receivingFragmentFinished(final FragmentHandle handle) {
-    logger.warn("Currently not handling FinishedFragment message");
-  }
-
-  @Override
   public void close() throws Exception {
     // We want to account for the time spent waiting here as Wait time in the operator profile
     try {
