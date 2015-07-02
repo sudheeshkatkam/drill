@@ -520,7 +520,7 @@ public class QueryManager {
         }
       }
 
-      if (!atLeastOneFailure) {
+      if (atLeastOneFailure) {
         logger.warn("Drillbits [{}] no longer registered in cluster.  Canceling query {}",
             failedNodeList, QueryIdHelper.getQueryId(queryId));
         stateListener.moveToState(QueryState.FAILED,
