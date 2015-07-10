@@ -136,6 +136,13 @@ public class TestExampleQueries extends BaseTestQuery {
   }
 
   @Test
+  public void testMultiFragmentTextRead() throws Exception {
+//    String slowQuery = "select test_debugging_function_wait(columns[0]) from dfs.`/Users/jaltekruse/test_data_drill/bunch_o_csv`";
+    String slowQuery = "select columns[0] from dfs.`/Users/jaltekruse/test_data_drill/bunch_o_csv` order by columns[1]";
+    test(slowQuery);
+  }
+
+  @Test
   public void testParquetComplex() throws Exception {
     test("select recipe from cp.`parquet/complex.parquet`");
     test("select * from cp.`parquet/complex.parquet`");
