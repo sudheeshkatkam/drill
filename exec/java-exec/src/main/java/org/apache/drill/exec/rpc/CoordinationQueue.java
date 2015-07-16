@@ -22,7 +22,9 @@ import io.netty.channel.ChannelFuture;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.drill.common.StackTrace;
 import org.apache.drill.common.exceptions.UserRemoteException;
 import org.apache.drill.exec.proto.UserBitShared.DrillPBError;
 
@@ -119,7 +121,7 @@ public class CoordinationQueue {
     RpcOutcome<?> rpc = map.remove(coordinationId);
     if (rpc == null) {
       throw new IllegalStateException(
-          "Attempting to retrieve an rpc that wasn't first stored in the rpc coordination queue.  This would most likely happen if you're opposite endpoint sent multiple messages on the same coordination id.");
+          "Attempting to retrieve an rpc that wasn't first stored in the rpc coordination queue.  This would most likely happen if you're opposite endpoint sent multiple messages on the same coordination id ("+coordinationId+").");
     }
     return rpc;
   }

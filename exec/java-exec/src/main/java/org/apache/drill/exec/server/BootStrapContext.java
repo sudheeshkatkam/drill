@@ -20,12 +20,18 @@ package org.apache.drill.exec.server;
 import io.netty.channel.EventLoopGroup;
 
 import java.io.Closeable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.memory.TopLevelAllocator;
 import org.apache.drill.exec.metrics.DrillMetrics;
+import org.apache.drill.exec.rpc.NamedThreadFactory;
 import org.apache.drill.exec.rpc.TransportCheck;
 
 import com.codahale.metrics.MetricRegistry;
@@ -39,6 +45,8 @@ public class BootStrapContext implements Closeable{
   private final EventLoopGroup loop2;
   private final MetricRegistry metrics;
   private final BufferAllocator allocator;
+  private final ExecutorService executor;
+
 
   public BootStrapContext(DrillConfig config) {
     super();
@@ -47,6 +55,30 @@ public class BootStrapContext implements Closeable{
     this.loop2 = TransportCheck.createEventLoopGroup(config.getInt(ExecConstants.BIT_SERVER_RPC_THREADS), "BitClient-");
     this.metrics = DrillMetrics.getInstance();
     this.allocator = new TopLevelAllocator(config);
+    /*
+     * TODO (Chris comments) This executor isn't bounded in any way and could create an arbitrarily large number of
+     * threads, possibly choking the machine. We should really put an upper bound on the number of threads that can be
+     * created. Ideally, this might be computed based on the number of cores or some similar metric; ThreadPoolExecutor
+     * can impose an upper bound, and might be a better choice.
+     *
+     * (Jacques feedback) However, this should be really be bounded elsewhere. If bounded here, we run a high likelihood
+     * of creating distributed deadlocks across the machines.
+     */
+    this.executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+        new SynchronousQueue<Runnable>(),
+        new NamedThreadFactory("drill-executor-")) {
+      @Override
+      protected void afterExecute(final Runnable r, final Throwable t) {
+        if (t != null) {
+          logger.error("{}.run() leaked an exception.", r.getClass().getName(), t);
+        }
+        super.afterExecute(r, t);
+      }
+    };
+  }
+
+  public ExecutorService getExecutor() {
+    return executor;
   }
 
   public DrillConfig getConfig() {
@@ -73,6 +105,17 @@ public class BootStrapContext implements Closeable{
     DrillMetrics.resetMetrics();
     loop.shutdownGracefully();
     allocator.close();
+
+    try {
+      executor.awaitTermination(1, TimeUnit.SECONDS);
+    } catch (final InterruptedException e) {
+      logger.warn("Executor interrupted while awaiting termination");
+
+      // Preserve evidence that the interruption occurred so that code higher up on the call stack can learn of the
+      // interruption and respond to it if it wants to.
+      Thread.currentThread().interrupt();
+    }
+
   }
 
 }

@@ -57,11 +57,9 @@ public class DrillbitContext {
   private final SystemOptionManager systemOptions;
   private final PStoreProvider provider;
   private final CodeCompiler compiler;
-  private final ExecutorService executor;
 
   public DrillbitContext(DrillbitEndpoint endpoint, BootStrapContext context, ClusterCoordinator coord,
-      Controller controller, DataConnectionCreator connectionsPool, WorkEventBus workBus, PStoreProvider provider,
-      ExecutorService executor) {
+      Controller controller, DataConnectionCreator connectionsPool, WorkEventBus workBus, PStoreProvider provider) {
     Preconditions.checkNotNull(endpoint);
     Preconditions.checkNotNull(context);
     Preconditions.checkNotNull(controller);
@@ -73,7 +71,6 @@ public class DrillbitContext {
     this.connectionsPool = connectionsPool;
     this.endpoint = endpoint;
     this.provider = provider;
-    this.executor = executor;
     this.storagePlugins = new StoragePluginRegistry(this);
     this.reader = new PhysicalPlanReader(context.getConfig(), context.getConfig().getMapper(), endpoint, storagePlugins);
     this.operatorCreatorRegistry = new OperatorCreatorRegistry(context.getConfig());
@@ -159,7 +156,7 @@ public class DrillbitContext {
   }
 
   public ExecutorService getExecutor() {
-    return executor;
+    return context.getExecutor();
   }
 
 }
