@@ -48,15 +48,23 @@ public class TestConcurrentQueries extends BaseTestQuery {
 //    String slowQuery = "select test_debugging_function_wait(columns[0]) from dfs.`/Users/jaltekruse/test_data_drill/bunch_o_csv`";
 //    String slowQuery = "select test_debugging_function_wait(columns[0]) from dfs.`" + folder.getRoot().toPath() +"/bigfile` order by columns[2]";
     String slowQuery = "select columns[0] from dfs.`" + folder.getRoot().toPath() +"/bigfile` order by columns[2]";
-    final String query = normalizeQuery(slowQuery);
+    String query = normalizeQuery(slowQuery);
     List<SilentListener> listeners = new ArrayList();
     int numQueries = 50;
     try {
-      for (int i = 0; i < numQueries; i++) {
+      // for (int i = 0; i < numQueries; i++) {
+      //   final SilentListener listener = new SilentListener();
+      //   listeners.add(listener);
+      //   client.runQuery(UserBitShared.QueryType.SQL, query, listener);
+      //   Thread.sleep(1000);
+      // }
+
+      for (int i = 1; i < 21; i++) {
         final SilentListener listener = new SilentListener();
         listeners.add(listener);
+        query = normalizeQuery(getFile("queries/tpch/" + String.format("%02d", i) + ".sql")).replace(';',' ');
         client.runQuery(UserBitShared.QueryType.SQL, query, listener);
-        Thread.sleep(1000);
+        Thread.sleep(100);
       }
       for (int i = 0; i < numQueries; i++) {
         listeners.get(i).waitForCompletion();
