@@ -17,18 +17,27 @@
  ******************************************************************************/
 package org.apache.drill.exec.server;
 
+import com.google.common.collect.Lists;
+import mockit.Injectable;
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.drill.BaseTestQuery;
+import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.util.TestTools;
 import org.apache.drill.exec.client.PrintingResultsListener;
 import org.apache.drill.exec.client.QuerySubmitter;
 import org.apache.drill.exec.fn.interp.TestConstantFolding;
+import org.apache.drill.exec.proto.BitControl;
 import org.apache.drill.exec.proto.UserBitShared;
+import org.apache.drill.exec.rpc.user.UserServer;
 import org.apache.drill.exec.util.VectorUtil;
+import org.apache.drill.exec.work.fragment.NonRootFragmentManager;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,8 +50,43 @@ public class TestConcurrentQueries extends BaseTestQuery {
 
   @Rule public final TestRule TIMEOUT = TestTools.getTimeoutRule(500000);
 
+  private static class StartFragmentThread implements Runnable {
+    BitControl.PlanFragment fragment;
+    StartFragmentThread(BitControl.PlanFragment fragment) {
+      this.fragment = fragment;
+    }
+
+    @Override
+    public void run() {
+      StopWatch watch = new StopWatch();
+      watch.start();
+      final NonRootFragmentManager manager;
+      try {
+        manager = new NonRootFragmentManager(fragment, getDrillbitContext());
+      } catch (ExecutionSetupException e) {
+        throw new RuntimeException(e);
+      }
+      System.out.println("intermediate fragment startup time: " + watch.getTime());
+      manager.cancel();
+    }
+  }
+
   @Test
-  public void testLaggingFragment() throws Exception {
+  // cast to bigint.
+  public void testSetupLaggingFragment() throws Throwable{
+    File file = new File("/Users/jaltekruse/Dropbox/drill/3480-long-frag-startup-binary/plan_fragment846296378487392628");
+    BitControl.PlanFragment fragment = BitControl.PlanFragment.parseFrom(new FileInputStream(file));
+    List<Runnable> threads = new ArrayList<Runnable>();
+    for (int i = 0; i < 20; i++) {
+      threads.add(new StartFragmentThread(fragment));
+    }
+    for (int i = 0; i < 20; i++) {
+      threads.get(i).run();
+    }
+  }
+
+  @Test
+  public void testLaggingFragment() throws Throwable {
     new TestConstantFolding.SmallFileCreator(folder).createFiles(1, 100_000, "csv");
     test("alter session set `planner.slice_target` = 1");
 //    String slowQuery = "select test_debugging_function_wait(columns[0]) from dfs.`/Users/jaltekruse/test_data_drill/bunch_o_csv`";
@@ -59,14 +103,21 @@ public class TestConcurrentQueries extends BaseTestQuery {
       //   Thread.sleep(1000);
       // }
 
-      for (int i = 1; i < 21; i++) {
-        final SilentListener listener = new SilentListener();
-        listeners.add(listener);
-        query = normalizeQuery(getFile("queries/tpch/" + String.format("%02d", i) + ".sql")).replace(';',' ');
-        client.runQuery(UserBitShared.QueryType.SQL, query, listener);
-        Thread.sleep(100);
+      List<Integer> tpchToSkip = Lists.newArrayList(2,11, 15,16, 17, 19);
+      for (int j = 1; j < 5; j++) {
+        for (int i = 1; i < 21; i++) {
+          if (tpchToSkip.contains(i)) {
+            continue;
+          }
+          final SilentListener listener = new SilentListener();
+          listeners.add(listener);
+          query = normalizeQuery(getFile("queries/tpch/" + String.format("%02d", i) + ".sql")).replace(';',' ');
+          client.runQuery(UserBitShared.QueryType.SQL, query, listener);
+          Thread.sleep(100);
+        }
       }
-      for (int i = 0; i < numQueries; i++) {
+//      testSetupLaggingFragment();
+      for (int i = 0; i < listeners.size(); i++) {
         listeners.get(i).waitForCompletion();
       }
     } catch (Exception e) {

@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.exceptions.UserException;
@@ -129,16 +130,22 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   public FragmentContext(final DrillbitContext dbContext, final PlanFragment fragment, final QueryContext queryContext,
       final UserClientConnection connection, final FunctionImplementationRegistry funcRegistry)
     throws ExecutionSetupException {
+    StopWatch watch = new StopWatch();
+    watch.start();
     this.context = dbContext;
     this.queryContext = queryContext;
     this.connection = connection;
     this.accountingUserConnection = new AccountingUserConnection(connection, sendingAccountor, statusHandler);
+    boolean DEBUG = false;
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 1 in FragmentContext constructor: " + watch.getTime());
     this.fragment = fragment;
     this.funcRegistry = funcRegistry;
     contextInformation = new ContextInformation(fragment.getCredentials(), fragment.getContext());
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 2 in FragmentContext constructor: " + watch.getTime());
 
-    logger.debug("Getting initial memory allocation of {}", fragment.getMemInitial());
-    logger.debug("Fragment max allocation: {}", fragment.getMemMax());
+//    logger.debug("Getting initial memory allocation of {}", fragment.getMemInitial());
+//    logger.debug("Fragment max allocation: {}", fragment.getMemMax());
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 3 in FragmentContext constructor: " + watch.getTime());
 
     final OptionList list;
     if (!fragment.hasOptionsJson() || fragment.getOptionsJson().isEmpty()) {
@@ -150,14 +157,19 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
         throw new ExecutionSetupException("Failure while reading plan options.", e);
       }
     }
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 4 in FragmentContext constructor: " + watch.getTime());
     fragmentOptions = new FragmentOptionManager(context.getOptionManager(), list);
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 5 in FragmentContext constructor: " + watch.getTime());
 
     executionControls = new ExecutionControls(fragmentOptions, dbContext.getEndpoint());
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 6 in FragmentContext constructor: " + watch.getTime());
 
     // Add the fragment context to the root allocator.
     // The QueryManager will call the root allocator to recalculate all the memory limits for all the fragments
     try {
+      if (DEBUG) System.out.println(this.hashCode() + "checkpoint 7 in FragmentContext constructor: " + watch.getTime());
       allocator = context.getAllocator().getChildAllocator(this, fragment.getMemInitial(), fragment.getMemMax(), true);
+      if (DEBUG) System.out.println(this.hashCode() + "checkpoint 8 in FragmentContext constructor: " + watch.getTime());
       Preconditions.checkNotNull(allocator, "Unable to acuqire allocator");
     } catch(final OutOfMemoryException | OutOfMemoryRuntimeException e) {
       throw UserException.memoryError(e)
@@ -167,8 +179,10 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
       throw new ExecutionSetupException("Failure while getting memory allocator for fragment.", e);
     }
 
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 9 in FragmentContext constructor: " + watch.getTime());
     stats = new FragmentStats(allocator, dbContext.getMetrics(), fragment.getAssignment());
     bufferManager = new BufferManager(this.allocator, this);
+    if (DEBUG) System.out.println(this.hashCode() + "checkpoint 10 in FragmentContext constructor: " + watch.getTime());
   }
 
   /**

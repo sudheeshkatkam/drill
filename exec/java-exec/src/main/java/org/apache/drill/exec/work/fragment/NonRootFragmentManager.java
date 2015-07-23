@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.exec.exception.FragmentSetupException;
 import org.apache.drill.exec.ops.FragmentContext;
@@ -52,9 +53,15 @@ public class NonRootFragmentManager implements FragmentManager {
   public NonRootFragmentManager(final PlanFragment fragment, final DrillbitContext context)
       throws ExecutionSetupException {
     try {
+      StopWatch watch = new StopWatch();
+      watch.start();
       this.handle = fragment.getHandle();
+      boolean DEBUG = false;
+      if (DEBUG) System.out.println("checkpoint 1 in NonRootFragmentManager constructor: " + watch.getTime());
       this.context = new FragmentContext(context, fragment, context.getFunctionImplementationRegistry());
+      if (DEBUG) System.out.println("checkpoint 2 in NonRootFragmentManager constructor: " + watch.getTime());
       this.buffers = new IncomingBuffers(fragment, this.context);
+      if (DEBUG) System.out.println("checkpoint 3 in NonRootFragmentManager constructor: " + watch.getTime());
       final FragmentStatusReporter reporter = new FragmentStatusReporter(this.context,
           context.getController().getTunnel(fragment.getForeman()));
       this.runner = new FragmentExecutor(this.context, fragment, reporter);
