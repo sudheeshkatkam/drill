@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.exceptions.UserRemoteException;
@@ -455,19 +456,27 @@ public class QueryManager {
     @Override
     public void statusUpdate(final FragmentStatus status) {
       logger.debug("New fragment status was provided to QueryManager of {}", status);
+      StopWatch watch = new StopWatch();
+      boolean DEBUG = false;
       switch(status.getProfile().getState()) {
       case AWAITING_ALLOCATION:
       case RUNNING:
       case CANCELLATION_REQUESTED:
+        if (DEBUG) System.out.println("checkpoint 1 in update status (AWAITING, RUNNING, CANCEL_REQUESTED): " + watch.getTime());
         updateFragmentStatus(status);
+        if (DEBUG) System.out.println("checkpoint 2 in update status (AWAITING, RUNNING, CANCEL_REQUESTED): " + watch.getTime());
         break;
 
       case FAILED:
+        if (DEBUG) System.out.println("checkpoint 1 in update status (FAILED): " + watch.getTime());
         stateListener.moveToState(QueryState.FAILED, new UserRemoteException(status.getProfile().getError()));
+        if (DEBUG) System.out.println("checkpoint 2 in update status (FAILED): " + watch.getTime());
         // fall-through.
       case FINISHED:
       case CANCELLED:
+        if (DEBUG) System.out.println("checkpoint 3 in update status (finished/cancelled): " + watch.getTime());
         fragmentDone(status);
+        if (DEBUG) System.out.println("checkpoint 4 in update status (finished/cancelled): " + watch.getTime());
         break;
 
       default:
