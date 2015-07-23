@@ -98,15 +98,15 @@ public class DrillOptiq {
       final SqlSyntax syntax = call.getOperator().getSyntax();
       switch (syntax) {
       case BINARY:
-        logger.debug("Binary");
+        logger.trace("Binary");
         final String funcName = call.getOperator().getName().toLowerCase();
         return doFunction(call, funcName);
       case FUNCTION:
       case FUNCTION_ID:
-        logger.debug("Function");
+        logger.trace("Function");
         return getDrillFunctionFromOptiqCall(call);
       case POSTFIX:
-        logger.debug("Postfix");
+        logger.trace("Postfix");
         switch(call.getKind()){
         case IS_NOT_NULL:
         case IS_NOT_TRUE:
@@ -120,7 +120,7 @@ public class DrillOptiq {
         }
         throw new AssertionError("todo: implement syntax " + syntax + "(" + call + ")");
       case PREFIX:
-        logger.debug("Prefix");
+        logger.trace("Prefix");
         LogicalExpression arg = call.getOperands().get(0).accept(this);
         switch(call.getKind()){
         case NOT:
@@ -129,7 +129,7 @@ public class DrillOptiq {
         }
         throw new AssertionError("todo: implement syntax " + syntax + "(" + call + ")");
       case SPECIAL:
-        logger.debug("Special");
+        logger.trace("Special");
         switch(call.getKind()){
         case CAST:
           return getDrillCastFunctionFromOptiq(call);
@@ -485,7 +485,7 @@ public class DrillOptiq {
           return createNullExpr(MinorType.FLOAT8);
         }
         double dbl = ((BigDecimal) literal.getValue()).doubleValue();
-        logger.warn("Converting exact decimal into approximate decimal.  Should be fixed once decimal is implemented.");
+        logger.trace("Converting exact decimal into approximate decimal.  Should be fixed once decimal is implemented.");
         return ValueExpressions.getFloat8(dbl);
       case VARCHAR:
         if (isLiteralNull(literal)) {

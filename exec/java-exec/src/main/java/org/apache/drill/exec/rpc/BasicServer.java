@@ -215,6 +215,7 @@ public abstract class BasicServer<T extends EnumLite, C extends RemoteConnection
   @Override
   public void close() throws IOException {
     try {
+      queue.stop();
       eventLoopGroup.shutdownGracefully().get();
     } catch (final InterruptedException | ExecutionException e) {
       logger.warn("Failure while shutting down {}. ", this.getClass().getName(), e);

@@ -34,9 +34,12 @@ public class CoordinationQueue {
 
   private final PositiveAtomicInteger circularInt = new PositiveAtomicInteger();
   private final Map<Integer, RpcOutcome<?>> map;
+  private final StatusThread statusThread;
 
-  public CoordinationQueue(int segmentSize, int segmentCount) {
+  public CoordinationQueue(int segmentSize, int segmentCount, RpcConfig rpcConfig) {
     map = new ConcurrentHashMap<Integer, RpcOutcome<?>>(segmentSize, 0.75f, segmentCount);
+    statusThread = new StatusThread(rpcConfig.getName());
+    statusThread.start();
   }
 
   void channelClosed(Throwable ex) {
@@ -157,4 +160,29 @@ public class CoordinationQueue {
     }
   }
 
+  public void stop() {
+    statusThread.interrupt();
+  }
+  private class StatusThread extends Thread {
+    public StatusThread(String name) {
+      setDaemon(true);
+      setName(name + ".CoordinationQueue.StatusThread");
+    }
+
+    @Override
+    public void run() {
+      while(true) {
+        int size = map.size();
+        if (size > 0) {
+          logger.debug(hashCode() + " :number of elements: " + map.size());
+        }
+        try {
+          Thread.sleep(1000);
+        } catch(final InterruptedException e) {
+          logger.debug(hashCode() + " :stopping.");
+          break;
+        }
+      }
+    }
+  }
 }

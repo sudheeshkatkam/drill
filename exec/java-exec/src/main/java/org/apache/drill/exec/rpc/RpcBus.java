@@ -53,7 +53,7 @@ import com.google.protobuf.Parser;
 public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> implements Closeable {
   final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
 
-  protected final CoordinationQueue queue = new CoordinationQueue(16, 16);
+  protected final CoordinationQueue queue;
 
   protected abstract MessageLite getResponseDefaultInstance(int rpcType) throws RpcException;
 
@@ -73,6 +73,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
   public RpcBus(RpcConfig rpcConfig) {
     this.rpcConfig = rpcConfig;
+    queue = new CoordinationQueue(16, 16, rpcConfig);
   }
 
   protected void setAddresses(SocketAddress remote, SocketAddress local){

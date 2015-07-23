@@ -529,7 +529,7 @@ public class UserException extends DrillRuntimeException {
       if (isSystemError) {
         logger.error(newException.getMessage(), newException);
       } else {
-        logger.info("User Error Occurred", newException);
+        logger.info("User Error Occurred: " + newException.getMessage(), newException);
       }
 
       return newException;

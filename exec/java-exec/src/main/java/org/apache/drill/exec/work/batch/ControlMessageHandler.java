@@ -20,7 +20,6 @@ package org.apache.drill.exec.work.batch;
 import static org.apache.drill.exec.rpc.RpcBus.get;
 import io.netty.buffer.ByteBuf;
 
-import org.apache.commons.lang.time.StopWatch;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.proto.BitControl.FinishedReceiver;
 import org.apache.drill.exec.proto.BitControl.FragmentStatus;
@@ -128,38 +127,19 @@ public class ControlMessageHandler {
     logger.debug("Received remote fragment start instruction", fragment);
 
     final DrillbitContext drillbitContext = bee.getContext();
-    StopWatch watch = new StopWatch();
-    watch.start();
-    boolean DEBUG = false;
     try {
       // we either need to start the fragment if it is a leaf fragment, or set up a fragment manager if it is non leaf.
       if (fragment.getLeafFragment()) {
-        if (DEBUG) logger.info("checkpoint 1 in fragment startup: {}", watch.getTime());
         final FragmentContext context = new FragmentContext(drillbitContext, fragment,
             drillbitContext.getFunctionImplementationRegistry());
-        if (DEBUG) logger.info("checkpoint 2 in fragment startup: {}", watch.getTime());
         final ControlTunnel tunnel = drillbitContext.getController().getTunnel(fragment.getForeman());
-        if (DEBUG) logger.info("checkpoint 3 in fragment startup: {}", watch.getTime());
         final FragmentStatusReporter statusReporter = new FragmentStatusReporter(context, tunnel);
-        if (DEBUG) logger.info("checkpoint 4 in fragment startup: {}", watch.getTime());
         final FragmentExecutor fr = new FragmentExecutor(context, fragment, statusReporter);
-        if (DEBUG) logger.info("checkpoint 5 in fragment startup: {}", watch.getTime());
         bee.addFragmentRunner(fr);
-        if (DEBUG) logger.info("checkpoint 6 in fragment startup: {}", watch.getTime());
       } else {
         // isIntermediate, store for incoming data.
-        if (DEBUG) logger.info("checkpoint 1 in intermediate fragment startup: {}", watch.getTime());
         final NonRootFragmentManager manager = new NonRootFragmentManager(fragment, drillbitContext);
-        long time = watch.getTime();
-        if (time > 200) {
-          File file = File.createTempFile("plan_fragment","");
-          if (DEBUG) logger.info("temp file location:" + file.toString());
-          fragment.writeTo(new FileOutputStream(file));
-          if (DEBUG) logger.info("fragment info for long startup time: " + fragment.toString());
-        }
-        if (DEBUG) logger.info("checkpoint 2 in intermediate fragment startup: {}", time);
         drillbitContext.getWorkBus().addFragmentManager(manager);
-        if (DEBUG) logger.info("checkpoint 3 in intermediate fragment startup: {}", watch.getTime());
       }
 
     } catch (final Exception e) {

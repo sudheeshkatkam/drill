@@ -303,6 +303,7 @@ public abstract class BasicClient<T extends EnumLite, R extends RemoteConnection
   public void close() {
     logger.debug("Closing client");
     try {
+      queue.stop();
       connection.getChannel().close().get();
     } catch (final InterruptedException | ExecutionException e) {
       logger.warn("Failure while shutting {}", this.getClass().getName(), e);
