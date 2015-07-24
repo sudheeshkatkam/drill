@@ -17,12 +17,14 @@
  */
 package org.apache.drill.exec.work.foreman;
 
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.drill.common.exceptions.DrillRuntimeException;
@@ -455,6 +457,7 @@ public class QueryManager {
     @Override
     public void statusUpdate(final FragmentStatus status) {
       logger.debug("New fragment status was provided to QueryManager of {}", status);
+      Stopwatch stopwatch = new Stopwatch().start();
       switch(status.getProfile().getState()) {
       case AWAITING_ALLOCATION:
       case RUNNING:
@@ -473,6 +476,7 @@ public class QueryManager {
       default:
         throw new UnsupportedOperationException(String.format("Received status of %s", status));
       }
+      logger.debug("Took: " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms STATE: " + status.getProfile().getState());
     }
   };
 

@@ -17,6 +17,7 @@
  */
 package org.apache.drill.common;
 
+import com.google.common.base.Stopwatch;
 import io.netty.util.Recycler;
 import io.netty.util.Recycler.Handle;
 
@@ -102,6 +103,7 @@ public abstract class SerializedExecutor implements Executor {
       try {
         while (true) {
           try {
+//            System.out.println(name + ":" + originalThreadName + ":" + queuedRunnables.size());
             command.run();
           } catch (Exception | AssertionError e) {
             try {

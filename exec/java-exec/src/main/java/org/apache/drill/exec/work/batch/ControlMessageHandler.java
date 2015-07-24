@@ -18,6 +18,8 @@
 package org.apache.drill.exec.work.batch;
 
 import static org.apache.drill.exec.rpc.RpcBus.get;
+
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 
 import org.apache.drill.exec.ops.FragmentContext;
@@ -46,6 +48,8 @@ import org.apache.drill.exec.work.fragment.FragmentExecutor;
 import org.apache.drill.exec.work.fragment.FragmentManager;
 import org.apache.drill.exec.work.fragment.FragmentStatusReporter;
 import org.apache.drill.exec.work.fragment.NonRootFragmentManager;
+
+import java.util.concurrent.TimeUnit;
 
 public class ControlMessageHandler {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControlMessageHandler.class);
@@ -124,6 +128,7 @@ public class ControlMessageHandler {
     logger.debug("Received remote fragment start instruction", fragment);
 
     final DrillbitContext drillbitContext = bee.getContext();
+    Stopwatch stopwatch = new Stopwatch().start();
     try {
       // we either need to start the fragment if it is a leaf fragment, or set up a fragment manager if it is non leaf.
       if (fragment.getLeafFragment()) {
@@ -150,6 +155,7 @@ public class ControlMessageHandler {
         throw t;
       }
     }
+    logger.debug("Took: " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms for " + (fragment.getLeafFragment() ? "leaf fragment." : "intermediate fragment."));
   }
 
   /* (non-Javadoc)

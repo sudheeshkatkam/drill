@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.work.foreman;
 
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
@@ -790,7 +791,7 @@ public class Foreman implements Runnable {
 
       // TODO Auto-generated method stub
       logger.info("State change requested.  {} --> {}", state, newState,
-          exception);
+        exception);
       switch (state) {
       case PENDING:
         if (newState == QueryState.RUNNING) {
@@ -970,8 +971,8 @@ public class Foreman implements Runnable {
 
     // record all fragments for status purposes.
     for (final PlanFragment planFragment : fragments) {
-      logger.trace("Tracking intermediate remote node {} with data {}",
-                   planFragment.getAssignment(), planFragment.getFragmentJson());
+      logger.debug("Tracking intermediate remote node {} with data {}",
+        planFragment.getAssignment(), planFragment.getFragmentJson());
       queryManager.addFragmentStatusTracker(planFragment, false);
       if (planFragment.getLeafFragment()) {
         leafFragmentMap.put(planFragment.getAssignment(), planFragment);
@@ -1095,6 +1096,7 @@ public class Foreman implements Runnable {
   private class FragmentSubmitListener extends EndpointListener<Ack, InitializeFragments> {
     private final CountDownLatch latch;
     private final FragmentSubmitFailures fragmentSubmitFailures;
+    private final Stopwatch watch = new Stopwatch().start();
 
     /**
      * Constructor.
@@ -1115,6 +1117,7 @@ public class Foreman implements Runnable {
     @Override
     public void success(final Ack ack, final ByteBuf byteBuf) {
       if (latch != null) {
+        logger.debug(Thread.currentThread().getName() + " got an ack after " + watch.elapsed(TimeUnit.MILLISECONDS) + " ms");
         latch.countDown();
       }
     }

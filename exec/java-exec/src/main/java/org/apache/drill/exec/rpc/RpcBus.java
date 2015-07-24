@@ -249,12 +249,12 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
         switch (msg.mode) {
         case REQUEST:
-          RequestEvent reqEvent = new RequestEvent(msg.coordinationId, connection, msg.rpcType, msg.pBody, msg.dBody);
+          RequestEvent reqEvent = new RequestEvent(msg.coordinationId, connection, msg.rpcType, msg.pBody, msg.dBody, watch);
           exec.execute(reqEvent);
           break;
 
         case RESPONSE:
-          ResponseEvent respEvent = new ResponseEvent(msg.rpcType, msg.coordinationId, msg.pBody, msg.dBody);
+          ResponseEvent respEvent = new ResponseEvent(msg.rpcType, msg.coordinationId, msg.pBody, msg.dBody, watch);
           exec.execute(respEvent);
           break;
 
@@ -279,7 +279,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
         }
       } finally {
         long time = watch.elapsed(TimeUnit.MILLISECONDS);
-        long delayThreshold = Integer.parseInt(System.getProperty("drill.exec.rpcDelayWarning", "500"));
+        long delayThreshold = Integer.parseInt(System.getProperty("drill.exec.rpcDelayWarning", "100"));
         if (time > delayThreshold) {
           logger.warn(String.format(
               "Message of mode %s of rpc type %d took longer than %dms.  Actual duration was %dms.",
@@ -318,12 +318,14 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     private final int rpcType;
     private final ByteBuf pBody;
     private final ByteBuf dBody;
+    private final Stopwatch watch;
 
-    RequestEvent(int coordinationId, C connection, int rpcType, ByteBuf pBody, ByteBuf dBody) {
+    RequestEvent(int coordinationId, C connection, int rpcType, ByteBuf pBody, ByteBuf dBody, Stopwatch watch) {
       this.connection = connection;
       this.rpcType = rpcType;
       this.pBody = pBody;
       this.dBody = dBody;
+      this.watch = watch;
       sender = new ResponseSenderImpl(connection, coordinationId);
 
       if(pBody != null){
@@ -337,6 +339,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
     @Override
     public void run() {
+      long wait = watch.elapsed(TimeUnit.MILLISECONDS); watch.reset().start();
       try {
         handle(connection, rpcType, pBody, dBody, sender);
       } catch (UserRpcException e) {
@@ -351,6 +354,10 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
         if(dBody != null){
           dBody.release();
         }
+        if (Thread.currentThread().getName().startsWith("CONTROL")) {
+          logger.debug(String.format("Wait time: %05d ms Run time: %05d ms REQUEST: %d\n", wait,
+            watch.elapsed(TimeUnit.MILLISECONDS), rpcType));
+        }
       }
     }
   }
@@ -360,12 +367,14 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     private final int coordinationId;
     private final ByteBuf pBody;
     private final ByteBuf dBody;
+    private final Stopwatch watch;
 
-    public ResponseEvent(int rpcType, int coordinationId, ByteBuf pBody, ByteBuf dBody) {
+    public ResponseEvent(int rpcType, int coordinationId, ByteBuf pBody, ByteBuf dBody, Stopwatch watch) {
       this.rpcType = rpcType;
       this.coordinationId = coordinationId;
       this.pBody = pBody;
       this.dBody = dBody;
+      this.watch = watch;
 
       if(pBody != null){
         pBody.retain();
@@ -377,6 +386,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     }
 
     public void run(){
+      long wait = watch.elapsed(TimeUnit.MILLISECONDS); watch.reset().start();
       try {
         MessageLite m = getResponseDefaultInstance(rpcType);
         assert rpcConfig.checkReceive(rpcType, m.getClass());
@@ -396,6 +406,10 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
         if(dBody != null){
           dBody.release();
+        }
+        if (Thread.currentThread().getName().startsWith("CONTROL")) {
+          logger.debug(String.format("Wait time: %05d ms Run time: %05d ms RESPONSE: %d\n", wait,
+            watch.elapsed(TimeUnit.MILLISECONDS), rpcType));
         }
       }
     }
