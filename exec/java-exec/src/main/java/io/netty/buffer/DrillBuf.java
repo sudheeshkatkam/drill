@@ -339,7 +339,7 @@ public final class DrillBuf extends AbstractByteBuf implements AutoCloseable {
   }
 
   @Override
-  public ByteBuf slice() {
+  public DrillBuf slice() {
     return slice(readerIndex(), readableBytes());
   }
 

@@ -332,8 +332,10 @@ public class FragmentExecutor implements Runnable {
 
 
   private void closeOutResources() {
+    // make sure all messages have been sent.
+    fragmentContext.waitForSendComplete();
 
-    // first close the operators and release all memory.
+    // close the operators and release all memory.
     try {
       // Say executor was cancelled before setup. Now when executor actually runs, root is not initialized, but this
       // method is called in finally. So root can be null.
@@ -344,7 +346,7 @@ public class FragmentExecutor implements Runnable {
       fail(e);
     }
 
-    // then close the fragment context.
+    // then close the fragment context (which includes allocators).
     fragmentContext.close();
 
   }
