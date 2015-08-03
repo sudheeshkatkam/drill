@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.work.foreman;
 
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
@@ -116,6 +117,7 @@ public class Foreman implements Runnable {
   private static final long RPC_WAIT_IN_MSECS_PER_FRAGMENT = 5000;
 
   private final QueryId queryId;
+  private final String queryIdString;
   private final RunQuery queryRequest;
   private final QueryContext queryContext;
   private final QueryManager queryManager; // handles lower-level details of query execution
@@ -150,6 +152,7 @@ public class Foreman implements Runnable {
       final UserClientConnection connection, final QueryId queryId, final RunQuery queryRequest) {
     this.bee = bee;
     this.queryId = queryId;
+    queryIdString = QueryIdHelper.getQueryId(queryId);
     this.queryRequest = queryRequest;
     this.drillbitContext = drillbitContext;
 
@@ -695,7 +698,7 @@ public class Foreman implements Runnable {
       Preconditions.checkState(!isClosed);
       Preconditions.checkState(resultState != null);
 
-      logger.info("foreman cleaning up.");
+      logger.debug(queryIdString + ": foreman cleaning up.");
       injector.injectPause(queryContext.getExecutionControls(), "foreman-cleanup", logger);
 
       // remove the channel disconnected listener (doesn't throw)
@@ -740,8 +743,10 @@ public class Foreman implements Runnable {
         uex = null;
       }
 
+      Stopwatch stopwatch = new Stopwatch().start();
       // we store the final result here so we can capture any error/errorId in the profile for later debugging.
       queryManager.writeFinalProfile(uex);
+      logger.debug(queryIdString + "time to write profile (ms): " + stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
       /*
        * If sending the result fails, we don't really have any way to modify the result we tried to send;
@@ -785,16 +790,19 @@ public class Foreman implements Runnable {
 
     @Override
     protected void processEvent(final StateEvent event) {
+      Stopwatch stopwatch = new Stopwatch();
       final QueryState newState = event.newState;
       final Exception exception = event.exception;
 
+      stopwatch.start();
       // TODO Auto-generated method stub
-      logger.info("State change requested.  {} --> {}", state, newState,
-          exception);
+      logger.debug(queryIdString + ": state change requested {} --> {}", state, newState,
+        exception);
       switch (state) {
       case PENDING:
         if (newState == QueryState.RUNNING) {
           recordNewState(QueryState.RUNNING);
+          logger.debug(queryIdString + ": transition took " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms.");
           return;
         }
 
@@ -818,6 +826,7 @@ public class Foreman implements Runnable {
            * acknowledgements, which happens below in the case for current state
            * == CANCELLATION_REQUESTED.
            */
+          logger.debug(queryIdString + ": transition took " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms.");
           return;
         }
 
@@ -827,6 +836,7 @@ public class Foreman implements Runnable {
           recordNewState(QueryState.COMPLETED);
           foremanResult.setCompleted(QueryState.COMPLETED);
           foremanResult.close();
+          logger.debug(queryIdString + ": transition took " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms.");
           return;
         }
 
@@ -837,6 +847,7 @@ public class Foreman implements Runnable {
           queryManager.cancelExecutingFragments(drillbitContext);
           foremanResult.setFailed(exception);
           foremanResult.close();
+          logger.debug(queryIdString + ": transition took " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms.");
           return;
         }
 
@@ -864,6 +875,7 @@ public class Foreman implements Runnable {
            */
           foremanResult.close();
         }
+        logger.debug(queryIdString + ": transition took " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms.");
         return;
 
       case CANCELED:

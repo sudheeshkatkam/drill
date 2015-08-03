@@ -196,7 +196,7 @@ public class FragmentExecutor implements Runnable {
   public void receivingFragmentFinished(final FragmentHandle handle) {
     acceptExternalEvents.awaitUninterruptibly();
     if (root != null) {
-      logger.info("Applying request for early sender termination for {} -> {}.",
+      logger.debug("Applying request for early sender termination for {} -> {}.",
           QueryIdHelper.getFragmentId(this.getContext().getHandle()), QueryIdHelper.getFragmentId(handle));
       root.receivingFragmentFinished(handle);
     } else {
@@ -360,7 +360,7 @@ public class FragmentExecutor implements Runnable {
 
   private synchronized boolean updateState(FragmentState target) {
     final FragmentState current = fragmentState.get();
-    logger.info(fragmentName + ": State change requested {} --> {}", current, target);
+    logger.debug(fragmentName + ": State change requested {} --> {}", current, target);
     switch (target) {
     case CANCELLATION_REQUESTED:
       switch (current) {

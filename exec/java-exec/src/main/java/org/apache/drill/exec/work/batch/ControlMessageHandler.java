@@ -18,6 +18,8 @@
 package org.apache.drill.exec.work.batch;
 
 import static org.apache.drill.exec.rpc.RpcBus.get;
+
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 
 import org.apache.drill.exec.ops.FragmentContext;
@@ -47,8 +49,7 @@ import org.apache.drill.exec.work.fragment.FragmentManager;
 import org.apache.drill.exec.work.fragment.FragmentStatusReporter;
 import org.apache.drill.exec.work.fragment.NonRootFragmentManager;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.util.concurrent.TimeUnit;
 
 public class ControlMessageHandler {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControlMessageHandler.class);
@@ -64,62 +65,67 @@ public class ControlMessageHandler {
       logger.debug("Received bit com message of type {}", rpcType);
     }
 
-    switch (rpcType) {
+    Stopwatch stopwatch = new Stopwatch().start();
+    try {
+      switch (rpcType) {
 
-    case RpcType.REQ_CANCEL_FRAGMENT_VALUE: {
-      final FragmentHandle handle = get(pBody, FragmentHandle.PARSER);
-      cancelFragment(handle);
-      return ControlRpcConfig.OK;
-    }
-
-    case RpcType.REQ_RECEIVER_FINISHED_VALUE: {
-      final FinishedReceiver finishedReceiver = get(pBody, FinishedReceiver.PARSER);
-      receivingFragmentFinished(finishedReceiver);
-      return ControlRpcConfig.OK;
-    }
-
-    case RpcType.REQ_FRAGMENT_STATUS_VALUE:
-      bee.getContext().getWorkBus().statusUpdate( get(pBody, FragmentStatus.PARSER));
-      // TODO: Support a type of message that has no response.
-      return ControlRpcConfig.OK;
-
-    case RpcType.REQ_QUERY_CANCEL_VALUE: {
-      final QueryId queryId = get(pBody, QueryId.PARSER);
-      final Foreman foreman = bee.getForemanForQueryId(queryId);
-      if (foreman != null) {
-        foreman.cancel();
+      case RpcType.REQ_CANCEL_FRAGMENT_VALUE: {
+        final FragmentHandle handle = get(pBody, FragmentHandle.PARSER);
+        cancelFragment(handle);
         return ControlRpcConfig.OK;
-      } else {
-        return ControlRpcConfig.FAIL;
       }
-    }
 
-    case RpcType.REQ_INITIALIZE_FRAGMENTS_VALUE: {
-      final InitializeFragments fragments = get(pBody, InitializeFragments.PARSER);
-      for(int i = 0; i < fragments.getFragmentCount(); i++) {
-        startNewRemoteFragment(fragments.getFragment(i));
+      case RpcType.REQ_RECEIVER_FINISHED_VALUE: {
+        final FinishedReceiver finishedReceiver = get(pBody, FinishedReceiver.PARSER);
+        receivingFragmentFinished(finishedReceiver);
+        return ControlRpcConfig.OK;
       }
-      return ControlRpcConfig.OK;
-    }
 
-    case RpcType.REQ_QUERY_STATUS_VALUE: {
-      final QueryId queryId = get(pBody, QueryId.PARSER);
-      final Foreman foreman = bee.getForemanForQueryId(queryId);
-      if (foreman == null) {
-        throw new RpcException("Query not running on node.");
+      case RpcType.REQ_FRAGMENT_STATUS_VALUE:
+        bee.getContext().getWorkBus().statusUpdate(get(pBody, FragmentStatus.PARSER));
+        // TODO: Support a type of message that has no response.
+        return ControlRpcConfig.OK;
+
+      case RpcType.REQ_QUERY_CANCEL_VALUE: {
+        final QueryId queryId = get(pBody, QueryId.PARSER);
+        final Foreman foreman = bee.getForemanForQueryId(queryId);
+        if (foreman != null) {
+          foreman.cancel();
+          return ControlRpcConfig.OK;
+        } else {
+          return ControlRpcConfig.FAIL;
+        }
       }
-      final QueryProfile profile = foreman.getQueryManager().getQueryProfile();
-      return new Response(RpcType.RESP_QUERY_STATUS, profile);
-    }
 
-    case RpcType.REQ_UNPAUSE_FRAGMENT_VALUE: {
-      final FragmentHandle handle = get(pBody, FragmentHandle.PARSER);
-      resumeFragment(handle);
-      return ControlRpcConfig.OK;
-    }
+      case RpcType.REQ_INITIALIZE_FRAGMENTS_VALUE: {
+        final InitializeFragments fragments = get(pBody, InitializeFragments.PARSER);
+        for (int i = 0; i < fragments.getFragmentCount(); i++) {
+          startNewRemoteFragment(fragments.getFragment(i));
+        }
+        return ControlRpcConfig.OK;
+      }
 
-    default:
-      throw new RpcException("Not yet supported.");
+      case RpcType.REQ_QUERY_STATUS_VALUE: {
+        final QueryId queryId = get(pBody, QueryId.PARSER);
+        final Foreman foreman = bee.getForemanForQueryId(queryId);
+        if (foreman == null) {
+          throw new RpcException("Query not running on node.");
+        }
+        final QueryProfile profile = foreman.getQueryManager().getQueryProfile();
+        return new Response(RpcType.RESP_QUERY_STATUS, profile);
+      }
+
+      case RpcType.REQ_UNPAUSE_FRAGMENT_VALUE: {
+        final FragmentHandle handle = get(pBody, FragmentHandle.PARSER);
+        resumeFragment(handle);
+        return ControlRpcConfig.OK;
+      }
+
+      default:
+        throw new RpcException("Not yet supported.");
+      }
+    } finally {
+      logger.debug("Took " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms to process request of type " + rpcType);
     }
   }
 
