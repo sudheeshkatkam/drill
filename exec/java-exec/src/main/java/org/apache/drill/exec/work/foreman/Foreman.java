@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.work.foreman;
 
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.Future;
@@ -695,7 +696,8 @@ public class Foreman implements Runnable {
       Preconditions.checkState(!isClosed);
       Preconditions.checkState(resultState != null);
 
-      logger.info("foreman cleaning up.");
+      logger.info(QueryIdHelper.getQueryId(queryId) + ": foreman cleaning up.");
+      Stopwatch stopwatch = new Stopwatch().start();
       injector.injectPause(queryContext.getExecutionControls(), "foreman-cleanup", logger);
 
       // remove the channel disconnected listener (doesn't throw)
@@ -725,6 +727,8 @@ public class Foreman implements Runnable {
         });
       }
 
+      long t1 = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+      stopwatch.reset().start();
       /*
        * Construct the response based on the latest resultState. The builder shouldn't fail.
        */
@@ -743,6 +747,8 @@ public class Foreman implements Runnable {
       // we store the final result here so we can capture any error/errorId in the profile for later debugging.
       queryManager.writeFinalProfile(uex);
 
+      long t2 = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+      stopwatch.reset().start();
       /*
        * If sending the result fails, we don't really have any way to modify the result we tried to send;
        * it is possible it got sent but the result came from a later part of the code path. It is also
@@ -765,6 +771,9 @@ public class Foreman implements Runnable {
       } finally {
         isClosed = true;
       }
+      long t3 = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+      logger.info(String.format("Query: %s state cleanup: %5d profile writing: %5d result : %5d",
+        QueryIdHelper.getQueryId(queryId), t1, t2, t3));
     }
   }
 
@@ -790,7 +799,7 @@ public class Foreman implements Runnable {
 
       // TODO Auto-generated method stub
       logger.info("State change requested.  {} --> {}", state, newState,
-          exception);
+        exception);
       switch (state) {
       case PENDING:
         if (newState == QueryState.RUNNING) {
