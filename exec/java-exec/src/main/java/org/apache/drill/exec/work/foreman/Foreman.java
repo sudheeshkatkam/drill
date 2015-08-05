@@ -196,6 +196,7 @@ public class Foreman implements Runnable {
    */
   public void cancel() {
     // Note this can be called from outside of run() on another thread, or after run() completes
+    logger.info("Query: " + QueryIdHelper.getQueryId(queryId) + " is being cancelled.");
     stateListener.moveToState(QueryState.CANCELLATION_REQUESTED, null);
   }
 
@@ -798,7 +799,7 @@ public class Foreman implements Runnable {
       final Exception exception = event.exception;
 
       // TODO Auto-generated method stub
-      logger.info("State change requested.  {} --> {}", state, newState,
+      logger.info(QueryIdHelper.getQueryId(queryId) + ": state change requested.  {} --> {}", state, newState,
         exception);
       switch (state) {
       case PENDING:

@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.rpc.control;
 
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.socket.SocketChannel;
@@ -58,7 +59,10 @@ public class ControlServer extends BasicServer<RpcType, ControlConnection>{
 
   @Override
   protected Response handle(ControlConnection connection, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException {
-    return handler.handle(connection, rpcType, pBody, dBody);
+    Stopwatch stopwatch = new Stopwatch().start();
+    final Response response = handler.handle(connection, rpcType, pBody, dBody);
+    logger.info("Queue size: " + queue.size() + " took: " + stopwatch + " for rpc type: " + rpcType);
+    return response;
   }
 
   @Override
