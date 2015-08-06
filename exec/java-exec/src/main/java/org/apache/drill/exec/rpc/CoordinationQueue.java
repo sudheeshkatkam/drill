@@ -53,8 +53,8 @@ public class CoordinationQueue {
     }
   }
 
-  public long size() {
-  return map.keySet().size();
+  public int size() {
+    return map.size();
   }
 
   public <V> ChannelListenerWithCoordinationId get(RpcOutcomeListener<V> handler, Class<V> clazz, RemoteConnection connection) {

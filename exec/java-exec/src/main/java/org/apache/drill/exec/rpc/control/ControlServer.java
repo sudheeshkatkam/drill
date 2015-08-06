@@ -61,7 +61,8 @@ public class ControlServer extends BasicServer<RpcType, ControlConnection>{
   protected Response handle(ControlConnection connection, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException {
     Stopwatch stopwatch = new Stopwatch().start();
     final Response response = handler.handle(connection, rpcType, pBody, dBody);
-    logger.info("Queue size: " + queue.size() + " took: " + stopwatch + " for rpc type: " + rpcType);
+    logger.info("Queue size: " + queue.size() + " took: " + stopwatch + " for rpc type: " + rpcType + " hashcode: " +
+      (pBody != null ? pBody.hashCode() : null));
     return response;
   }
 

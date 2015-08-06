@@ -230,6 +230,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
           try {
             ResponseSender sender = new ResponseSenderImpl(connection, msg.coordinationId);
+            logger.info("Coordination id: " + msg.coordinationId + " hashcode: " + (msg.pBody != null ? msg.pBody.hashCode() : null));
             handle(connection, msg.rpcType, msg.pBody, msg.dBody, sender);
           } catch (UserRpcException e) {
             UserException uex = UserException.systemError(e).addIdentity(e.getEndpoint()).build(logger);
@@ -257,6 +258,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
             MessageLite m = getResponseDefaultInstance(msg.rpcType);
             assert rpcConfig.checkReceive(msg.rpcType, m.getClass());
             RpcOutcome<?> rpcFuture = queue.getFuture(msg.rpcType, msg.coordinationId, m.getClass());
+            logger.info("Coordination id: " + msg.coordinationId + " hashcode: " + (msg.pBody != null ? msg.pBody.hashCode() : null));
             Parser<?> parser = m.getParserForType();
             Object value = parser.parseFrom(new ByteBufInputStream(msg.pBody, msg.pBody.readableBytes()));
             rpcFuture.set(value, msg.dBody);
