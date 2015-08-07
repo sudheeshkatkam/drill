@@ -116,6 +116,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       Preconditions.checkNotNull(protobufBody);
       ChannelListenerWithCoordinationId futureListener = queue.get(listener, clazz, connection);
       OutboundRpcMessage m = new OutboundRpcMessage(RpcMode.REQUEST, rpcType, futureListener.getCoordinationId(), protobufBody, dataBodies);
+      logger.info("Sending message of rpc type: "+ rpcType + " coordination id: " + futureListener.getCoordinationId());
       ChannelFuture channelFuture = connection.getChannel().writeAndFlush(m);
       channelFuture.addListener(futureListener);
       channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);

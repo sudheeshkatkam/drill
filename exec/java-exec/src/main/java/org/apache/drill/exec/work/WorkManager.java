@@ -108,7 +108,8 @@ public class WorkManager implements AutoCloseable {
             @Override
             protected void afterExecute(final Runnable r, final Throwable t) {
               if(t != null){
-                logger.error("{}.run() leaked an exception.", r.getClass().getName(), t);
+                logger.error("{}.run() leaked an exception.\nMessage: {}\nLocalized message: {}\nCause: {}",
+                  r.getClass().getName(), t.getMessage(), t.getLocalizedMessage(), t.getCause());
               }
               super.afterExecute(r, t);
             }

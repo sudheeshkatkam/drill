@@ -1106,6 +1106,8 @@ public class Foreman implements Runnable {
     private final CountDownLatch latch;
     private final FragmentSubmitFailures fragmentSubmitFailures;
 
+    private final Stopwatch stopwatch;
+    private final DrillbitEndpoint endpoint;
     /**
      * Constructor.
      *
@@ -1118,6 +1120,8 @@ public class Foreman implements Runnable {
         final CountDownLatch latch, final FragmentSubmitFailures fragmentSubmitFailures) {
       super(endpoint, value);
       Preconditions.checkState((latch == null) == (fragmentSubmitFailures == null));
+      this.stopwatch = new Stopwatch().start();
+      this.endpoint = endpoint;
       this.latch = latch;
       this.fragmentSubmitFailures = fragmentSubmitFailures;
     }
@@ -1127,6 +1131,9 @@ public class Foreman implements Runnable {
       if (latch != null) {
         latch.countDown();
       }
+      logger.info(QueryIdHelper.getQueryId(queryId) + " success." +
+        " count: " + value.getFragmentCount() + " endpoint: " + endpoint.getAddress() +
+        " time: " + stopwatch);
     }
 
     @Override
@@ -1139,6 +1146,9 @@ public class Foreman implements Runnable {
         logger.debug("Failure while sending fragment.  Stopping query.", ex);
         stateListener.moveToState(QueryState.FAILED, ex);
       }
+      logger.info(QueryIdHelper.getQueryId(queryId) + " fail." +
+        " count: " + value.getFragmentCount() + " endpoint: " + endpoint.getAddress() +
+        " time: " + stopwatch);
     }
 
     @Override

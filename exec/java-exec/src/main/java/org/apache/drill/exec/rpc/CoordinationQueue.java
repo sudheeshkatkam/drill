@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.rpc;
 
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 
@@ -73,6 +74,7 @@ public class CoordinationQueue {
     final Class<T> clazz;
     final int coordinationId;
     final RemoteConnection connection;
+    final Stopwatch stopwatch;
 
     public RpcListener(RpcOutcomeListener<T> handler, Class<T> clazz, int coordinationId, RemoteConnection connection) {
       super();
@@ -80,6 +82,7 @@ public class CoordinationQueue {
       this.clazz = clazz;
       this.coordinationId = coordinationId;
       this.connection = connection;
+      stopwatch = new Stopwatch().start();
     }
 
     @Override
@@ -99,6 +102,11 @@ public class CoordinationQueue {
     @Override
     public void set(Object value, ByteBuf buffer) {
       assert clazz.isAssignableFrom(value.getClass());
+      logger.info("Notifying handler for: " + coordinationId +
+        " client name: " + connection.getName() +
+        " remote: " + connection.getChannel().remoteAddress() +
+        " local: " + connection.getChannel().localAddress() +
+        " took: " + stopwatch);
       handler.success( (T) value, buffer);
     }
 
