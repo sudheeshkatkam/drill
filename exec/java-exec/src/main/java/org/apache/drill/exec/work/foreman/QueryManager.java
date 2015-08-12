@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.exceptions.UserRemoteException;
+import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.proto.BitControl.FragmentStatus;
 import org.apache.drill.exec.proto.BitControl.PlanFragment;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
@@ -302,11 +303,13 @@ public class QueryManager {
   }
 
   void writeFinalProfile(UserException ex) {
-    try {
-      // TODO(DRILL-2362) when do these ever get deleted?
-      profilePStore.put(stringQueryId, getQueryProfile(ex));
-    } catch (Exception e) {
-      logger.error("Failure while storing Query Profile", e);
+    if (foreman.getQueryContext().getOptions().getOption(ExecConstants.ENABLE_PROFILE_WRITING_VALIDATOR)) {
+      try {
+        // TODO(DRILL-2362) when do these ever get deleted?
+        profilePStore.put(stringQueryId, getQueryProfile(ex));
+      } catch (Exception e) {
+        logger.error("Failure while storing Query Profile", e);
+      }
     }
   }
 

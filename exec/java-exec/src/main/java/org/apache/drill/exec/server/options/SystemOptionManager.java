@@ -114,7 +114,8 @@ public class SystemOptionManager extends BaseOptionManager {
       ExecConstants.ENABLE_VERBOSE_ERRORS,
       ExecConstants.ENABLE_WINDOW_FUNCTIONS_VALIDATOR,
       ClassTransformer.SCALAR_REPLACEMENT_VALIDATOR,
-      ExecConstants.ENABLE_NEW_TEXT_READER
+      ExecConstants.ENABLE_NEW_TEXT_READER,
+      ExecConstants.ENABLE_PROFILE_WRITING_VALIDATOR
     );
     if (AssertionUtil.isAssertionsEnabled()) {
       builder.add(ExecConstants.DRILLBIT_CONTROLS_VALIDATOR);

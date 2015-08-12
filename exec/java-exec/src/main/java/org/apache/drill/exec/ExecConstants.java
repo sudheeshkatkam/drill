@@ -254,4 +254,7 @@ public interface ExecConstants {
 
   public static final String CTAS_PARTITIONING_HASH_DISTRIBUTE = "store.partition.hash_distribute";
   public static final BooleanValidator CTAS_PARTITIONING_HASH_DISTRIBUTE_VALIDATOR = new BooleanValidator(CTAS_PARTITIONING_HASH_DISTRIBUTE, false);
+
+  public static final String ENABLE_PROFILE_WRITING = "exec.metrics.profile.enabled";
+  public static final BooleanValidator ENABLE_PROFILE_WRITING_VALIDATOR = new BooleanValidator(ENABLE_PROFILE_WRITING, false);
 }
