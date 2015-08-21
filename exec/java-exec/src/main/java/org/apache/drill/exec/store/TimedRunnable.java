@@ -133,20 +133,22 @@ public abstract class TimedRunnable<V> implements Runnable {
         if (!latch.awaitUninterruptibly(timeout)) {
           // Issue a shutdown request. This will cause existing threads to interrupt and pending threads to cancel.
           // It is highly important that the task Runnables are handling interrupts correctly.
-          threadPool.shutdownNow();
+          final List<Runnable> neverStartedList = threadPool.shutdownNow();
 
+          boolean terminated = false;
           try {
             // Wait for 5s for currently running threads to terminate. Above call (threadPool.shutdownNow()) interrupts
             // any running threads. If the runnables are handling the interrupts properly they should be able to
             // wrap up and terminate. If not waiting for 5s here gives a chance to identify and log any potential
             // thread leaks.
-            threadPool.awaitTermination(5, TimeUnit.SECONDS);
+            terminated = threadPool.awaitTermination(5, TimeUnit.SECONDS);
           } catch (final InterruptedException e) {
             logger.warn("Interrupted while waiting for pending threads in activity '{}' to terminate.", activity);
           }
 
-          final String errMsg = String.format("Waited for %dms, but tasks for '%s' are not complete. " +
-              "Total runnable size %d, parallelism %d.", timeout, activity, runnables.size(), parallelism);
+          final String errMsg = String.format("Waited for %d ms, but tasks for '%s' are not complete. " +
+              "Total runnable size %d, parallelism %d. Number of tasks that never start: %d. %s.", timeout, activity,
+            runnables.size(), parallelism, neverStartedList.size(), terminated ? "Terminated gracefully." : "Terminated due to timeout.");
           logger.error(errMsg);
           throw UserException.resourceError()
               .message(errMsg)
