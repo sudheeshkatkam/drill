@@ -187,9 +187,10 @@ public abstract class TimedRunnable<V> implements Runnable {
         sum += reader.getTimeSpentNanos();
         count++;
         max = Math.max(max, reader.getTimeSpentNanos());
-        earliestStart = Math.min(earliestStart, reader.getThreadStart() - timedRunnableStart);
-        latestStart = Math.max(latestStart, reader.getThreadStart() - timedRunnableStart);
-        totalStart += latestStart = Math.max(latestStart, reader.getThreadStart() - timedRunnableStart);
+        final long startTime = reader.getThreadStart() - timedRunnableStart;
+        earliestStart = Math.min(earliestStart, startTime);
+        latestStart = Math.max(latestStart, startTime);
+        totalStart += startTime;
       } catch (IOException e) {
         if (excep == null) {
           excep = e;
