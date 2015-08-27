@@ -489,7 +489,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-handler</artifactId>
-      <version>4.0.27.Final</version>
+      <version>4.0.28.Final</version>
     </dependency>
 
     <dependency>
