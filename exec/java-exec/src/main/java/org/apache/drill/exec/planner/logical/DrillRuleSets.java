@@ -132,7 +132,8 @@ public class DrillRuleSets {
       DrillPushProjectPastFilterRule.INSTANCE,
       DrillPushProjectPastJoinRule.INSTANCE,
       DrillPushProjIntoScan.INSTANCE,
-      DrillProjectSetOpTransposeRule.INSTANCE,
+      // TODO(DRILL-3257): Enable this rule after resolving the issue.
+      // DrillProjectSetOpTransposeRule.INSTANCE,
 
       /*
        Convert from Calcite Logical to Drill Logical Rules.
