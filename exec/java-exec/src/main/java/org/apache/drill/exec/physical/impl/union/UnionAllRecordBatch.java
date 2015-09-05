@@ -306,6 +306,10 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
           case OUT_OF_MEMORY:
             return iterLeft;
 
+          // Although the first record batch from any input of Union should not be NONE,
+          // there are other Relational Operators which do not follow this protocol
+          // Thus, this case would not be removed until all those are fixed
+          // TODO: Remove this case after other relational operators follow IterOutcome's Protocol
           case NONE:
             throw new SchemaChangeException("The left input of Union-All should not come from an empty data source");
 
@@ -319,9 +323,28 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
             // Unless there is no record batch on the left side of the inputs,
             // always start processing from the left side
             unionAllRecordBatch.setCurrentRecordBatch(leftSide.getRecordBatch());
-            inferOutputFields();
+
+            // If the record count of the first batch from right input is equal to zero,
+            // there are two possibilities:
+            // (1). The right side is an empty file
+            // (2). There are more records carried by the latter batches
+            if(rightSide.getRecordBatch().getRecordCount() == 0) {
+              iterRight = rightSide.nextBatch();
+
+              // Case (1): The right side is an empty file
+              if(iterRight == IterOutcome.NONE) {
+                inferOutputFieldsFromLeftSide();
+                rightIsFinish = true;
+              // Case 2): There are more records carried by the latter batches
+              } else {
+                inferOutputFields();
+              }
+            } else {
+              inferOutputFields();
+            }
             break;
 
+          // TODO: Remove this case after other relational operators follow IterOutcome's Protocol
           case NONE:
             // If the right input side comes from an empty data source,
             // use the left input side's schema directly
@@ -387,7 +410,7 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
               return upstream;
 
             default:
-              throw new SchemaChangeException("Schema change detected in the left input of Union-All. This is not currently supported");
+              throw new IllegalStateException(String.format("Unknown state %s.", iterOutcome));
           }
         } else {
           IterOutcome iterOutcome = leftSide.nextBatch();
