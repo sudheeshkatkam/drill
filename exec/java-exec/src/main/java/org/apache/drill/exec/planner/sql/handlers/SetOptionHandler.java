@@ -17,15 +17,13 @@
  */
 package org.apache.drill.exec.planner.sql.handlers;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 
 import org.apache.calcite.util.NlsString;
-import org.apache.drill.common.exceptions.ExpressionParsingException;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.ops.QueryContext;
@@ -49,45 +47,67 @@ public class SetOptionHandler extends AbstractSqlHandler {
   }
 
   @Override
-  public PhysicalPlan getPlan(SqlNode sqlNode) throws ValidationException, RelConversionException, IOException, ForemanSetupException {
+  public PhysicalPlan getPlan(SqlNode sqlNode) throws ValidationException, ForemanSetupException {
     final SqlSetOption option = unwrap(sqlNode, SqlSetOption.class);
-    final String scope = option.getScope();
-    final String name = option.getName();
     final SqlNode value = option.getValue();
-    OptionValue.OptionType type;
-    if (value instanceof SqlLiteral) {
+    if (value != null && !(value instanceof SqlLiteral)) {
+      throw UserException.validationError()
+          .message("Drill does not support assigning non-literal values in SET statements.")
+          .build(logger);
+    }
+
+    final String scope = option.getScope();
+    final OptionValue.OptionType type;
+    if (scope == null) { // No scope mentioned assumed SESSION
+      type = OptionType.SESSION;
+    } else {
       switch (scope.toLowerCase()) {
-        case "session":
-          type = OptionValue.OptionType.SESSION;
-          break;
-        case "system":
-          type = OptionValue.OptionType.SYSTEM;
-          break;
-//        case "query":
-//          type = OptionValue.OptionType.QUERY;
-//          break;
-        default:
-          throw new ValidationException("Invalid OPTION scope. Scope must be SESSION or SYSTEM.");
+      case "session":
+        type = OptionType.SESSION;
+        break;
+      case "system":
+        type = OptionType.SYSTEM;
+        break;
+      default:
+        throw UserException.validationError()
+            .message("Invalid OPTION scope %s. Scope must be SESSION or SYSTEM.", scope)
+            .build(logger);
       }
+    }
 
-      if (type == OptionType.SYSTEM) {
-        // If the user authentication is enabled, make sure the user who is trying to change the system option has
-        // administrative privileges.
-        if (context.isUserAuthenticationEnabled() &&
-            !ImpersonationUtil.hasAdminPrivileges(
-                context.getQueryUserName(),
-                context.getOptions().getOption(ExecConstants.ADMIN_USERS_KEY).string_val,
-                context.getOptions().getOption(ExecConstants.ADMIN_USER_GROUPS_KEY).string_val)) {
-          throw UserException.permissionError()
-              .message("Not authorized to change SYSTEM options.")
-              .build(logger);
-        }
+    if (type == OptionType.SYSTEM) {
+      // If the user authentication is enabled, make sure the user who is trying to change the system option has
+      // administrative privileges.
+      if (context.isUserAuthenticationEnabled() &&
+          !ImpersonationUtil.hasAdminPrivileges(
+            context.getQueryUserName(),
+            context.getOptions().getOption(ExecConstants.ADMIN_USERS_KEY).string_val,
+            context.getOptions().getOption(ExecConstants.ADMIN_USER_GROUPS_KEY).string_val)) {
+        throw UserException.permissionError()
+            .message("Not authorized to change SYSTEM options.")
+            .build(logger);
       }
+    }
 
+    // Currently, we use one part identifiers.
+    final SqlIdentifier nameIdentifier = option.getName();
+    if (!nameIdentifier.isSimple()) {
+      throw UserException.validationError()
+        .message("Drill does not support multi-part identifier for an option name (%s).",
+          nameIdentifier.toString())
+        .build(logger);
+    }
+
+    final String name = nameIdentifier.getSimple();
+    if (value != null) { // SET option
       final OptionValue optionValue = createOptionValue(name, type, (SqlLiteral) value);
       context.getOptions().setOption(optionValue);
-    }else{
-      throw new ValidationException("Sql options can only be literals.");
+    } else { // RESET option
+      if ("ALL".equals(name)) {
+        context.getOptions().deleteAllOptions(type);
+      } else {
+        context.getOptions().deleteOption(name, type);
+      }
     }
 
     return DirectPlan.createDirectPlan(context, true, String.format("%s updated.", name));
@@ -126,8 +146,9 @@ public class SetOptionHandler extends AbstractSqlHandler {
       return OptionValue.createBoolean(type, name, (Boolean) object);
 
     default:
-      throw new ExpressionParsingException(String.format(
-        "Drill doesn't support set option expressions with literals of type %s.", typeName));
+      throw UserException.validationError()
+        .message("Drill doesn't support assigning literals of type %s in SET statements.", typeName)
+        .build(logger);
     }
   }
 }

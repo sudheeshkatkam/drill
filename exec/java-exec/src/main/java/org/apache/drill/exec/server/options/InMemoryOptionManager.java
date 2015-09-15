@@ -17,6 +17,8 @@
  */
 package org.apache.drill.exec.server.options;
 
+import org.apache.drill.common.exceptions.UserException;
+
 import java.util.Map;
 
 /**
@@ -25,13 +27,27 @@ import java.util.Map;
  * (see {@link #options}) whereas {@link SystemOptionManager} stores options in a persistent store.
  */
 public abstract class InMemoryOptionManager extends FallbackOptionManager {
-//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InMemoryOptionManager.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InMemoryOptionManager.class);
 
   protected final Map<String, OptionValue> options;
 
   InMemoryOptionManager(final OptionManager fallback, final Map<String, OptionValue> options) {
     super(fallback);
     this.options = options;
+  }
+
+  @Override
+  public void deleteOption(final String name, final OptionValue.OptionType type) {
+    throw UserException.unsupportedError()
+      .message("This manager does not support deleting an option.")
+      .build(logger);
+  }
+
+  @Override
+  public void deleteAllOptions(final OptionValue.OptionType type) {
+    throw UserException.unsupportedError()
+      .message("This manager does not support deleting options.")
+      .build(logger);
   }
 
   @Override

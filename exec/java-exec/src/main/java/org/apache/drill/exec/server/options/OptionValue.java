@@ -27,11 +27,11 @@ import com.google.common.base.Preconditions;
 @JsonInclude(Include.NON_NULL)
 public class OptionValue implements Comparable<OptionValue> {
 
-  public static enum OptionType {
+  public enum OptionType {
     BOOT, SYSTEM, SESSION, QUERY
   }
 
-  public static enum Kind {
+  public enum Kind {
     BOOLEAN, LONG, STRING, DOUBLE
   }
 

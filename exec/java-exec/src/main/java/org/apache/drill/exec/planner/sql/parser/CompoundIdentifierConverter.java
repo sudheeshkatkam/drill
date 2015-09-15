@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 
@@ -75,6 +76,7 @@ public class CompoundIdentifierConverter extends SqlShuttle {
       rewriteTypes = REWRITE_RULES.get(call.getClass());
     }
 
+    @Override
     public SqlNode result() {
       if (update) {
         return call.getOperator().createCall(
@@ -86,6 +88,7 @@ public class CompoundIdentifierConverter extends SqlShuttle {
       }
     }
 
+    @Override
     public SqlNode visitChild(
         SqlVisitor<SqlNode> visitor,
         SqlNode expr,
@@ -107,7 +110,7 @@ public class CompoundIdentifierConverter extends SqlShuttle {
       }
       SqlNode newOperand = operand.accept(CompoundIdentifierConverter.this);
       enableComplex = localEnableComplex;
-      if (newOperand != operand) {
+      if (! newOperand.equalsDeep(operand, false)) {
         update = true;
       }
       clonedOperands[i] = newOperand;
@@ -161,6 +164,7 @@ public class CompoundIdentifierConverter extends SqlShuttle {
     rules.put(SqlJoin.class, R(D, D, D, D, D, E));
     rules.put(SqlOrderBy.class, R(D, E, D, D));
     rules.put(SqlDropTable.class, R(D));
+    rules.put(SqlSetOption.class, R(D, D, D));
     REWRITE_RULES = ImmutableMap.copyOf(rules);
   }
 

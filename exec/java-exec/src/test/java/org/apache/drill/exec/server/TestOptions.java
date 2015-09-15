@@ -22,6 +22,8 @@ import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.test.UserExceptionMatcher;
 import org.junit.Test;
 
+import static org.apache.drill.exec.ExecConstants.ENABLE_VERBOSE_ERRORS_KEY;
+import static org.apache.drill.exec.ExecConstants.SLICE_TARGET;
 import static org.apache.drill.exec.proto.UserBitShared.DrillPBError.ErrorType.VALIDATION;
 
 public class TestOptions extends BaseTestQuery{
@@ -46,19 +48,124 @@ public class TestOptions extends BaseTestQuery{
   @Test
   public void checkValidationException() throws Exception {
     thrownException.expect(new UserExceptionMatcher(VALIDATION));
-    test(String.format("ALTER session SET `%s` = '%s';", ExecConstants.SLICE_TARGET, "fail"));
+    test("ALTER session SET `%s` = '%s';", SLICE_TARGET, "fail");
   }
 
   @Test // DRILL-3122
   public void checkChangedColumn() throws Exception {
-    test(String.format("ALTER session SET `%s` = %d;", ExecConstants.SLICE_TARGET,
+    test(String.format("ALTER session SET `%s` = %d;", SLICE_TARGET,
       ExecConstants.SLICE_TARGET_DEFAULT));
     testBuilder()
-        .sqlQuery(String.format("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SESSION'", ExecConstants.SLICE_TARGET))
+        .sqlQuery("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SESSION'", SLICE_TARGET)
         .unOrdered()
         .baselineColumns("status")
         .baselineValues("DEFAULT")
         .build()
         .run();
+  }
+
+  @Test
+  public void setAndResetSessionOption() throws Exception {
+    // check unchanged
+    testBuilder()
+      .sqlQuery("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SESSION'", SLICE_TARGET)
+      .unOrdered()
+      .expectsEmptyResultSet()
+      .build()
+      .run();
+
+    // change option
+    test("SET `%s` = %d;", SLICE_TARGET, 10);
+    // check changed
+    test("SELECT status, type, name FROM sys.options WHERE type = 'SESSION';");
+    testBuilder()
+      .sqlQuery("SELECT num_val FROM sys.options WHERE name = '%s' AND type = 'SESSION'", SLICE_TARGET)
+      .unOrdered()
+      .baselineColumns("num_val")
+      .baselineValues((long) 10)
+      .build()
+      .run();
+
+    // reset option
+    test("RESET `%s`;", SLICE_TARGET);
+    // check reverted
+    testBuilder()
+      .sqlQuery("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SESSION'", SLICE_TARGET)
+      .unOrdered()
+      .expectsEmptyResultSet()
+      .build()
+      .run();
+  }
+
+  @Test
+  public void setAndResetSystemOption() throws Exception {
+    // check unchanged
+    testBuilder()
+      .sqlQuery("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SYSTEM'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .baselineColumns("status")
+      .baselineValues("DEFAULT")
+      .build()
+      .run();
+
+    // change option
+    test("ALTER system SET `%s` = %b;", ENABLE_VERBOSE_ERRORS_KEY, true);
+    // check changed
+    testBuilder()
+      .sqlQuery("SELECT bool_val FROM sys.options WHERE name = '%s' AND type = 'SYSTEM'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .baselineColumns("bool_val")
+      .baselineValues(true)
+      .build()
+      .run();
+
+    // reset option
+    test("ALTER system RESET `%s`;", ENABLE_VERBOSE_ERRORS_KEY);
+    // check reverted
+    testBuilder()
+      .sqlQuery("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SYSTEM'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .baselineColumns("status")
+      .baselineValues("DEFAULT")
+      .build()
+      .run();
+  }
+
+  @Test
+  public void resetAllSessionOptions() throws Exception {
+    // change options
+    test("SET `%s` = %b;", ENABLE_VERBOSE_ERRORS_KEY, true);
+    // check changed
+    testBuilder()
+      .sqlQuery("SELECT bool_val FROM sys.options WHERE type = 'SESSION' AND name = '%s'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .baselineColumns("bool_val")
+      .baselineValues(true)
+      .build()
+      .run();
+
+    // reset all options
+    test("RESET ALL;");
+    // check no session options changed
+    testBuilder()
+      .sqlQuery("SELECT status FROM sys.options WHERE status <> 'DEFAULT' AND type = 'SESSION'")
+      .unOrdered()
+      .expectsEmptyResultSet()
+      .build()
+      .run();
+  }
+
+  @Test
+  public void unsupportedMultipartIdentifierValidation() throws Exception {
+    thrownException.expect(new UserExceptionMatcher(VALIDATION,
+      "Drill does not support multi-part identifier for an option name"));
+    test("ALTER session SET `drill`.`baby`.`drill` = 'yes';");
+  }
+
+  @Test
+  public void unsupportedLiteralValidation() throws Exception {
+    thrownException.expect(new UserExceptionMatcher(VALIDATION,
+      "Drill doesn't support assigning literals of type"));
+    test("ALTER session SET `%s` = DATE '1995-01-01';", ENABLE_VERBOSE_ERRORS_KEY);
   }
 }

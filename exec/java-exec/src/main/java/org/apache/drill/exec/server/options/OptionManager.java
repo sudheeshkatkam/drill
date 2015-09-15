@@ -17,6 +17,8 @@
  */
 package org.apache.drill.exec.server.options;
 
+import org.apache.drill.exec.server.options.OptionValue.OptionType;
+
 /**
  * Manager for Drill options. Implementations must be case-insensitive to the name of an option.
  */
@@ -31,7 +33,32 @@ public interface OptionManager extends Iterable<OptionValue> {
   void setOption(OptionValue value);
 
   /**
+   * Deletes the option. Unfortunately, the type is required given the fallback structure of option managers.
+   * See {@link FallbackOptionManager}.
+   *
+   * @param name option name
+   * @param type option type
+   * @throws org.apache.drill.common.exceptions.UserException message to describe error with value
+   */
+  void deleteOption(String name, OptionType type);
+
+  /**
+   * Deletes all options. Unfortunately, the type is required given the fallback structure of option managers.
+   * See {@link FallbackOptionManager}.
+   *
+   * @param type option type
+   * @throws org.apache.drill.common.exceptions.UserException message to describe error with value
+   */
+  void deleteAllOptions(OptionType type);
+
+  /**
    * Gets the option value for the given option name.
+   *
+   * This interface also provides convenient methods to get typed option values:
+   * {@link #getOption(TypeValidators.BooleanValidator validator)},
+   * {@link #getOption(TypeValidators.DoubleValidator validator)},
+   * {@link #getOption(TypeValidators.LongValidator validator)}, and
+   * {@link #getOption(TypeValidators.StringValidator validator)}.
    *
    * @param name option name
    * @return the option value, null if the option does not exist

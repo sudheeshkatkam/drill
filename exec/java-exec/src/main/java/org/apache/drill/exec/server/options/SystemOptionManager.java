@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.common.map.CaseInsensitiveMap;
@@ -238,6 +240,31 @@ public class SystemOptionManager extends BaseOptionManager {
       return; // if the option is not overridden, ignore setting option to default
     }
     options.put(name, value);
+  }
+
+  @Override
+  public void deleteOption(final String name, OptionType type) {
+    assert type == OptionType.SYSTEM;
+    try { // ensure option exists
+      getValidator(name);
+    } catch (final IllegalArgumentException e) {
+      throw UserException.validationError()
+        .message(e.getMessage())
+        .build(logger);
+    }
+    options.delete(name.toLowerCase());
+  }
+
+  @Override
+  public void deleteAllOptions(OptionType type) {
+    assert type == OptionType.SYSTEM;
+    final Set<String> names = Sets.newHashSet();
+    for (final Map.Entry<String, OptionValue> entry : options) {
+      names.add(entry.getKey());
+    }
+    for (final String name : names) {
+      options.delete(name); // should be lowercase
+    }
   }
 
   @Override
