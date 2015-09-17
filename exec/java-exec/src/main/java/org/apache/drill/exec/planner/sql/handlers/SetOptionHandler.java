@@ -37,6 +37,12 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
 
+/**
+ * Converts a {@link SqlNode} representing "ALTER .. SET option = value" and "ALTER ... RESET ..." statements to a
+ * {@link PhysicalPlan}. See {@link SqlSetOption}. These statements have side effects i.e. the options within the
+ * system context or the session context are modified. The resulting {@link DirectPlan} returns to the client a string
+ * that is the name of the option that was updated.
+ */
 public class SetOptionHandler extends AbstractSqlHandler {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SetOptionHandler.class);
 
@@ -103,7 +109,7 @@ public class SetOptionHandler extends AbstractSqlHandler {
       final OptionValue optionValue = createOptionValue(name, type, (SqlLiteral) value);
       context.getOptions().setOption(optionValue);
     } else { // RESET option
-      if ("ALL".equals(name)) {
+      if ("ALL".equalsIgnoreCase(name)) {
         context.getOptions().deleteAllOptions(type);
       } else {
         context.getOptions().deleteOption(name, type);

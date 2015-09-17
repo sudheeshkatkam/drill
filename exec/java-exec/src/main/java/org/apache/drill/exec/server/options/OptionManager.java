@@ -20,7 +20,7 @@ package org.apache.drill.exec.server.options;
 import org.apache.drill.exec.server.options.OptionValue.OptionType;
 
 /**
- * Manager for Drill options. Implementations must be case-insensitive to the name of an option.
+ * Manager for Drill {@link OptionValue options}. Implementations must be case-insensitive to the name of an option.
  */
 public interface OptionManager extends Iterable<OptionValue> {
 

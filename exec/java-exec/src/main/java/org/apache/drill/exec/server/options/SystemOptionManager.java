@@ -41,7 +41,8 @@ import org.apache.drill.exec.util.AssertionUtil;
 
 /**
  * {@link OptionManager} that holds options within {@link org.apache.drill.exec.server.DrillbitContext}.
- * Only one instance of this class exists per drillbit.
+ * Only one instance of this class exists per drillbit. Options set at the system level affect the entire system and
+ * persist between restarts.
  */
 public class SystemOptionManager extends BaseOptionManager {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SystemOptionManager.class);
@@ -230,8 +231,7 @@ public class SystemOptionManager extends BaseOptionManager {
     try {
       validator = getValidator(name);
     } catch (final IllegalArgumentException e) {
-      throw UserException.validationError()
-        .message(e.getMessage())
+      throw UserException.validationError(e)
         .build(logger);
     }
     validator.validate(value); // validate the option
@@ -248,8 +248,7 @@ public class SystemOptionManager extends BaseOptionManager {
     try { // ensure option exists
       getValidator(name);
     } catch (final IllegalArgumentException e) {
-      throw UserException.validationError()
-        .message(e.getMessage())
+      throw UserException.validationError(e)
         .build(logger);
     }
     options.delete(name.toLowerCase());

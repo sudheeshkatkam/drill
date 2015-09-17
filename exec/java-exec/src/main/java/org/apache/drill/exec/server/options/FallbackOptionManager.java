@@ -21,6 +21,7 @@ import java.util.Iterator;
 
 import com.google.common.collect.Iterables;
 import org.apache.drill.common.exceptions.UserException;
+import org.apache.drill.exec.server.options.OptionValue.OptionType;
 
 /**
  * An {@link OptionManager} which allows for falling back onto another {@link OptionManager}. This way method calls can
@@ -83,14 +84,30 @@ public abstract class FallbackOptionManager extends BaseOptionManager {
    */
   abstract boolean setLocalOption(OptionValue value);
 
+  /**
+   * Deletes the option with given name for this manager without falling back.
+   *
+   * @param type option type
+   * @return true iff the option was successfully deleted
+   */
+  abstract boolean deleteLocalOptions(OptionType type);
+
+  /**
+   * Deletes the option with given name for this manager without falling back.
+   *
+   * @param name option name
+   * @param type option type
+   * @return true iff the option was successfully deleted
+   */
+  abstract boolean deleteLocalOption(String name, OptionType type);
+
   @Override
   public void setOption(OptionValue value) {
     final OptionValidator validator;
     try {
       validator = SystemOptionManager.getValidator(value.name);
     } catch (final IllegalArgumentException e) {
-      throw UserException.validationError()
-        .message(e.getMessage())
+      throw UserException.validationError(e)
         .build(logger);
     }
     validator.validate(value); // validate the option
@@ -98,6 +115,29 @@ public abstract class FallbackOptionManager extends BaseOptionManager {
     // fallback if unable to set locally
     if (!setLocalOption(value)) {
       fallback.setOption(value);
+    }
+  }
+
+  @Override
+  public void deleteOption(final String name, final OptionType type) {
+    try {
+      SystemOptionManager.getValidator(name); // ensure the option exists
+    } catch (final IllegalArgumentException e) {
+      throw UserException.validationError(e)
+        .build(logger);
+    }
+
+    // fallback if unable to delete locally
+    if (!deleteLocalOption(name, type)) {
+      fallback.deleteOption(name, type);
+    }
+  }
+
+  @Override
+  public void deleteAllOptions(final OptionType type) {
+    // fallback if unable to delete locally
+    if (!deleteLocalOptions(type)) {
+      fallback.deleteAllOptions(type);
     }
   }
 

@@ -31,16 +31,6 @@ public class QueryOptionManager extends InMemoryOptionManager {
   }
 
   @Override
-  public void deleteOption(final String name, final OptionValue.OptionType type) {
-    fallback.deleteOption(name, type);
-  }
-
-  @Override
-  public void deleteAllOptions(final OptionValue.OptionType type) {
-    fallback.deleteAllOptions(type);
-  }
-
-  @Override
   public OptionList getOptionList() {
     OptionList list = super.getOptionList();
     list.merge(fallback.getOptionList());
@@ -48,7 +38,7 @@ public class QueryOptionManager extends InMemoryOptionManager {
   }
 
   @Override
-  boolean supportsOption(OptionValue value) {
-    return value.type == OptionType.QUERY;
+  boolean supportsOption(OptionType type) {
+    return type == OptionType.QUERY;
   }
 }

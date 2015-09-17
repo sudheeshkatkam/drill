@@ -33,8 +33,15 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
+/**
+ * Implementation of {@link SqlVisitor} that converts bracketed compound {@link SqlIdentifier} to bracket-less compound
+ * {@link SqlIdentifier} (also known as {@link DrillCompoundIdentifier}) to provide ease of use while querying complex
+ * types.
+ * <p/>
+ * For example, this visitor converts {@code a['b'][4]['c']} to {@code a.b[4].c}
+ */
 public class CompoundIdentifierConverter extends SqlShuttle {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CompoundIdentifierConverter.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CompoundIdentifierConverter.class);
 
   private boolean enableComplex = true;
 

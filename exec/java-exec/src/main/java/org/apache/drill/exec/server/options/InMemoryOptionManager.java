@@ -17,7 +17,7 @@
  */
 package org.apache.drill.exec.server.options;
 
-import org.apache.drill.common.exceptions.UserException;
+import org.apache.drill.exec.server.options.OptionValue.OptionType;
 
 import java.util.Map;
 
@@ -27,7 +27,7 @@ import java.util.Map;
  * (see {@link #options}) whereas {@link SystemOptionManager} stores options in a persistent store.
  */
 public abstract class InMemoryOptionManager extends FallbackOptionManager {
-  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InMemoryOptionManager.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InMemoryOptionManager.class);
 
   protected final Map<String, OptionValue> options;
 
@@ -37,27 +37,13 @@ public abstract class InMemoryOptionManager extends FallbackOptionManager {
   }
 
   @Override
-  public void deleteOption(final String name, final OptionValue.OptionType type) {
-    throw UserException.unsupportedError()
-      .message("This manager does not support deleting an option.")
-      .build(logger);
-  }
-
-  @Override
-  public void deleteAllOptions(final OptionValue.OptionType type) {
-    throw UserException.unsupportedError()
-      .message("This manager does not support deleting options.")
-      .build(logger);
-  }
-
-  @Override
   OptionValue getLocalOption(final String name) {
     return options.get(name);
   }
 
   @Override
   boolean setLocalOption(final OptionValue value) {
-    if (supportsOption(value)) {
+    if (supportsOption(value.type)) {
       options.put(value.name, value);
       return true;
     } else {
@@ -70,12 +56,32 @@ public abstract class InMemoryOptionManager extends FallbackOptionManager {
     return options.values();
   }
 
+  @Override
+  boolean deleteLocalOptions(final OptionType type) {
+    if (supportsOption(type)) {
+      options.clear();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  boolean deleteLocalOption(final String name, final OptionType type) {
+    if (supportsOption(type)) {
+      options.remove(name);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   /**
-   * Check to see if implementations of this manager support the given option value (e.g. check for option type).
+   * Check to see if implementations of this manager support the given option type.
    *
-   * @param value the option value
-   * @return true iff the option value is supported
+   * @param type option type
+   * @return true iff the type is supported
    */
-  abstract boolean supportsOption(OptionValue value);
+  abstract boolean supportsOption(OptionType type);
 
 }

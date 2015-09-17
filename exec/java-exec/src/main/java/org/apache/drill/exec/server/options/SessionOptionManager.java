@@ -23,15 +23,21 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.map.CaseInsensitiveMap;
 import org.apache.drill.exec.rpc.user.UserSession;
+import org.apache.drill.exec.server.options.OptionValue.OptionType;
 
 import java.util.Collection;
 import java.util.Map;
 
 /**
- * {@link OptionManager} that holds options within {@link org.apache.drill.exec.rpc.user.UserSession} context.
+ * {@link OptionManager} that holds options within {@link org.apache.drill.exec.rpc.user.UserSession} context. Options
+ * set at the session level only apply to queries that you run during the current Drill connection. Session level
+ * settings override system level settings.
+ *
+ * NOTE that currently, the effects of deleting a short lived option (see {@link OptionValidator#isShortLived}) are
+ * undefined.
  */
 public class SessionOptionManager extends InMemoryOptionManager {
-  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SessionOptionManager.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SessionOptionManager.class);
 
   private final UserSession session;
 
@@ -44,33 +50,6 @@ public class SessionOptionManager extends InMemoryOptionManager {
   public SessionOptionManager(final OptionManager systemOptions, final UserSession session) {
     super(systemOptions, CaseInsensitiveMap.<OptionValue>newConcurrentMap());
     this.session = session;
-  }
-
-  @Override
-  public void deleteOption(final String name, final OptionValue.OptionType type) {
-    if (type == OptionValue.OptionType.SESSION) {
-      try { // ensure option exists
-        SystemOptionManager.getValidator(name);
-      } catch (final IllegalArgumentException e) {
-        throw UserException.validationError()
-          .message(e.getMessage())
-          .build(logger);
-      }
-      options.remove(name);
-      shortLivedOptions.remove(name);
-    } else {
-      fallback.deleteOption(name, type);
-    }
-  }
-
-  @Override
-  public void deleteAllOptions(final OptionValue.OptionType type) {
-    if (type == OptionValue.OptionType.SESSION) {
-      options.clear();
-      shortLivedOptions.clear();
-    } else {
-      fallback.deleteAllOptions(type);
-    }
   }
 
   @Override
@@ -136,7 +115,7 @@ public class SessionOptionManager extends InMemoryOptionManager {
   }
 
   @Override
-  boolean supportsOption(OptionValue value) {
-    return value.type == OptionValue.OptionType.SESSION;
+  boolean supportsOption(OptionType type) {
+    return type == OptionType.SESSION;
   }
 }
