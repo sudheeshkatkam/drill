@@ -43,6 +43,7 @@ import org.apache.drill.exec.physical.impl.common.HashTable;
 import org.apache.drill.exec.physical.impl.common.HashTableConfig;
 import org.apache.drill.exec.physical.impl.common.HashTableStats;
 import org.apache.drill.exec.physical.impl.common.IndexPointer;
+import org.apache.drill.exec.physical.impl.filter.FilterRecordBatch;
 import org.apache.drill.exec.physical.impl.join.JoinUtils.JoinComparator;
 import org.apache.drill.exec.physical.impl.sort.RecordBatchData;
 import org.apache.drill.exec.record.AbstractRecordBatch;
@@ -63,6 +64,7 @@ import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JVar;
 
 public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HashJoinBatch.class);
   public static final long ALLOCATOR_INITIAL_RESERVATION = 1 * 1024 * 1024;
   public static final long ALLOCATOR_MAX_RESERVATION = 20L * 1000 * 1000 * 1000;
 
@@ -246,6 +248,7 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
             v.getValueVector().getMutator().setValueCount(outputRecords);
           }
 
+          logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
           return IterOutcome.OK;
         }
       } else {
@@ -268,12 +271,14 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
       // No more output records, clean up and return
       state = BatchState.DONE;
       //            if (first) {
-      //              return IterOutcome.OK_NEW_SCHEMA;
+      //              return xxIterOutcome.OK_NEW_SCHEMA;
       //            }
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
       return IterOutcome.NONE;
     } catch (ClassTransformationException | SchemaChangeException | IOException e) {
       context.fail(e);
       killIncoming(false);
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
       return IterOutcome.STOP;
     }
   }

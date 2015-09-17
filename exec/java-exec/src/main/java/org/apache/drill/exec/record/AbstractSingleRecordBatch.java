@@ -22,6 +22,7 @@ import org.apache.drill.exec.memory.OutOfMemoryException;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.record.BatchSchema.SelectionVectorMode;
+import org.apache.drill.exec.record.RecordBatch.IterOutcome;
 import org.apache.drill.exec.vector.SchemaChangeCallBack;
 
 public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> extends AbstractRecordBatch<T> {
@@ -45,6 +46,7 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
   public IterOutcome innerNext() {
     // Short circuit if record batch has already sent all data and is done
     if (state == BatchState.DONE) {
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -66,6 +68,7 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
       if (state == BatchState.FIRST) {
         container.buildSchema(SelectionVectorMode.NONE);
       }
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
       return upstream;
     case OUT_OF_MEMORY:
       return upstream;
@@ -82,6 +85,7 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
         return IterOutcome.STOP;
       } finally {
         stats.stopSetup();
@@ -92,7 +96,7 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
       container.zeroVectors();
       IterOutcome out = doWork();
 
-      // since doWork method does not know if there is a new schema, it will always return IterOutcome.OK if it was successful.
+      // since doWork method does not know if there is a new schema, it will always return xxIterOutcome.OK if it was successful.
       // But if upstream is IterOutcome.OK_NEW_SCHEMA, we should return that
       if (out != IterOutcome.OK) {
         upstream = out;
@@ -100,14 +104,17 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
 
       if (outOfMemory) {
         outOfMemory = false;
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OUT_OF_MEMORY, this.getClass().getSimpleName() );
         return IterOutcome.OUT_OF_MEMORY;
       }
 
       // Check if schema has changed
       if (callBack.getSchemaChange()) {
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK_NEW_SCHEMA, this.getClass().getSimpleName() );
         return IterOutcome.OK_NEW_SCHEMA;
       }
 
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
       return upstream; // change if upstream changed, otherwise normal.
     default:
       throw new UnsupportedOperationException();

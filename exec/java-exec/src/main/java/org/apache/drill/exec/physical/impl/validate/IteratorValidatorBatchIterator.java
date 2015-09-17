@@ -265,6 +265,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
         }
       }
 
+      logger.info( "??? TEMP: next() returning {} [{}]", batchState, this.getClass().getSimpleName() );
       return batchState;
     }
     catch ( RuntimeException | Error e ) {

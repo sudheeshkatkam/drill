@@ -132,7 +132,7 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
    * in a hyper container. Once we have all the data from the right side we
    * process the left side one batch at a time and produce the output batch
    * which is a cross product of the two sides.
-   * @return IterOutcome state of the nested loop join batch
+   * @return xxIterOutcome state of the nested loop join batch
    */
   @Override
   public IterOutcome innerNext() {
@@ -144,6 +144,7 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
       if (leftUpstream == IterOutcome.NONE) {
         // inform upstream that we don't need anymore data and make sure we clean up any batches already in queue
         killAndDrainRight();
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
         return IterOutcome.NONE;
       }
 
@@ -161,6 +162,7 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
             addBatchToHyperContainer(right);
             break;
           case OUT_OF_MEMORY:
+            logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OUT_OF_MEMORY, this.getClass().getSimpleName() );
             return IterOutcome.OUT_OF_MEMORY;
           case NONE:
           case STOP:
@@ -190,8 +192,9 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
     container.buildSchema(BatchSchema.SelectionVectorMode.NONE);
 
     logger.debug("Number of records emitted: " + outputRecords);
-
-    return (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
+    IterOutcome dsbTemp = (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
+    logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp, this.getClass().getSimpleName() );
+    return dsbTemp;  // ???? return (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
   }
 
   private void killAndDrainRight() {

@@ -467,6 +467,7 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
     // if we got IterOutcome.NONE while getting partition vectors, and there are no batches on the queue, then we are
     // done
     if (upstreamNone && (batchQueue == null || batchQueue.size() == 0)) {
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -482,10 +483,12 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
       doWork(vc);
       vc.zeroVectors();
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK_NEW_SCHEMA, this.getClass().getSimpleName() );
       return IterOutcome.OK_NEW_SCHEMA;
     }
 
@@ -501,6 +504,7 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
     if (this.first && upstream == IterOutcome.OK_NEW_SCHEMA) {
       if (!getPartitionVectors()) {
         close();
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
 
@@ -515,11 +519,13 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
       doWork(vc);
       vc.zeroVectors();
       recordCount = vc.getRecordCount();
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK_NEW_SCHEMA, this.getClass().getSimpleName() );
       return IterOutcome.OK_NEW_SCHEMA;
     }
 
@@ -538,6 +544,7 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
     case STOP:
       close();
       recordCount = 0;
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
       return upstream;
     case OK_NEW_SCHEMA:
       try {
@@ -546,12 +553,14 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
       // fall through.
     case OK:
       doWork(incoming);
       recordCount = incoming.getRecordCount();
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
       return upstream; // change if upstream changed, otherwise normal.
     default:
       throw new UnsupportedOperationException();

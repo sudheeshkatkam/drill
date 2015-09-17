@@ -34,6 +34,7 @@
   <logger name="org.apache.drill" additivity="false">
     <level value="debug" />
     <appender-ref ref="SOCKET" />
+    <appender-ref ref="STDOUT" />
   </logger>
 
   <logger name="query.logger" additivity="false">
@@ -45,6 +46,15 @@
 <!--     <level value="debug" /> -->
 <!--     <appender-ref ref="SOCKET" /> -->
 <!--   </logger> -->
+
+  <logger name="org.apache.drill.exec.physical.impl.validate" additivity="false">
+<!--
+    <level value="trace" />
+-->
+    <level value="info" />
+    <appender-ref ref="SOCKET" />
+    <appender-ref ref="STDOUT" />
+  </logger>
 
   <root>
     <level value="error" />

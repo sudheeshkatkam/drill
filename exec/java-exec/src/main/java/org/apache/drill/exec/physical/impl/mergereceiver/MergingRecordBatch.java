@@ -54,6 +54,7 @@ import org.apache.drill.exec.proto.UserBitShared.SerializedField;
 import org.apache.drill.exec.record.AbstractRecordBatch;
 import org.apache.drill.exec.record.BatchSchema;
 import org.apache.drill.exec.record.BatchSchema.SelectionVectorMode;
+import org.apache.drill.exec.record.RecordBatch.IterOutcome;
 import org.apache.drill.exec.record.ExpandableHyperContainer;
 import org.apache.drill.exec.record.MaterializedField;
 import org.apache.drill.exec.record.RawFragmentBatch;
@@ -172,6 +173,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
   @Override
   public IterOutcome innerNext() {
     if (fragProviders.length == 0) {
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
     boolean schemaChanged = false;
@@ -186,6 +188,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     if (!hasMoreIncoming) {
       logger.debug("next() was called after all values have been processed");
       outgoingPosition = 0;
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -207,11 +210,13 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             rawBatch = getNext(p);
           } catch (final IOException e) {
             context.fail(e);
+            logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
             return IterOutcome.STOP;
           }
         }
         if (rawBatch == null && !context.shouldContinue()) {
           clearBatches(rawBatches);
+          logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
 
@@ -229,11 +234,13 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             }
             if (rawBatch == null && !context.shouldContinue()) {
               clearBatches(rawBatches);
+              logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
               return IterOutcome.STOP;
             }
           } catch (final IOException e) {
             context.fail(e);
             clearBatches(rawBatches);
+            logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
             return IterOutcome.STOP;
           }
           if (rawBatch != null) {
@@ -269,6 +276,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
         } catch(final SchemaChangeException e) {
           logger.error("MergingReceiver failed to load record batch from remote host.  {}", e);
           context.fail(e);
+          logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
         batch.release();
@@ -286,6 +294,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
       // Ensure all the incoming batches have the identical schema.
       if (!isSameSchemaAmongBatches(batchLoaders)) {
         context.fail(new SchemaChangeException("Incoming batches for merging receiver have different schemas!"));
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
 
@@ -309,6 +318,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
       } catch (final SchemaChangeException e) {
         logger.error("Failed to generate code for MergingReceiver.  {}", e);
         context.fail(e);
+        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
 
@@ -333,11 +343,13 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
               batchLoaders[b].clear();
               batchLoaders[b] = null;
               if (!context.shouldContinue()) {
+                logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
                 return IterOutcome.STOP;
               }
             }
           } catch (IOException | SchemaChangeException e) {
             context.fail(e);
+            logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
             return IterOutcome.STOP;
           }
         }
@@ -372,10 +384,12 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
           assert nextBatch != null || inputCounts[node.batchId] == outputCounts[node.batchId]
               : String.format("Stream %d input count: %d output count %d", node.batchId, inputCounts[node.batchId], outputCounts[node.batchId]);
           if (nextBatch == null && !context.shouldContinue()) {
+            logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
             return IterOutcome.STOP;
           }
         } catch (final IOException e) {
           context.fail(e);
+          logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
 
@@ -414,6 +428,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
           // SchemaChangeException, so check/clean catch clause below.
         } catch(final SchemaChangeException ex) {
           context.fail(ex);
+          logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
         incomingBatches[node.batchId].release();
@@ -443,9 +458,11 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     }
 
     if (schemaChanged) {
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK_NEW_SCHEMA, this.getClass().getSimpleName() );
       return IterOutcome.OK_NEW_SCHEMA;
     }
     else {
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
       return IterOutcome.OK;
     }
   }

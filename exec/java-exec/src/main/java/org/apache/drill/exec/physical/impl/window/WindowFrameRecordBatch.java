@@ -109,6 +109,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
 
     // Short circuit if record batch has already sent all data and is done
     if (state == BatchState.DONE) {
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -125,6 +126,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
         case NOT_YET:
         case STOP:
           cleanup();
+          logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
           return upstream;
         case OK_NEW_SCHEMA:
           // We don't support schema changes
@@ -149,6 +151,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     if (batches.isEmpty()) {
       logger.trace("no more batches to handle, we are DONE");
       state = BatchState.DONE;
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -158,6 +161,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     } catch (DrillException e) {
       context.fail(e);
       cleanup();
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
       return IterOutcome.STOP;
     }
 
@@ -165,6 +169,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       state = BatchState.NOT_FIRST;
     }
 
+    logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

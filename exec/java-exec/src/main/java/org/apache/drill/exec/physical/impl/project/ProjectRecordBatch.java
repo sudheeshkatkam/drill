@@ -124,9 +124,12 @@ public class ProjectRecordBatch extends AbstractSingleRecordBatch<Project> {
   public IterOutcome innerNext() {
     if (hasRemainder) {
       handleRemainder();
+      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
       return IterOutcome.OK;
     }
-    return super.innerNext();
+    IterOutcome dsbTemp = super.innerNext();
+    logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp, this.getClass().getSimpleName() );
+    return dsbTemp;  // ???? return super.innerNext();
   }
 
   @Override
@@ -166,6 +169,7 @@ public class ProjectRecordBatch extends AbstractSingleRecordBatch<Project> {
 
     if (!doAlloc()) {
       outOfMemory = true;
+      logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OUT_OF_MEMORY, this.getClass().getSimpleName() );
       return IterOutcome.OUT_OF_MEMORY;
     }
 
@@ -188,6 +192,7 @@ public class ProjectRecordBatch extends AbstractSingleRecordBatch<Project> {
       container.buildSchema(SelectionVectorMode.NONE);
     }
 
+    logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 
