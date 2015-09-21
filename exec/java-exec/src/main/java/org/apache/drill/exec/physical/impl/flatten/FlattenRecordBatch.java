@@ -114,7 +114,7 @@ public class FlattenRecordBatch extends AbstractSingleRecordBatch<FlattenPOP> {
   public IterOutcome innerNext() {
     if (hasRemainder) {
       handleRemainder();
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK;
     }
     return super.innerNext();
@@ -143,7 +143,7 @@ public class FlattenRecordBatch extends AbstractSingleRecordBatch<FlattenPOP> {
 
     if (!doAlloc()) {
       outOfMemory = true;
-      logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OUT_OF_MEMORY, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OUT_OF_MEMORY;
     }
 
@@ -173,7 +173,7 @@ public class FlattenRecordBatch extends AbstractSingleRecordBatch<FlattenPOP> {
       container.buildSchema(SelectionVectorMode.NONE);
     }
 
-    logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

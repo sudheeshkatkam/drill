@@ -81,7 +81,7 @@ public class WriterRecordBatch extends AbstractRecordBatch<Writer> {
 //      cleanup();
       // if the upstream record batch is already processed and next() is called by
       // downstream then return NONE to indicate completion
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -94,7 +94,7 @@ public class WriterRecordBatch extends AbstractRecordBatch<Writer> {
         switch(upstream) {
           case OUT_OF_MEMORY:
           case STOP:
-            logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
+            logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
             return upstream;
 
           case NOT_YET:
@@ -121,7 +121,7 @@ public class WriterRecordBatch extends AbstractRecordBatch<Writer> {
       logger.error("Failure during query", ex);
       kill(false);
       context.fail(ex);
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     }
 
@@ -130,7 +130,7 @@ public class WriterRecordBatch extends AbstractRecordBatch<Writer> {
 
     closeWriter();
 
-    logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK_NEW_SCHEMA, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK_NEW_SCHEMA;
   }
 

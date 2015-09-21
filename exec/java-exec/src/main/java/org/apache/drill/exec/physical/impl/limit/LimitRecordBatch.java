@@ -96,7 +96,7 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
 
       IterOutcome upStream = next(incoming);
       if (upStream == IterOutcome.OUT_OF_MEMORY) {
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", upStream, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upStream, dsbInstId, getClass().getSimpleName() );
         return upStream;
       }
 
@@ -107,16 +107,16 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
         }
         upStream = next(incoming);
         if (upStream == IterOutcome.OUT_OF_MEMORY) {
-          logger.info( "??? TEMP: innerNext() returning {} [{}]", upStream, this.getClass().getSimpleName() );
+          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upStream, dsbInstId, getClass().getSimpleName() );
           return upStream;
         }
       }
 
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
     IterOutcome dsbTemp = super.innerNext();
-    logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
     return dsbTemp;  // ???? return super.innerNext();
   }
 
@@ -134,7 +134,7 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
     final int recordCount = incoming.getRecordCount();
     if (recordCount == 0) {
       skipBatch = true;
-      logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK;
     }
     for(final TransferPair tp : transfers) {
@@ -152,7 +152,7 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
       }
     }
 
-    logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

@@ -79,7 +79,7 @@ public class FilterRecordBatch extends AbstractSingleRecordBatch<Filter>{
     int recordCount = incoming.getRecordCount();
     filter.filterBatch(recordCount);
 
-    logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

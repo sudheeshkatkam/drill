@@ -191,7 +191,7 @@ public class MergeJoinBatch extends AbstractRecordBatch<MergeJoinPOP> {
 
       if (outcome == JoinOutcome.NO_MORE_DATA) {
         logger.debug("NO MORE DATA; returning {}  NONE");
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.NONE;
       }
 
@@ -205,7 +205,7 @@ public class MergeJoinBatch extends AbstractRecordBatch<MergeJoinPOP> {
         } catch (ClassTransformationException | IOException | SchemaChangeException e) {
           context.fail(new SchemaChangeException(e));
           kill(false);
-          logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.STOP;
         } finally {
           stats.stopSetup();
@@ -224,18 +224,18 @@ public class MergeJoinBatch extends AbstractRecordBatch<MergeJoinPOP> {
         logger.debug("BATCH RETURNED; returning {}", (first ? "OK_NEW_SCHEMA" : "OK"));
         setRecordCountInContainer();
         IterOutcome dsbTemp1 = first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK;
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp1, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp1, dsbInstId, getClass().getSimpleName() );
         return dsbTemp1;  // ???? return first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK;
       case FAILURE:
         kill(false);
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.STOP;
       case NO_MORE_DATA:
         logger.debug("NO MORE DATA; returning {}", (status.getOutPosition() > 0 ? (first ? "OK_NEW_SCHEMA" : "OK") : (first ? "OK_NEW_SCHEMA" :"NONE")));
         setRecordCountInContainer();
         state = BatchState.DONE;
         IterOutcome dsbTemp2 = status.getOutPosition() > 0 ? (first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK): (first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.NONE);
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp2, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp2, dsbInstId, getClass().getSimpleName() );
         return dsbTemp2;  // ???? return status.getOutPosition() > 0 ? (first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK): (first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.NONE);
       case SCHEMA_CHANGED:
         worker = null;
@@ -244,14 +244,14 @@ public class MergeJoinBatch extends AbstractRecordBatch<MergeJoinPOP> {
           logger.debug("SCHEMA CHANGED; returning {} ", (first ? "OK_NEW_SCHEMA" : "OK"));
           setRecordCountInContainer();
           IterOutcome dsbTemp3 = first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK;
-          logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp3, this.getClass().getSimpleName() );
+          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp3, dsbInstId, getClass().getSimpleName() );
           return dsbTemp3;  // ???? return first ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK;
         }else{
           // loop again to rebuild worker.
           continue;
         }
       case WAITING:
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NOT_YET, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NOT_YET, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.NOT_YET;
       default:
         throw new IllegalStateException();

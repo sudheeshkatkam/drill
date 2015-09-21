@@ -120,14 +120,14 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
   public IterOutcome innerNext() {
 
     if (aggregator.allFlushed()) {
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
     if (aggregator.buildComplete() && !aggregator.allFlushed()) {
       // aggregation is complete and not all records have been output yet
       IterOutcome dsbTemp = aggregator.outputCurrentBatch();
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
       return aggregator.outputCurrentBatch();
     }
 
@@ -143,14 +143,14 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
       // fall through
     case RETURN_OUTCOME:
       IterOutcome dsbTemp = aggregator.getOutcome();
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
       return aggregator.getOutcome();
     case UPDATE_AGGREGATOR:
       context.fail(UserException.unsupportedError()
         .message("Hash aggregate does not support schema changes").build(logger));
       close();
       killIncoming(false);
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     default:
       throw new IllegalStateException(String.format("Unknown state %s.", out));
