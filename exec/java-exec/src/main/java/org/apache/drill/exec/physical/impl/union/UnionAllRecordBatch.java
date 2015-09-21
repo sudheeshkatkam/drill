@@ -108,7 +108,7 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
         case NONE:
         case OUT_OF_MEMORY:
         case STOP:
-          logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
+          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
           return upstream;
 
         case OK_NEW_SCHEMA:
@@ -117,10 +117,10 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
           IterOutcome workOutcome = doWork();
 
           if(workOutcome != IterOutcome.OK) {
-            logger.info( "??? TEMP: innerNext() returning {} [{}]", workOutcome, this.getClass().getSimpleName() );
+            logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", workOutcome, dsbInstId, getClass().getSimpleName() );
             return workOutcome;
           } else {
-            logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
+            logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
             return upstream;
           }
         default:
@@ -129,7 +129,7 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
     } catch (ClassTransformationException | IOException | SchemaChangeException ex) {
       context.fail(ex);
       killIncoming(false);
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     }
   }
@@ -254,13 +254,13 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
     }
 
     if(!doAlloc()) {
-      logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OUT_OF_MEMORY, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OUT_OF_MEMORY;
     }
 
     recordCount = unionall.unionRecords(0, current.getRecordCount(), 0);
     setValueCount(recordCount);
-    logger.info( "??? TEMP: doWork() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

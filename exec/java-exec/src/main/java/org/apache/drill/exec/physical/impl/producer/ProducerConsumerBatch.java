@@ -72,17 +72,17 @@ public class ProducerConsumerBatch extends AbstractRecordBatch {
       if (context.shouldContinue()) {
         context.fail(e);
       }
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
       // TODO InterruptedException
     } finally {
       stats.stopWait();
     }
     if (wrapper.finished) {
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     } else if (wrapper.failed) {
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     } else if (wrapper.outOfMemory) {
       throw new OutOfMemoryRuntimeException();
@@ -91,7 +91,7 @@ public class ProducerConsumerBatch extends AbstractRecordBatch {
     recordCount = wrapper.batch.getRecordCount();
     final boolean newSchema = load(wrapper.batch);
     IterOutcome dsbTemp = newSchema ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK;
-    logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
     return dsbTemp;  // ???? return newSchema ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK;
   }
 

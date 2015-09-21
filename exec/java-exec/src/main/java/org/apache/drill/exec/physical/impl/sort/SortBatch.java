@@ -91,11 +91,11 @@ public class SortBatch extends AbstractRecordBatch<Sort> {
   public IterOutcome innerNext() {
     if (schema != null) {
       if (getSelectionVector4().next()) {
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK;
       }
 
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -109,7 +109,7 @@ public class SortBatch extends AbstractRecordBatch<Sort> {
           throw new UnsupportedOperationException();
         case OUT_OF_MEMORY:
         case STOP:
-          logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
+          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
           return upstream;
         case OK_NEW_SCHEMA:
           // only change in the case that the schema truly changes.  Artificial schema changes are ignored.
@@ -132,7 +132,7 @@ public class SortBatch extends AbstractRecordBatch<Sort> {
 
       if (schema == null || builder.isEmpty()) {
         // builder may be null at this point if the first incoming batch is empty
-        logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.NONE;
       }
 
@@ -141,14 +141,14 @@ public class SortBatch extends AbstractRecordBatch<Sort> {
       sorter.setup(context, getSelectionVector4(), this.container);
       sorter.sort(getSelectionVector4(), this.container);
 
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.OK_NEW_SCHEMA, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK_NEW_SCHEMA;
 
     } catch(SchemaChangeException | ClassTransformationException | IOException ex) {
       kill(false);
       logger.error("Failure during query", ex);
       context.fail(ex);
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     }
   }

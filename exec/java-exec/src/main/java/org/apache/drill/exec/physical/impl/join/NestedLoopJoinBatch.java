@@ -193,7 +193,7 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
 
     logger.debug("Number of records emitted: " + outputRecords);
     IterOutcome dsbTemp = (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
-    logger.info( "??? TEMP: innerNext() returning {} [{}]", dsbTemp, this.getClass().getSimpleName() );
+    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
     return dsbTemp;  // ???? return (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
   }
 

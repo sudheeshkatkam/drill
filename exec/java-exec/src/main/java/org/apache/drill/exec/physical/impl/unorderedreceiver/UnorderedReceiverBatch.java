@@ -55,6 +55,9 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UnorderedReceiverBatch.class);
   private static final ControlsInjector injector = ControlsInjectorFactory.getInjector(UnorderedReceiverBatch.class);
 
+  private static int dsbInstCount = 0;
+  private final int dsbInstId = ++dsbInstCount;
+
   private final RecordBatchLoader batchLoader;
   private final RawFragmentBatchProvider fragProvider;
   private final FragmentContext context;
@@ -170,15 +173,15 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       if (batch == null) {
         batchLoader.clear();
         if (!context.shouldContinue()) {
-          logger.info( "??? TEMP: next() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+          logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
-        logger.info( "??? TEMP: next() returning {} [{}]", IterOutcome.NONE, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.NONE;
       }
 
       if (batch.getHeader().getIsOutOfMemory()) {
-        logger.info( "??? TEMP: next() returning {} [{}]", IterOutcome.OUT_OF_MEMORY, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OUT_OF_MEMORY;
       }
 
@@ -195,16 +198,16 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       if(schemaChanged) {
         this.schema = batchLoader.getSchema();
         stats.batchReceived(0, rbd.getRecordCount(), true);
-        logger.info( "??? TEMP: next() returning {} [{}]", IterOutcome.OK_NEW_SCHEMA, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK_NEW_SCHEMA;
       } else {
         stats.batchReceived(0, rbd.getRecordCount(), false);
-        logger.info( "??? TEMP: next() returning {} [{}]", IterOutcome.OK, this.getClass().getSimpleName() );
+        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK;
       }
     } catch(SchemaChangeException | IOException ex) {
       context.fail(ex);
-      logger.info( "??? TEMP: next() returning {} [{}]", IterOutcome.STOP, this.getClass().getSimpleName() );
+      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     } finally {
       stats.stopProcessing();
