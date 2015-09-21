@@ -21,21 +21,34 @@ import org.junit.Test;
 
 
 public class TestTEMP extends BaseTestQuery {
+  
+  /* 
+   * voter2/:
+   * 
+   * -rw-r--r-- 1 dbarclay dbarclay 38 Sep 17 10:47 voter1.json
+   * -rw-r--r-- 1 dbarclay dbarclay  0 Sep 17 21:55 voter2.json
+   * -rw-r--r-- 1 dbarclay dbarclay 40 Sep 17 10:47 voter3.json
+   * ----------
+   * voter1.json
+   * {"onecf" : {"name" : "someName1"}  }
+   * ----------
+   * ----------
+   * voter2.json
+   * ----------
+   * ----------
+   * voter3.json
+   * {"onecf" : {"NOTname" : "someName2"} }
+   *
+   * ----------
+   */
 
   @Test
   public void testTEMP() throws Exception {
-    testBuilder()
-    .sqlQuery(
-        "SELECT CAST(voter.onecf.name AS VARCHAR(30)) AS name,"
-        + "     COUNT(*) AS unique_name \n"
-        + " FROM `dfs.tmp`.`voter.json` AS voter \n"
-        + " GROUP BY voter.onecf.name \n"
-        + " HAVING COUNT(*) > 0 \n"
-        + " ORDER BY voter.onecf.name" )
-    .unOrdered()
-    .baselineColumns("xxx")
-    .baselineValues("xxx")
-    .go();
+    test("alter session set `planner.slice_target` = 1");
+    
+    test( "SELECT COUNT(*) \n"
+          + " FROM `dfs.tmp`.`voter3/` AS voter \n"
+          + " GROUP BY voter.onecf.name" );
   }
 
 }

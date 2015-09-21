@@ -213,10 +213,21 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
           // NONE is allowed as long as OK_NEW_SCHEMA was seen, except if
           // already terminated (checked above).
           if ( validationState != ValidationState.HAVE_SCHEMA ) {
+            if ( false ) { // ???? TEMPORARY
             throw new IllegalStateException(
                 String.format(
                     "next() returned %s without first returning %s [#%d, %s]",
                     batchState, OK_NEW_SCHEMA, instNum, batchTypeName));
+            } else { // ???? TEMPORARY
+            System.err.println(
+                String.format(
+                    "next() returned %s without first returning %s [#%d, %s]",
+                    batchState, OK_NEW_SCHEMA, instNum, batchTypeName));
+            logger.error(
+                String.format(
+                    "next() returned %s without first returning %s [#%d, %s]",
+                    batchState, OK_NEW_SCHEMA, instNum, batchTypeName));
+            }
           }
           // NONE moves to terminal high-level state.
           validationState = ValidationState.TERMINAL;
