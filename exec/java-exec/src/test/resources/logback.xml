@@ -51,14 +51,26 @@
 <!--
     <level value="trace" />
 -->
+    <level value="trace" />
+    <appender-ref ref="SOCKET" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+
+
+  <logger name="org.apache.drill.exec.rpc.control.ControlServer" additivity="false">
+    <level value="info" />
+    <appender-ref ref="SOCKET" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+  <logger name="org.apache.drill.exec.work.foreman.QueryManager" additivity="false">
     <level value="info" />
     <appender-ref ref="SOCKET" />
     <appender-ref ref="STDOUT" />
   </logger>
 
+
   <root>
     <level value="error" />
     <appender-ref ref="STDOUT" />
   </root>
-
 </configuration>

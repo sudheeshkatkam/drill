@@ -21,10 +21,10 @@ import org.junit.Test;
 
 
 public class TestTEMP extends BaseTestQuery {
-  
-  /* 
+
+  /*
    * voter2/:
-   * 
+   *
    * -rw-r--r-- 1 dbarclay dbarclay 38 Sep 17 10:47 voter1.json
    * -rw-r--r-- 1 dbarclay dbarclay  0 Sep 17 21:55 voter2.json
    * -rw-r--r-- 1 dbarclay dbarclay 40 Sep 17 10:47 voter3.json
@@ -45,7 +45,7 @@ public class TestTEMP extends BaseTestQuery {
   @Test
   public void testTEMP() throws Exception {
     test("alter session set `planner.slice_target` = 1");
-    
+
     test( "SELECT COUNT(*) \n"
           + " FROM `dfs.tmp`.`voter3/` AS voter \n"
           + " GROUP BY voter.onecf.name" );
