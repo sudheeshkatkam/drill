@@ -42,7 +42,7 @@ public class FragmentOptionManager extends InMemoryOptionManager {
   }
 
   @Override
-  boolean supportsOption(OptionType type) {
+  boolean supportsOptionType(OptionType type) {
     throw new UnsupportedOperationException("FragmentOptionManager does not support the given option value.");
   }
 

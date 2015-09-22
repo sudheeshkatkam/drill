@@ -43,7 +43,7 @@ public abstract class InMemoryOptionManager extends FallbackOptionManager {
 
   @Override
   boolean setLocalOption(final OptionValue value) {
-    if (supportsOption(value.type)) {
+    if (supportsOptionType(value.type)) {
       options.put(value.name, value);
       return true;
     } else {
@@ -57,8 +57,8 @@ public abstract class InMemoryOptionManager extends FallbackOptionManager {
   }
 
   @Override
-  boolean deleteLocalOptions(final OptionType type) {
-    if (supportsOption(type)) {
+  boolean deleteAllLocalOptions(final OptionType type) {
+    if (supportsOptionType(type)) {
       options.clear();
       return true;
     } else {
@@ -68,7 +68,7 @@ public abstract class InMemoryOptionManager extends FallbackOptionManager {
 
   @Override
   boolean deleteLocalOption(final String name, final OptionType type) {
-    if (supportsOption(type)) {
+    if (supportsOptionType(type)) {
       options.remove(name);
       return true;
     } else {
@@ -82,6 +82,6 @@ public abstract class InMemoryOptionManager extends FallbackOptionManager {
    * @param type option type
    * @return true iff the type is supported
    */
-  abstract boolean supportsOption(OptionType type);
+  abstract boolean supportsOptionType(OptionType type);
 
 }

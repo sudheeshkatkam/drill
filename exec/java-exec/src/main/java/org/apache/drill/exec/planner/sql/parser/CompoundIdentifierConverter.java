@@ -117,7 +117,7 @@ public class CompoundIdentifierConverter extends SqlShuttle {
       }
       SqlNode newOperand = operand.accept(CompoundIdentifierConverter.this);
       enableComplex = localEnableComplex;
-      if (! newOperand.equalsDeep(operand, false)) {
+      if (newOperand != operand) {
         update = true;
       }
       clonedOperands[i] = newOperand;

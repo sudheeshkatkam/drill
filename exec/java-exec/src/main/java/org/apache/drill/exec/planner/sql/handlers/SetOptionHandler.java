@@ -19,7 +19,6 @@ package org.apache.drill.exec.planner.sql.handlers;
 
 import java.math.BigDecimal;
 
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.ValidationException;
 
@@ -29,6 +28,7 @@ import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.ops.QueryContext;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.planner.sql.DirectPlan;
+import org.apache.drill.exec.server.options.OptionManager;
 import org.apache.drill.exec.server.options.OptionValue;
 import org.apache.drill.exec.server.options.OptionValue.OptionType;
 import org.apache.drill.exec.util.ImpersonationUtil;
@@ -81,38 +81,31 @@ public class SetOptionHandler extends AbstractSqlHandler {
       }
     }
 
+    final OptionManager options = context.getOptions();
     if (type == OptionType.SYSTEM) {
       // If the user authentication is enabled, make sure the user who is trying to change the system option has
       // administrative privileges.
       if (context.isUserAuthenticationEnabled() &&
           !ImpersonationUtil.hasAdminPrivileges(
             context.getQueryUserName(),
-            context.getOptions().getOption(ExecConstants.ADMIN_USERS_KEY).string_val,
-            context.getOptions().getOption(ExecConstants.ADMIN_USER_GROUPS_KEY).string_val)) {
+            options.getOption(ExecConstants.ADMIN_USERS_VALIDATOR),
+            options.getOption(ExecConstants.ADMIN_USER_GROUPS_VALIDATOR))) {
         throw UserException.permissionError()
             .message("Not authorized to change SYSTEM options.")
             .build(logger);
       }
     }
 
-    // Currently, we use one part identifiers.
-    final SqlIdentifier nameIdentifier = option.getName();
-    if (!nameIdentifier.isSimple()) {
-      throw UserException.validationError()
-        .message("Drill does not support multi-part identifier for an option name (%s).",
-          nameIdentifier.toString())
-        .build(logger);
-    }
-
-    final String name = nameIdentifier.getSimple();
+    // Currently, we convert multi-part identifier to a string.
+    final String name = option.getName().toString();
     if (value != null) { // SET option
       final OptionValue optionValue = createOptionValue(name, type, (SqlLiteral) value);
-      context.getOptions().setOption(optionValue);
+      options.setOption(optionValue);
     } else { // RESET option
       if ("ALL".equalsIgnoreCase(name)) {
-        context.getOptions().deleteAllOptions(type);
+        options.deleteAllOptions(type);
       } else {
-        context.getOptions().deleteOption(name, type);
+        options.deleteOption(name, type);
       }
     }
 

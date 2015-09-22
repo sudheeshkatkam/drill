@@ -36,6 +36,9 @@ public interface OptionManager extends Iterable<OptionValue> {
    * Deletes the option. Unfortunately, the type is required given the fallback structure of option managers.
    * See {@link FallbackOptionManager}.
    *
+   * If the option name is valid (exists in {@link SystemOptionManager#VALIDATORS}),
+   * but the option was not set within this manager, calling this method should be a no-op.
+   *
    * @param name option name
    * @param type option type
    * @throws org.apache.drill.common.exceptions.UserException message to describe error with value
@@ -45,6 +48,8 @@ public interface OptionManager extends Iterable<OptionValue> {
   /**
    * Deletes all options. Unfortunately, the type is required given the fallback structure of option managers.
    * See {@link FallbackOptionManager}.
+   *
+   * If no options are set, calling this method should be no-op.
    *
    * @param type option type
    * @throws org.apache.drill.common.exceptions.UserException message to describe error with value

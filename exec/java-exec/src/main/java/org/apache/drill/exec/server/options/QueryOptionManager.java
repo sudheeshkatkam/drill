@@ -38,7 +38,7 @@ public class QueryOptionManager extends InMemoryOptionManager {
   }
 
   @Override
-  boolean supportsOption(OptionType type) {
+  boolean supportsOptionType(OptionType type) {
     return type == OptionType.QUERY;
   }
 }

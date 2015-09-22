@@ -85,19 +85,25 @@ public abstract class FallbackOptionManager extends BaseOptionManager {
   abstract boolean setLocalOption(OptionValue value);
 
   /**
-   * Deletes the option with given name for this manager without falling back.
+   * Deletes all options for this manager without falling back.
+   *
+   * If no options are set, calling this method should be no-op. See {@link OptionManager#deleteAllOptions}.
    *
    * @param type option type
-   * @return true iff the option was successfully deleted
+   * @return true iff the option type is supported
    */
-  abstract boolean deleteLocalOptions(OptionType type);
+  abstract boolean deleteAllLocalOptions(OptionType type);
 
   /**
    * Deletes the option with given name for this manager without falling back.
    *
+   * This method will be called with an option name that is guaranteed to have an option validator. Also, if option
+   * with {@param name} does not exist within the manager, calling this method should be a no-op. See
+   * {@link OptionManager#deleteOption}.
+   *
    * @param name option name
    * @param type option type
-   * @return true iff the option was successfully deleted
+   * @return true iff the option type is supported
    */
   abstract boolean deleteLocalOption(String name, OptionType type);
 
@@ -136,7 +142,7 @@ public abstract class FallbackOptionManager extends BaseOptionManager {
   @Override
   public void deleteAllOptions(final OptionType type) {
     // fallback if unable to delete locally
-    if (!deleteLocalOptions(type)) {
+    if (!deleteAllLocalOptions(type)) {
       fallback.deleteAllOptions(type);
     }
   }

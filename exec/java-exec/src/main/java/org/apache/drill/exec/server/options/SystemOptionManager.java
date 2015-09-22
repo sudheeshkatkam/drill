@@ -39,6 +39,8 @@ import org.apache.drill.exec.store.sys.PStoreConfig;
 import org.apache.drill.exec.store.sys.PStoreProvider;
 import org.apache.drill.exec.util.AssertionUtil;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * {@link OptionManager} that holds options within {@link org.apache.drill.exec.server.DrillbitContext}.
  * Only one instance of this class exists per drillbit. Options set at the system level affect the entire system and
@@ -225,7 +227,7 @@ public class SystemOptionManager extends BaseOptionManager {
 
   @Override
   public void setOption(final OptionValue value) {
-    assert value.type == OptionType.SYSTEM;
+    checkArgument(value.type == OptionType.SYSTEM, "OptionType must be SYSTEM.");
     final String name = value.name.toLowerCase();
     final OptionValidator validator;
     try {
@@ -244,7 +246,7 @@ public class SystemOptionManager extends BaseOptionManager {
 
   @Override
   public void deleteOption(final String name, OptionType type) {
-    assert type == OptionType.SYSTEM;
+    checkArgument(type == OptionType.SYSTEM, "OptionType must be SYSTEM.");
     try { // ensure option exists
       getValidator(name);
     } catch (final IllegalArgumentException e) {
@@ -256,7 +258,7 @@ public class SystemOptionManager extends BaseOptionManager {
 
   @Override
   public void deleteAllOptions(OptionType type) {
-    assert type == OptionType.SYSTEM;
+    checkArgument(type == OptionType.SYSTEM, "OptionType must be SYSTEM.");
     final Set<String> names = Sets.newHashSet();
     for (final Map.Entry<String, OptionValue> entry : options) {
       names.add(entry.getKey());

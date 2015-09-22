@@ -34,7 +34,9 @@ import java.util.Map;
  * settings override system level settings.
  *
  * NOTE that currently, the effects of deleting a short lived option (see {@link OptionValidator#isShortLived}) are
- * undefined.
+ * undefined. For example, we inject an exception (passed through an option), then try to delete the option, depending
+ * on where the exception was injected, the reset query could either succeed or the exception could actually be thrown
+ * in the reset query itself.
  */
 public class SessionOptionManager extends InMemoryOptionManager {
 //  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SessionOptionManager.class);
@@ -115,7 +117,7 @@ public class SessionOptionManager extends InMemoryOptionManager {
   }
 
   @Override
-  boolean supportsOption(OptionType type) {
+  boolean supportsOptionType(OptionType type) {
     return type == OptionType.SESSION;
   }
 }

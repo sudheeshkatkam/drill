@@ -48,13 +48,13 @@ public class TestOptions extends BaseTestQuery{
   @Test
   public void checkValidationException() throws Exception {
     thrownException.expect(new UserExceptionMatcher(VALIDATION));
-    test("ALTER session SET `%s` = '%s';", SLICE_TARGET, "fail");
+    test("ALTER session SET %s = '%s';", SLICE_TARGET, "fail");
   }
 
   @Test // DRILL-3122
   public void checkChangedColumn() throws Exception {
-    test(String.format("ALTER session SET `%s` = %d;", SLICE_TARGET,
-      ExecConstants.SLICE_TARGET_DEFAULT));
+    test("ALTER session SET `%s` = %d;", SLICE_TARGET,
+      ExecConstants.SLICE_TARGET_DEFAULT);
     testBuilder()
         .sqlQuery("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SESSION'", SLICE_TARGET)
         .unOrdered()
@@ -156,6 +156,49 @@ public class TestOptions extends BaseTestQuery{
   }
 
   @Test
+  public void changeSessionAndSystemButRevertSession() throws Exception {
+    // change options
+    test("ALTER SESSION SET `%s` = %b;", ENABLE_VERBOSE_ERRORS_KEY, true);
+    test("ALTER SYSTEM SET `%s` = %b;", ENABLE_VERBOSE_ERRORS_KEY, true);
+    // check changed
+    testBuilder()
+      .sqlQuery("SELECT bool_val FROM sys.options WHERE type = 'SESSION' AND name = '%s'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .baselineColumns("bool_val")
+      .baselineValues(true)
+      .build()
+      .run();
+    // check changed
+    testBuilder()
+      .sqlQuery("SELECT bool_val FROM sys.options WHERE type = 'SYSTEM' AND name = '%s'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .baselineColumns("bool_val")
+      .baselineValues(true)
+      .build()
+      .run();
+
+    // reset session option
+    test("RESET `%s`;", ENABLE_VERBOSE_ERRORS_KEY);
+    // check reverted
+    testBuilder()
+      .sqlQuery("SELECT status FROM sys.options WHERE name = '%s' AND type = 'SESSION'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .expectsEmptyResultSet()
+      .build()
+      .run();
+    // check unchanged
+    testBuilder()
+      .sqlQuery("SELECT bool_val FROM sys.options WHERE type = 'SYSTEM' AND name = '%s'", ENABLE_VERBOSE_ERRORS_KEY)
+      .unOrdered()
+      .baselineColumns("bool_val")
+      .baselineValues(true)
+      .build()
+      .run();
+    // reset system option
+    test("ALTER SYSTEM RESET `%s`;", ENABLE_VERBOSE_ERRORS_KEY);
+  }
+
+  @Test
   public void changeSessionAndNotSystem() throws Exception {
     // change options
     test("ALTER SESSION SET `%s` = %b;", ENABLE_VERBOSE_ERRORS_KEY, true);
@@ -236,13 +279,6 @@ public class TestOptions extends BaseTestQuery{
       .baselineValues(true)
       .build()
       .run();
-  }
-
-  @Test
-  public void unsupportedMultipartIdentifierValidation() throws Exception {
-    thrownException.expect(new UserExceptionMatcher(VALIDATION,
-      "Drill does not support multi-part identifier for an option name"));
-    test("ALTER session SET `drill`.`baby`.`drill` = 'yes';");
   }
 
   @Test
