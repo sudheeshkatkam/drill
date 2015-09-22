@@ -221,7 +221,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
             } else { // ???? TEMPORARY
             System.err.println(
                 String.format(
-                    "next() returned %s without first returning %s [#%d, %s]",
+                    "(TEMP. println:) next() returned %s without first returning %s [#%d, %s]",
                     batchState, OK_NEW_SCHEMA, instNum, batchTypeName));
             logger.error(
                 String.format(
