@@ -105,6 +105,7 @@ public class ScanBatch implements CloseableRecordBatch {
       throw new ExecutionSetupException("A scan batch must contain at least one reader.");
     }
     currentReader = readers.next();
+    logger.info( "??? TEMP: ScanBatch(...): currentReader := {} [#{}: {}]", currentReader, dsbInstId, getClass().getSimpleName() );
     this.oContext = oContext;
 
     boolean setup = false;
@@ -206,18 +207,21 @@ public class ScanBatch implements CloseableRecordBatch {
               container.buildSchema(SelectionVectorMode.NONE);
               schema = container.getSchema();
               // We have a new schema, but zero data rows of that schema.
-              //?????? DISABLED:
-              //?????? TRYING with getFieldCount():
+
+              System.err.println( "ScanBatch.next(): ?????? 2288 fix STATE:  enabled; TRYING with getFieldCount() limitation" );
               System.err.println( "ScanBatch.next(): schema.getFieldCount() = " + schema.getFieldCount() );
-              System.err.println( "ScanBatch.next(): 2288 fix status:  DISABLED" );
-              if ( false && 0 != schema.getFieldCount() && ! haveReturnedAnySchema) {
+              if ( ! haveReturnedAnySchema) {
                 // We haven't returned OK_NEW_SCHEMA yet, so we must do so now
                 // (before returning NONE) to adhere to the IterOutcome/next()
                 // protocol (so caller gets expected OK_NEW_SCHEMA even for
                 // no-row input).
+                if ( 0 != schema.getFieldCount() ) {
                 haveReturnedAnySchema = true;
                 logger.info( "??? TEMP: next() returning {} [#{}: {}] ***CHANGED CASE***", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
                 return IterOutcome.OK_NEW_SCHEMA;
+                } else {
+                  return IterOutcome.NONE;
+                }
               } else {
                 // We have already returned OK_NEW_SCHEMA, so we can ignore
                 // this new schema for which there are no rows and signal that
@@ -243,6 +247,7 @@ public class ScanBatch implements CloseableRecordBatch {
 
           currentReader.close();
           currentReader = readers.next();
+          logger.info( "??? TEMP: next(): currentReader := {} [#{}: {}]", currentReader, dsbInstId, getClass().getSimpleName() );
           partitionValues = partitionColumns.hasNext() ? partitionColumns.next() : null;
           currentReader.setup(oContext, mutator);
           try {
