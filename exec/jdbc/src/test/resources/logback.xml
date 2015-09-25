@@ -33,16 +33,22 @@
     <level value="warn" />
   </appender>
 
-  <logger name="org.apache.drill" additivity="false">
-    <level value="debug" />
+  <logger name="org.apache.drill.exec.physical.impl.validate.IteratorValidatorBatchIterator" additivity="false">
+    <level value="trace" />
     <appender-ref ref="SOCKET" />
-<!--     <appender-ref ref="STDOUT" /> -->
+     <appender-ref ref="STDOUT" />
+  </logger>
+
+  <logger name="org.apache.drill" additivity="false">
+    <level value="info" />
+    <appender-ref ref="SOCKET" />
+     <appender-ref ref="STDOUT" />
   </logger>
 
   <root>
-    <level value="debug" />
+    <level value="info" />
     <appender-ref ref="SOCKET" />
-<!--     <appender-ref ref="STDOUT" /> -->
+    <appender-ref ref="STDOUT" />
   </root>
 
 </configuration>
