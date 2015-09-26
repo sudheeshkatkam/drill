@@ -108,7 +108,6 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
         return IterOutcome.OK_NEW_SCHEMA;
       }
 
-      logger.info( "??? TEMP: innerNext() returning {} [{}]", upstream, this.getClass().getSimpleName() );
       return upstream; // change if upstream changed, otherwise normal.
     default:
       throw new UnsupportedOperationException();
