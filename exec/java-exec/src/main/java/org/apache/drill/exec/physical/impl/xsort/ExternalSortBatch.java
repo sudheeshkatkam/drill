@@ -293,9 +293,6 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
           return upstream;
         case OK_NEW_SCHEMA:
           // only change in the case that the schema truly changes.  Artificial schema changes are ignored.
-          System.err.println( "current  schema = " + schema );
-          System.err.println( "incoming schema = " + incoming.getSchema());
-          System.err.println( " same... = " + incoming.getSchema().equals(schema) );
           if (!incoming.getSchema().equals(schema)) {
             if (schema != null) {
               throw new SchemaChangeException();
