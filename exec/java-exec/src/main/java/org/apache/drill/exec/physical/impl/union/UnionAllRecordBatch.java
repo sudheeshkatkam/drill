@@ -322,22 +322,22 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
         switch(iterRight) {
           case OK_NEW_SCHEMA:
             // Unless there is no record batch on the left side of the inputs,
-            // always start processing from the left side
+            // always start processing from the left side.
             unionAllRecordBatch.setCurrentRecordBatch(leftSide.getRecordBatch());
 
-            // If the record count of the first batch from right input is equal to zero,
+            // If the record count of the first batch from right input is zero,
             // there are two possibilities:
-            // (1). The right side is an empty file
-            // (2). There are more records carried by the latter batches
-            if(rightSide.getRecordBatch().getRecordCount() == 0) {
+            // 1. The right side is an empty input (e.g., file).
+            // 2. There will be more records carried by later batches.
+            if (rightSide.getRecordBatch().getRecordCount() == 0) {
               iterRight = rightSide.nextBatch();
 
-              // Case (1): The right side is an empty file
-              if(iterRight == IterOutcome.NONE) {
+              if (iterRight == IterOutcome.NONE) {
+                // Case 1: The right side was an empty input.
                 inferOutputFieldsFromLeftSide();
                 rightIsFinish = true;
-              // Case 2): There are more records carried by the latter batches
               } else {
+                // Case 2: There are more records carried by the latter batches.
                 inferOutputFields();
               }
             } else {
