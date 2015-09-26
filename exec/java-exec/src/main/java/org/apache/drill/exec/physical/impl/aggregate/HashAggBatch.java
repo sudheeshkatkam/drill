@@ -128,7 +128,7 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
       // aggregation is complete and not all records have been output yet
       IterOutcome dsbTemp = aggregator.outputCurrentBatch();
       logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-      return aggregator.outputCurrentBatch();
+      return dsbTemp;  // ???? return aggregator.outputCurrentBatch();
     }
 
     logger.debug("Starting aggregator doWork; incoming record count = {} ", incoming.getRecordCount());
@@ -144,7 +144,7 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
     case RETURN_OUTCOME:
       IterOutcome dsbTemp = aggregator.getOutcome();
       logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-      return aggregator.getOutcome();
+      return dsbTemp;  // ???? return aggregator.getOutcome();
     case UPDATE_AGGREGATOR:
       context.fail(UserException.unsupportedError()
         .message("Hash aggregate does not support schema changes").build(logger));
