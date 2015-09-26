@@ -208,14 +208,14 @@ public class ScanBatch implements CloseableRecordBatch {
               schema = container.getSchema();
               // We have a new schema, but zero data rows of that schema.
 
-              System.err.println( "ScanBatch.next(): ?????? 2288 fix STATE:  enabled; TRYING with getFieldCount() limitation" );
+              System.err.println( "ScanBatch.next(): ?????? 2288 fix STATE:  enabled; withOUT getFieldCount() limitation" );
               System.err.println( "ScanBatch.next(): schema.getFieldCount() = " + schema.getFieldCount() );
               if ( ! haveReturnedAnySchema) {
                 // We haven't returned OK_NEW_SCHEMA yet, so we must do so now
                 // (before returning NONE) to adhere to the IterOutcome/next()
                 // protocol (so caller gets expected OK_NEW_SCHEMA even for
                 // no-row input).
-                if ( 0 != schema.getFieldCount() ) {
+                if ( true || 0 != schema.getFieldCount() ) {
                 haveReturnedAnySchema = true;
                 logger.info( "??? TEMP: next() returning {} [#{}: {}] ***CHANGED CASE***", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
                 return IterOutcome.OK_NEW_SCHEMA;
