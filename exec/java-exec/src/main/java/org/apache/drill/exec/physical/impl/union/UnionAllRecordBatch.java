@@ -305,7 +305,7 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
           case STOP:
           case OUT_OF_MEMORY:
             return iterLeft;
-
+//??? PURGE case:
           // Although the first record batch from any input of Union should not be NONE,
           // there are other Relational Operators which do not follow this protocol
           // Thus, this case would not be removed until all those are fixed
@@ -344,7 +344,7 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
               inferOutputFields();
             }
             break;
-
+          //??? PURGE case:
           // TODO: Remove this case after other relational operators follow IterOutcome's Protocol
           case NONE:
             if ( true ) { throw new RuntimeException( "??????? DEBUG ME.2" ); }
