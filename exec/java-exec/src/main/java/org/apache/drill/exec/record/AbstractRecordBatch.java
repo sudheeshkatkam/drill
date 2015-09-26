@@ -34,8 +34,6 @@ import org.apache.drill.exec.record.selection.SelectionVector4;
 public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
-//??PURGE LINE  private static int dsbInstCount = 0;
-//??PURGE LINE  protected final int dsbInstId = ++dsbInstCount;
 
   protected final VectorContainer container;
   protected final T popConfig;
@@ -98,12 +96,8 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
 
   public final IterOutcome next(final RecordBatch b) {
     if(!context.shouldContinue()) {
-//??PURGE LINE      logger.info( "??? TEMP: next(RecordBatch) returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     }
-//??PURGE LINE    IterOutcome dsbTemp = next(0, b);
-//??PURGE LINE    logger.info( "??? TEMP: next(RecordBatch) returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-//??PURGE LINE    return dsbTemp;
     return next(0, b);
   }
 
@@ -112,7 +106,6 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
     stats.stopProcessing();
     try{
       if (!context.shouldContinue()) {
-//??PURGE LINE        logger.info( "??? TEMP: next(int, RecordBatch) returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
       next = b.next();
@@ -129,7 +122,6 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
       break;
     }
 
-//??PURGE LINE    logger.info( "??? TEMP: next(...) returning {} [#{}: {}]", next, dsbInstId, getClass().getSimpleName() );
     return next;
   }
 
@@ -142,7 +134,6 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
           buildSchema();
           switch (state) {
             case DONE:
-//??PURGE LINE              logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
               return IterOutcome.NONE;
             case OUT_OF_MEMORY:
               // because we don't support schema changes, it is safe to fail the query right away
@@ -150,22 +141,16 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
                 .build(logger));
               // FALL-THROUGH
             case STOP:
-//??PURGE LINE              logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
               return IterOutcome.STOP;
             default:
               state = BatchState.FIRST;
-//??PURGE LINE              logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
               return IterOutcome.OK_NEW_SCHEMA;
           }
         }
         case DONE: {
-//??PURGE LINE          logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.NONE;
         }
         default:
-//??PURGE LINE          IterOutcome temp = innerNext();
-//??PURGE LINE          logger.info( "??? TEMP: next() returning {} [#{}: {}]", temp, dsbInstId, getClass().getSimpleName() );
-//??PURGE LINE          return temp;
           return innerNext();
       }
     } catch (final SchemaChangeException e) {

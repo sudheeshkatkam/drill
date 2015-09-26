@@ -467,7 +467,6 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
     // if we got IterOutcome.NONE while getting partition vectors, and there are no batches on the queue, then we are
     // done
     if (upstreamNone && (batchQueue == null || batchQueue.size() == 0)) {
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -483,12 +482,10 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
       doWork(vc);
       vc.zeroVectors();
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK_NEW_SCHEMA;
     }
 
@@ -504,7 +501,6 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
     if (this.first && upstream == IterOutcome.OK_NEW_SCHEMA) {
       if (!getPartitionVectors()) {
         close();
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
 
@@ -519,13 +515,11 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
       doWork(vc);
       vc.zeroVectors();
       recordCount = vc.getRecordCount();
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK_NEW_SCHEMA;
     }
 
@@ -544,7 +538,6 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
     case STOP:
       close();
       recordCount = 0;
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
       return upstream;
     case OK_NEW_SCHEMA:
       try {
@@ -553,14 +546,12 @@ public class OrderedPartitionRecordBatch extends AbstractRecordBatch<OrderedPart
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.STOP;
       }
       // fall through.
     case OK:
       doWork(incoming);
       recordCount = incoming.getRecordCount();
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
       return upstream; // change if upstream changed, otherwise normal.
     default:
       throw new UnsupportedOperationException();

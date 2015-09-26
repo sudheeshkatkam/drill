@@ -96,7 +96,6 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
 
       IterOutcome upStream = next(incoming);
       if (upStream == IterOutcome.OUT_OF_MEMORY) {
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upStream, dsbInstId, getClass().getSimpleName() );
         return upStream;
       }
 
@@ -107,17 +106,12 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
         }
         upStream = next(incoming);
         if (upStream == IterOutcome.OUT_OF_MEMORY) {
-//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upStream, dsbInstId, getClass().getSimpleName() );
           return upStream;
         }
       }
 
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
-//??PURGE LINE    IterOutcome dsbTemp = super.innerNext();
-//??PURGE LINE    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-//??PURGE LINE    return dsbTemp;
     return super.innerNext();
   }
 
@@ -135,7 +129,6 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
     final int recordCount = incoming.getRecordCount();
     if (recordCount == 0) {
       skipBatch = true;
-//??PURGE LINE      logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK;
     }
     for(final TransferPair tp : transfers) {
@@ -153,7 +146,6 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
       }
     }
 
-//??PURGE LINE    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

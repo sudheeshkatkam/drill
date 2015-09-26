@@ -55,8 +55,6 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UnorderedReceiverBatch.class);
   private static final ControlsInjector injector = ControlsInjectorFactory.getInjector(UnorderedReceiverBatch.class);
 
-//??PURGE LINE  private static int dsbInstCount = 0;
-//??PURGE LINE    private final int dsbInstId = ++dsbInstCount;
 
   private final RecordBatchLoader batchLoader;
   private final RawFragmentBatchProvider fragProvider;
@@ -173,15 +171,12 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       if (batch == null) {
         batchLoader.clear();
         if (!context.shouldContinue()) {
-//??PURGE LINE          logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
-//??PURGE LINE        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.NONE;
       }
 
       if (batch.getHeader().getIsOutOfMemory()) {
-//??PURGE LINE        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OUT_OF_MEMORY;
       }
 
@@ -198,16 +193,13 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       if(schemaChanged) {
         this.schema = batchLoader.getSchema();
         stats.batchReceived(0, rbd.getRecordCount(), true);
-//??PURGE LINE        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK_NEW_SCHEMA;
       } else {
         stats.batchReceived(0, rbd.getRecordCount(), false);
-//??PURGE LINE        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK;
       }
     } catch(SchemaChangeException | IOException ex) {
       context.fail(ex);
-//??PURGE LINE      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     } finally {
       stats.stopProcessing();

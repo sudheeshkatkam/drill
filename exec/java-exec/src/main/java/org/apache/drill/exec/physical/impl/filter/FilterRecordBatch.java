@@ -79,7 +79,6 @@ public class FilterRecordBatch extends AbstractSingleRecordBatch<Filter>{
     int recordCount = incoming.getRecordCount();
     filter.filterBatch(recordCount);
 
-//??PURGE LINE    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

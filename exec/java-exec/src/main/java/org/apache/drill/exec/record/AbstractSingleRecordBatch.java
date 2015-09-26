@@ -46,7 +46,6 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
   public IterOutcome innerNext() {
     // Short circuit if record batch has already sent all data and is done
     if (state == BatchState.DONE) {
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -68,7 +67,6 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
       if (state == BatchState.FIRST) {
         container.buildSchema(SelectionVectorMode.NONE);
       }
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
       return upstream;
     case OUT_OF_MEMORY:
       return upstream;
@@ -85,7 +83,6 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
         kill(false);
         logger.error("Failure during query", ex);
         context.fail(ex);
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.STOP;
       } finally {
         stats.stopSetup();
@@ -104,13 +101,11 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
 
       if (outOfMemory) {
         outOfMemory = false;
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OUT_OF_MEMORY;
       }
 
       // Check if schema has changed
       if (callBack.getSchemaChange()) {
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK_NEW_SCHEMA;
       }
 

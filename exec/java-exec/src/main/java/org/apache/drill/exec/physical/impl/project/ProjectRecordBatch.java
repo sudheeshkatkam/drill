@@ -124,12 +124,8 @@ public class ProjectRecordBatch extends AbstractSingleRecordBatch<Project> {
   public IterOutcome innerNext() {
     if (hasRemainder) {
       handleRemainder();
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK;
     }
-//??PURGE LINE    IterOutcome dsbTemp = super.innerNext();
-//??PURGE LINE    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-//??PURGE LINE    return dsbTemp;
     return super.innerNext();
   }
 
@@ -170,7 +166,6 @@ public class ProjectRecordBatch extends AbstractSingleRecordBatch<Project> {
 
     if (!doAlloc()) {
       outOfMemory = true;
-//??PURGE LINE      logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OUT_OF_MEMORY;
     }
 
@@ -193,7 +188,6 @@ public class ProjectRecordBatch extends AbstractSingleRecordBatch<Project> {
       container.buildSchema(SelectionVectorMode.NONE);
     }
 
-//??PURGE LINE    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

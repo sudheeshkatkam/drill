@@ -247,9 +247,6 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   public IterOutcome innerNext() {
     if (schema != null) {
       if (spillCount == 0) {
-//??PURGE LINE        IterOutcome dsbTemp = (getSelectionVector4().next()) ? IterOutcome.OK : IterOutcome.NONE;
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
-//??PURGE LINE        return dsbTemp;
         return (getSelectionVector4().next()) ? IterOutcome.OK : IterOutcome.NONE;
       } else {
         Stopwatch w = new Stopwatch();
@@ -259,11 +256,9 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
           long t = w.elapsed(TimeUnit.MICROSECONDS);
           logger.debug("Took {} us to merge {} records", t, count);
           container.setRecordCount(count);
-//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.OK;
         } else {
           logger.debug("copier returned 0 records");
-//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.NONE;
         }
       }
@@ -289,14 +284,12 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
         switch (upstream) {
         case NONE:
           if (first) {
-//??PURGE LINE            logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
             return upstream;
           }
           break outer;
         case NOT_YET:
           throw new UnsupportedOperationException();
         case STOP:
-//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", upstream, dsbInstId, getClass().getSimpleName() );
           return upstream;
         case OK_NEW_SCHEMA:
           // only change in the case that the schema truly changes.  Artificial schema changes are ignored.
@@ -332,7 +325,6 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
             try {
               sv2 = newSV2();
             } catch(InterruptedException e) {
-//??PURGE LINE              logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
               return IterOutcome.STOP;
             } catch (OutOfMemoryException e) {
               throw new OutOfMemoryRuntimeException(e);
@@ -402,7 +394,6 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
             }
           } else {
             logger.debug("not enough batches to spill, sending OUT_OF_MEMORY downstream");
-//??PURGE LINE            logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
             return IterOutcome.OUT_OF_MEMORY;
           }
           break;
@@ -412,7 +403,6 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
       }
 
       if (totalCount == 0) {
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.NONE;
       }
       if (spillCount == 0) {
@@ -442,7 +432,6 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
 
         // sort may have prematurely exited due to should continue returning false.
         if (!context.shouldContinue()) {
-//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
 
@@ -478,19 +467,16 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
         container.setRecordCount(count);
       }
 
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK_NEW_SCHEMA;
 
     } catch (SchemaChangeException ex) {
       kill(false);
       context.fail(UserException.unsupportedError(ex)
         .message("Sort doesn't currently support sorts with changing schemas").build(logger));
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     } catch(ClassTransformationException | IOException ex) {
       kill(false);
       context.fail(ex);
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     } catch (UnsupportedOperationException e) {
       throw new RuntimeException(e);

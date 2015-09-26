@@ -89,7 +89,6 @@ public class RemovingRecordBatch extends AbstractSingleRecordBatch<SelectionVect
   public IterOutcome innerNext() {
     if (hasRemainder) {
       handleRemainder();
-//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.OK;
     }
     return super.innerNext();
@@ -130,7 +129,6 @@ public class RemovingRecordBatch extends AbstractSingleRecordBatch<SelectionVect
         incomingRecordCount,
         incomingRecordCount - remainderIndex,
         incoming.getSchema());
-//??PURGE LINE    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

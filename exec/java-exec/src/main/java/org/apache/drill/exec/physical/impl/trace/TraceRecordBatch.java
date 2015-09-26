@@ -120,7 +120,6 @@ public class TraceRecordBatch extends AbstractSingleRecordBatch<Trace> {
     if (incomingHasSv2) {
       sv = wrap.getSv2();
     }
-//??PURGE LINE    logger.info( "??? TEMP: doWork() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
     return IterOutcome.OK;
   }
 

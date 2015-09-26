@@ -38,8 +38,6 @@ import static org.apache.drill.exec.record.RecordBatch.IterOutcome.*;
 public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(IteratorValidatorBatchIterator.class);
 
-//??PURGE LINE  private static int dsbInstCount = 0;
-//??PURGE LINE    private final int dsbInstId = ++dsbInstCount;
 
   static final boolean VALIDATE_VECTORS = false;
 
@@ -279,7 +277,6 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
         }
       }
 
-//??PURGE LINE      logger.info( "??? TEMP: next() returning {} [#{}: {}]", batchState, dsbInstId, getClass().getSimpleName() );
       return batchState;
     }
     catch ( RuntimeException | Error e ) {

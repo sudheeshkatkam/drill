@@ -144,7 +144,6 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
       if (leftUpstream == IterOutcome.NONE) {
         // inform upstream that we don't need anymore data and make sure we clean up any batches already in queue
         killAndDrainRight();
-//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.NONE;
       }
 
@@ -162,7 +161,6 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
             addBatchToHyperContainer(right);
             break;
           case OUT_OF_MEMORY:
-//??PURGE LINE            logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
             return IterOutcome.OUT_OF_MEMORY;
           case NONE:
           case STOP:
@@ -192,9 +190,6 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
     container.buildSchema(BatchSchema.SelectionVectorMode.NONE);
 
     logger.debug("Number of records emitted: " + outputRecords);
-//??PURGE LINE    IterOutcome dsbTemp = (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
-//??PURGE LINE    logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-//??PURGE LINE    return dsbTemp;
     return (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
   }
 
