@@ -271,7 +271,7 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
       // No more output records, clean up and return
       state = BatchState.DONE;
       //            if (first) {
-      //              return xxIterOutcome.OK_NEW_SCHEMA;
+      //              return IterOutcome.OK_NEW_SCHEMA;
       //            }
 //??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;

@@ -96,7 +96,7 @@ public abstract class AbstractSingleRecordBatch<T extends PhysicalOperator> exte
       container.zeroVectors();
       IterOutcome out = doWork();
 
-      // since doWork method does not know if there is a new schema, it will always return xxIterOutcome.OK if it was successful.
+      // since doWork method does not know if there is a new schema, it will always return IterOutcome.OK if it was successful.
       // But if upstream is IterOutcome.OK_NEW_SCHEMA, we should return that
       if (out != IterOutcome.OK) {
         upstream = out;

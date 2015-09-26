@@ -132,7 +132,7 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
    * in a hyper container. Once we have all the data from the right side we
    * process the left side one batch at a time and produce the output batch
    * which is a cross product of the two sides.
-   * @return xxIterOutcome state of the nested loop join batch
+   * @return IterOutcome state of the nested loop join batch
    */
   @Override
   public IterOutcome innerNext() {
