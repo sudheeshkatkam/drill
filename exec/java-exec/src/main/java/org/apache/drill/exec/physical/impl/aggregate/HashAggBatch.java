@@ -120,15 +120,16 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
   public IterOutcome innerNext() {
 
     if (aggregator.allFlushed()) {
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
     if (aggregator.buildComplete() && !aggregator.allFlushed()) {
       // aggregation is complete and not all records have been output yet
-      IterOutcome dsbTemp = aggregator.outputCurrentBatch();
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-      return dsbTemp;  // ???? return aggregator.outputCurrentBatch();
+//??PURGE LINE      IterOutcome dsbTemp = aggregator.outputCurrentBatch();
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      return dsbTemp;
+      return aggregator.outputCurrentBatch();
     }
 
     logger.debug("Starting aggregator doWork; incoming record count = {} ", incoming.getRecordCount());
@@ -142,15 +143,16 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
       state = BatchState.DONE;
       // fall through
     case RETURN_OUTCOME:
-      IterOutcome dsbTemp = aggregator.getOutcome();
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
-      return dsbTemp;  // ???? return aggregator.getOutcome();
+//??PURGE LINE      IterOutcome dsbTemp = aggregator.getOutcome();
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", dsbTemp, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      return dsbTemp;
+      return aggregator.getOutcome();
     case UPDATE_AGGREGATOR:
       context.fail(UserException.unsupportedError()
         .message("Hash aggregate does not support schema changes").build(logger));
       close();
       killIncoming(false);
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     default:
       throw new IllegalStateException(String.format("Unknown state %s.", out));

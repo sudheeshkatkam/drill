@@ -123,7 +123,7 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
 
     // if a special batch has been sent, we have no data in the incoming so exit early
     if (specialBatchSent) {
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
 
@@ -145,18 +145,18 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
           first = false;
           // set state to indicate the fact that we have sent a special batch and input is empty
           specialBatchSent = true;
-          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.OK;
         }
       case OUT_OF_MEMORY:
       case NOT_YET:
       case STOP:
-        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", outcome, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", outcome, dsbInstId, getClass().getSimpleName() );
         return outcome;
       case OK_NEW_SCHEMA:
         if (!createAggregator()) {
           done = true;
-          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
         break;
@@ -182,14 +182,14 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
       if (outcome == IterOutcome.NONE && first) {
         first = false;
         done = true;
-        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE        logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK_NEW_SCHEMA;
       } else if (outcome == IterOutcome.OK && first) {
         outcome = IterOutcome.OK_NEW_SCHEMA;
       } else if (outcome != IterOutcome.OUT_OF_MEMORY) {
         first = false;
       }
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", outcome, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", outcome, dsbInstId, getClass().getSimpleName() );
       return outcome;
     case UPDATE_AGGREGATOR:
       context.fail(UserException.unsupportedError()
@@ -197,7 +197,7 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
         .build(logger));
       close();
       killIncoming(false);
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     default:
       throw new IllegalStateException(String.format("Unknown state %s.", out));

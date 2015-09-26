@@ -33,8 +33,8 @@ import org.apache.drill.exec.record.RecordBatch.IterOutcome;
 public abstract class BaseRootExec implements RootExec {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BaseRootExec.class);
 
-  private static int dsbInstCount = 0;
-  private final int dsbInstId = ++dsbInstCount;
+//??PURGE LINE  private static int dsbInstCount = 0;
+//??PURGE LINE    private final int dsbInstId = ++dsbInstCount;
 
   protected OperatorStats stats = null;
   protected OperatorContext oContext = null;
@@ -96,7 +96,7 @@ public abstract class BaseRootExec implements RootExec {
         stats.batchReceived(0, b.getRecordCount(), false);
         break;
     }
-    logger.info( "??? TEMP: next(RecordBatch) returning {} [#{}: {}]", next, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE    logger.info( "??? TEMP: next(RecordBatch) returning {} [#{}: {}]", next, dsbInstId, getClass().getSimpleName() );
     return next;
   }
 

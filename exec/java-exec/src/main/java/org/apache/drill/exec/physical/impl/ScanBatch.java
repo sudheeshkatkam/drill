@@ -67,8 +67,8 @@ public class ScanBatch implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ScanBatch.class);
   private static final ControlsInjector injector = ControlsInjectorFactory.getInjector(ScanBatch.class);
 
-  private static int dsbInstCount = 0;
-  private final int dsbInstId = ++dsbInstCount;
+//??PURGE LINE  private static int dsbInstCount = 0;
+//??PURGE LINE    private final int dsbInstId = ++dsbInstCount;
 
   private final Map<MaterializedField.Key, ValueVector> fieldVectorMap = Maps.newHashMap();
 
@@ -105,7 +105,7 @@ public class ScanBatch implements CloseableRecordBatch {
       throw new ExecutionSetupException("A scan batch must contain at least one reader.");
     }
     currentReader = readers.next();
-    logger.info( "??? TEMP: ScanBatch(...): currentReader := {} [#{}: {}]", currentReader, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE    logger.info( "??? TEMP: ScanBatch(...): currentReader := {} [#{}: {}]", currentReader, dsbInstId, getClass().getSimpleName() );
     this.oContext = oContext;
 
     boolean setup = false;
@@ -181,7 +181,7 @@ public class ScanBatch implements CloseableRecordBatch {
   @Override
   public IterOutcome next() {
     if (done) {
-      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     }
     oContext.getStats().startProcessing();
@@ -193,7 +193,7 @@ public class ScanBatch implements CloseableRecordBatch {
       } catch (OutOfMemoryException | OutOfMemoryRuntimeException e) {
         logger.debug("Caught Out of Memory Exception", e);
         clearFieldVectorMap();
-        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OUT_OF_MEMORY;
       }
       while ((recordCount = currentReader.next()) == 0) {
@@ -217,7 +217,7 @@ public class ScanBatch implements CloseableRecordBatch {
                 // no-row input).
                 if ( true || 0 != schema.getFieldCount() ) {
                 haveReturnedAnySchema = true;
-                logger.info( "??? TEMP: next() returning {} [#{}: {}] ***CHANGED CASE***", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE                logger.info( "??? TEMP: next() returning {} [#{}: {}] ***CHANGED CASE***", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
                 return IterOutcome.OK_NEW_SCHEMA;
                 } else {
                   return IterOutcome.NONE;
@@ -226,13 +226,13 @@ public class ScanBatch implements CloseableRecordBatch {
                 // We have already returned OK_NEW_SCHEMA, so we can ignore
                 // this new schema for which there are no rows and signal that
                 // we're finished.
-                logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE                logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
                 return IterOutcome.NONE;
-                //???????? logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE                //???????? logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
                 //???????? return IterOutcome.OK_NEW_SCHEMA;
               }
             }
-            logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE            logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
             return IterOutcome.NONE;
           }
 
@@ -247,7 +247,7 @@ public class ScanBatch implements CloseableRecordBatch {
 
           currentReader.close();
           currentReader = readers.next();
-          logger.info( "??? TEMP: next(): currentReader := {} [#{}: {}]", currentReader, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE          logger.info( "??? TEMP: next(): currentReader := {} [#{}: {}]", currentReader, dsbInstId, getClass().getSimpleName() );
           partitionValues = partitionColumns.hasNext() ? partitionColumns.next() : null;
           currentReader.setup(oContext, mutator);
           try {
@@ -255,7 +255,7 @@ public class ScanBatch implements CloseableRecordBatch {
           } catch (OutOfMemoryException e) {
             logger.debug("Caught OutOfMemoryException");
             clearFieldVectorMap();
-            logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE            logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OUT_OF_MEMORY, dsbInstId, getClass().getSimpleName() );
             return IterOutcome.OUT_OF_MEMORY;
           }
           addPartitionVectors();
@@ -263,7 +263,7 @@ public class ScanBatch implements CloseableRecordBatch {
         } catch (ExecutionSetupException e) {
           this.context.fail(e);
           releaseAssets();
-          logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE          logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.STOP;
         }
       }
@@ -284,20 +284,20 @@ public class ScanBatch implements CloseableRecordBatch {
         container.buildSchema(SelectionVectorMode.NONE);
         schema = container.getSchema();
         haveReturnedAnySchema = true;
-        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK_NEW_SCHEMA, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK_NEW_SCHEMA;
       } else {
-        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE        logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
         return IterOutcome.OK;
       }
     } catch (OutOfMemoryRuntimeException ex) {
       context.fail(UserException.memoryError(ex).build(logger));
-      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     } catch (Exception ex) {
       logger.debug("Failed to read the batch. Stopping...", ex);
       context.fail(ex);
-      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: next() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     } finally {
       oContext.getStats().stopProcessing();

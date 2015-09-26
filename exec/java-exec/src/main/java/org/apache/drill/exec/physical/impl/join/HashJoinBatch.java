@@ -248,7 +248,7 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
             v.getValueVector().getMutator().setValueCount(outputRecords);
           }
 
-          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE          logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.OK, dsbInstId, getClass().getSimpleName() );
           return IterOutcome.OK;
         }
       } else {
@@ -273,12 +273,12 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
       //            if (first) {
       //              return xxIterOutcome.OK_NEW_SCHEMA;
       //            }
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.NONE, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.NONE;
     } catch (ClassTransformationException | SchemaChangeException | IOException e) {
       context.fail(e);
       killIncoming(false);
-      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
+//??PURGE LINE      logger.info( "??? TEMP: innerNext() returning {} [#{}: {}]", IterOutcome.STOP, dsbInstId, getClass().getSimpleName() );
       return IterOutcome.STOP;
     }
   }
