@@ -190,6 +190,7 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
     container.buildSchema(BatchSchema.SelectionVectorMode.NONE);
 
     logger.debug("Number of records emitted: " + outputRecords);
+
     return (outputRecords > 0) ? IterOutcome.OK : IterOutcome.NONE;
   }
 

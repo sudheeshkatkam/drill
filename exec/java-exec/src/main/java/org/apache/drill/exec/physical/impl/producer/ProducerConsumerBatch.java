@@ -86,6 +86,7 @@ public class ProducerConsumerBatch extends AbstractRecordBatch {
 
     recordCount = wrapper.batch.getRecordCount();
     final boolean newSchema = load(wrapper.batch);
+
     return newSchema ? IterOutcome.OK_NEW_SCHEMA : IterOutcome.OK;
   }
 

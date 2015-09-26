@@ -111,6 +111,7 @@ public class LimitRecordBatch extends AbstractSingleRecordBatch<Limit> {
 
       return IterOutcome.NONE;
     }
+
     return super.innerNext();
   }
 
