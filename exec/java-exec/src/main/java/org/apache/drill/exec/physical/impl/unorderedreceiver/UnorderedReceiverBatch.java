@@ -55,7 +55,6 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UnorderedReceiverBatch.class);
   private static final ControlsInjector injector = ControlsInjectorFactory.getInjector(UnorderedReceiverBatch.class);
 
-
   private final RecordBatchLoader batchLoader;
   private final RawFragmentBatchProvider fragProvider;
   private final FragmentContext context;

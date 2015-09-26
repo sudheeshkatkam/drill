@@ -34,7 +34,6 @@ import org.apache.drill.exec.record.selection.SelectionVector4;
 public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(new Object() {}.getClass().getEnclosingClass());
 
-
   protected final VectorContainer container;
   protected final T popConfig;
   protected final FragmentContext context;
