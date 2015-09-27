@@ -209,8 +209,8 @@ public class ScanBatch implements CloseableRecordBatch {
               System.err.println( "??? TEMP ScanBatch.next(): 2288 STATE:  (???)" );
               System.err.println( "??? TEMP ScanBatch.next(): schema.getFieldCount() = " + schema.getFieldCount() );
               final IterOutcome zeroRowReaderResult;
-              final boolean emptyJsonCasePURGE = 
-                  1 == schema.getFieldCount() 
+              final boolean emptyJsonCasePURGE =
+                  1 == schema.getFieldCount()
                   && "*".equals(schema.getColumn(0).getLastName());
               if (! haveReturnedAnySchema) {
                 // We haven't returned OK_NEW_SCHEMA yet, so per the (current)
@@ -442,7 +442,7 @@ public class ScanBatch implements CloseableRecordBatch {
       // Note:  Callback's getSchemaChangeAndReset() must get called in order to
       // reset it and avoid false reports of schema changes in future.  (Be
       // careful with short-circuit OR (||) operator.)
-      
+
       boolean deeperSchemaChanged = callBack.getSchemaChangedAndReset();
       if (schemaChanged || deeperSchemaChanged) {
         schemaChanged = false;
