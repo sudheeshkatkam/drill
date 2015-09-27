@@ -311,6 +311,7 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
           // Thus, this case would not be removed until all those are fixed
           // TODO: Remove this case after other relational operators follow IterOutcome's Protocol
           case NONE:
+            System.err.println( "??? TEMP: UnionAll 2288 STATE: unpurge, check 1 ENABLED" );
             if ( true ) { throw new RuntimeException( "???? DEBUG ME.1" ); }
             throw new SchemaChangeException("The left input of Union-All should not come from an empty data source");
 
@@ -347,6 +348,7 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
           //??? PURGE case:
           // TODO: Remove this case after other relational operators follow IterOutcome's Protocol
           case NONE:
+            System.err.println( "??? TEMP: UnionAll 2288 STATE: 2: unpurged, check ENABLED" );
             if ( true ) { throw new RuntimeException( "??????? DEBUG ME.2" ); }
             // If the right input side comes from an empty data source,
             // use the left input side's schema directly
