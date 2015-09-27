@@ -30,7 +30,7 @@ public class SchemaChangeCallBack implements CallBack {
    */
   public SchemaChangeCallBack() {
   }
-  
+
   /**
    * Sets the schema-changed state to {@code true}.
    */
