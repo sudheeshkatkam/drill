@@ -51,7 +51,7 @@
 <!--
     <level value="trace" />
 -->
-    <level value="trace" />
+    <level value="debug" />  
     <appender-ref ref="SOCKET" />
     <appender-ref ref="STDOUT" />
   </logger>
