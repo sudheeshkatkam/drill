@@ -63,13 +63,25 @@ public class Drill2288StillGetColumnsMetadataWhenZeroRowsTest {
    * didn't show up.)
    */
   @Test
-  public void testEmptyJsonFileDoesntSuppressNetSchema() throws Exception {
+  public void testEmptyJsonFileDoesntSuppressNetSchema1() throws Exception {
     Statement stmt = connection.createStatement();
     ResultSet results = stmt.executeQuery( "SELECT a, b, c, * FROM cp.`empty.json`" );
 
     ResultSetMetaData metadata = results.getMetaData();
     assertThat( metadata.getColumnCount(), not( equalTo( 0 ) ) );
 
+    assertThat( "Unexpected non-empty results.  Test rot?",
+                false, equalTo( results.next() ) );
+  }
+
+  @Test
+  public void testEmptyJsonFileDoesntSuppressNetSchema2() throws Exception {
+    Statement stmt = connection.createStatement();
+    ResultSet results = stmt.executeQuery( "SELECT a FROM cp.`empty.json`" );
+  
+    ResultSetMetaData metadata = results.getMetaData();
+    assertThat( metadata.getColumnCount(), equalTo( 1 ) );
+  
     assertThat( "Unexpected non-empty results.  Test rot?",
                 false, equalTo( results.next() ) );
   }
@@ -173,5 +185,6 @@ public class Drill2288StillGetColumnsMetadataWhenZeroRowsTest {
     assertThat( "Unexpected non-empty results.  Test rot?",
                 false, equalTo( results.next() ) );
   }
+
 
 }
