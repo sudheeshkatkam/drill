@@ -78,10 +78,10 @@ public class Drill2288StillGetColumnsMetadataWhenZeroRowsTest {
   public void testEmptyJsonFileDoesntSuppressNetSchema2() throws Exception {
     Statement stmt = connection.createStatement();
     ResultSet results = stmt.executeQuery( "SELECT a FROM cp.`empty.json`" );
-  
+
     ResultSetMetaData metadata = results.getMetaData();
     assertThat( metadata.getColumnCount(), equalTo( 1 ) );
-  
+
     assertThat( "Unexpected non-empty results.  Test rot?",
                 false, equalTo( results.next() ) );
   }
