@@ -232,7 +232,7 @@ public class ScanBatch implements CloseableRecordBatch {
                   }
                 } else {
                   // Empty-schema case (unknown whether can exist)--??? RESOLVE.
-                  zeroRowReaderResult = IterOutcome.NONE; //????
+                  zeroRowReaderResult = null; //????
                 }
               } else {
                 // We have already returned OK_NEW_SCHEMA, so, for raw purposes
@@ -257,7 +257,7 @@ public class ScanBatch implements CloseableRecordBatch {
                   }
                 } else {
                   // Empty-schema case (unknown whether can exist)--??? RESOLVE.
-                  zeroRowReaderResult = IterOutcome.NONE; //????
+                  zeroRowReaderResult = null; //????
                 }
               }
               if (IterOutcome.OK_NEW_SCHEMA == zeroRowReaderResult) {
