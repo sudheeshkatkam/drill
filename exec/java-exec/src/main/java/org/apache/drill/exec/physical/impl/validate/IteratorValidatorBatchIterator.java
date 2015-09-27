@@ -210,9 +210,9 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
         case NONE:
           // NONE is allowed as long as OK_NEW_SCHEMA was seen, except if
           // already terminated (checked above).
-          System.err.println( "??? TEMP: IteratorValidatorBatch 2288 STATE: unpurged, exception DISABLED" );
+          System.err.println( "??? TEMP: IteratorValidatorBatch 2288 STATE: unpurged, exception ENABLED" );
           if ( validationState != ValidationState.HAVE_SCHEMA ) {
-            if ( false ) { // ???? TEMPORARY if (but NOT block)
+            if ( true ) { // ???? TEMPORARY if (but NOT block)
             throw new IllegalStateException(
                 String.format(
                     "next() returned %s without first returning %s [#%d, %s]",
