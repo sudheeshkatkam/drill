@@ -30,6 +30,7 @@ import org.apache.drill.common.JSONOptions;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.ops.OptimizerRulesContext;
+import org.apache.drill.exec.planner.sql.logical.HiveLimitZeroToDirectScan;
 import org.apache.drill.exec.planner.sql.logical.HivePushPartitionFilterIntoScan;
 import org.apache.drill.exec.server.DrillbitContext;
 import org.apache.drill.exec.store.AbstractStoragePlugin;
@@ -92,9 +93,13 @@ public class HiveStoragePlugin extends AbstractStoragePlugin {
   public Set<StoragePluginOptimizerRule> getOptimizerRules(OptimizerRulesContext optimizerRulesContext) {
     final String defaultPartitionValue = HiveUtilities.getDefaultPartitionValue(config.getHiveConfigOverride());
 
-    return ImmutableSet.of(
-        HivePushPartitionFilterIntoScan.getFilterOnProject(optimizerRulesContext, defaultPartitionValue),
-        HivePushPartitionFilterIntoScan.getFilterOnScan(optimizerRulesContext, defaultPartitionValue));
+    ImmutableSet.Builder<StoragePluginOptimizerRule> ruleBuilder = ImmutableSet.builder();
+
+    ruleBuilder.add(HivePushPartitionFilterIntoScan.getFilterOnProject(optimizerRulesContext, defaultPartitionValue),
+      HivePushPartitionFilterIntoScan.getFilterOnScan(optimizerRulesContext, defaultPartitionValue),
+      HiveLimitZeroToDirectScan.INSTANCE);
+
+    return ruleBuilder.build();
   }
 
 }
