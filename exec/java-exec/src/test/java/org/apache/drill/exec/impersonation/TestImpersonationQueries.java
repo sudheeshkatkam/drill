@@ -174,7 +174,7 @@ public class TestImpersonationQueries extends BaseTestImpersonation {
     Path dfsFile = new Path(getUserHome(user), "simple.seq");
     fs.copyFromLocalFile(localFile, dfsFile);
     fs.setOwner(dfsFile, user, group);
-    fs.setPermission(dfsFile, new FsPermission((short) 0750));
+    fs.setPermission(dfsFile, new FsPermission((short) 0700));
   }
 
   private static void createView(final String viewOwner, final String viewGroup, final short viewPerms,
@@ -300,6 +300,21 @@ public class TestImpersonationQueries extends BaseTestImpersonation {
       ex = e;
     }
     assertNotNull("UserRemoteException is expected", ex);
+  }
+
+  @Test
+  public void sequenceFileChainedImpersonationWithView() throws Exception {
+    // create a view named "simple_view" on "simple.seq". View is owned by user0:group0 and has permissions 750
+    createView(org1Users[0], org1Groups[0], "simple_view",
+        String.format("SELECT convert_from(t.binary_key, 'UTF8') as k FROM %s.`%s` t", MINIDFS_STORAGE_PLUGIN_NAME,
+            new Path(getUserHome(org1Users[0]), "simple.seq")));
+    try {
+      // user1:group0 is permitted to read column "k"
+      updateClient(org1Users[1]);
+      test("SELECT k FROM %s.%s.%s", MINIDFS_STORAGE_PLUGIN_NAME, "tmp", "simple_view");
+    } catch (UserRemoteException e) {
+      assertNull("This test should pass.", e);
+    }
   }
 
   @AfterClass

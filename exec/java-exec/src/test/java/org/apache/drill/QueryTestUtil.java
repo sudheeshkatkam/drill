@@ -61,9 +61,16 @@ public class QueryTestUtil {
     final DrillClient drillClient = new DrillClient(drillConfig, remoteServiceSet.getCoordinator());
     drillClient.connect(props);
 
-    final List<QueryDataBatch> results = drillClient.runQuery(
+    List<QueryDataBatch> results = drillClient.runQuery(
         QueryType.SQL, String.format("alter session set `%s` = %d",
             ExecConstants.MAX_WIDTH_PER_NODE_KEY, maxWidth));
+    for (QueryDataBatch queryDataBatch : results) {
+      queryDataBatch.release();
+    }
+
+    results = drillClient.runQuery(
+        QueryType.SQL, String.format("alter session set `%s` = %b",
+            ExecConstants.ENABLE_VERBOSE_ERRORS_KEY, true));
     for (QueryDataBatch queryDataBatch : results) {
       queryDataBatch.release();
     }

@@ -92,25 +92,8 @@ public class ScanBatch implements CloseableRecordBatch {
     if (!readers.hasNext()) {
       throw new ExecutionSetupException("A scan batch must contain at least one reader.");
     }
-    currentReader = readers.next();
     this.oContext = oContext;
 
-    boolean setup = false;
-    try {
-      oContext.getStats().startProcessing();
-      currentReader.setup(oContext, mutator);
-      setup = true;
-    } finally {
-      // if we had an exception during setup, make sure to release existing data.
-      if (!setup) {
-        try {
-          currentReader.close();
-        } catch(final Exception e) {
-          throw new ExecutionSetupException(e);
-        }
-      }
-      oContext.getStats().stopProcessing();
-    }
     this.partitionColumns = partitionColumns.iterator();
     partitionValues = this.partitionColumns.hasNext() ? this.partitionColumns.next() : null;
     this.selectedPartitionColumns = selectedPartitionColumns;
@@ -168,6 +151,27 @@ public class ScanBatch implements CloseableRecordBatch {
   public IterOutcome next() {
     if (done) {
       return IterOutcome.NONE;
+    }
+    if (currentReader == null) {
+      currentReader = readers.next();
+      boolean setup = false;
+      try {
+        oContext.getStats().startProcessing();
+        currentReader.setup(oContext, mutator);
+        setup = true;
+      } catch (ExecutionSetupException e) {
+        context.fail(e);
+      } finally {
+        // if we had an exception during setup, make sure to release existing data.
+        if (!setup) {
+          try {
+            currentReader.close();
+          } catch(final Exception e) {
+            context.fail(e);
+          }
+        }
+        oContext.getStats().stopProcessing();
+      }
     }
     oContext.getStats().startProcessing();
     try {

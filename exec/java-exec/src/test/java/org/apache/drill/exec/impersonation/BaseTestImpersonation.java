@@ -24,6 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.drill.PlanTestBase;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
+import org.apache.drill.exec.dotdrill.DotDrillType;
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.dfs.FileSystemConfig;
 import org.apache.drill.exec.store.dfs.WorkspaceConfig;
@@ -140,6 +141,15 @@ public class BaseTestImpersonation extends PlanTestBase {
     fs.setOwner(dirPath, owner, group);
     final WorkspaceConfig ws = new WorkspaceConfig(path, true, "parquet");
     workspaces.put(name, ws);
+  }
+
+  protected static void createView(final String viewOwner, final String viewGroup, final String viewName,
+                                   final String viewDef) throws Exception {
+    updateClient(viewOwner);
+    test(String.format("ALTER SESSION SET `%s`='%o';", ExecConstants.NEW_VIEW_DEFAULT_PERMS_KEY, (short) 0750));
+    test("CREATE VIEW %s.%s.%s AS %s", MINIDFS_STORAGE_PLUGIN_NAME, "tmp", viewName, viewDef);
+    final Path viewFilePath = new Path("/tmp/", viewName + DotDrillType.VIEW.getEnding());
+    fs.setOwner(viewFilePath, viewOwner, viewGroup);
   }
 
   protected static void stopMiniDfsCluster() throws Exception {
