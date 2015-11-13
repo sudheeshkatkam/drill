@@ -19,6 +19,7 @@ package org.apache.drill.exec.hive;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.drill.exec.ExecConstants;
+import org.apache.drill.PlanTestBase;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
 import org.apache.hadoop.fs.FileSystem;
 import org.joda.time.DateTime;
@@ -39,6 +40,27 @@ public class TestHiveStorage extends HiveTestBase {
   @Test
   public void hiveReadWithDb() throws Exception {
     test("select * from hive.kv");
+  }
+
+  @Test
+  public void hiveReadLimitZero() throws Exception {
+    testBuilder()
+        .sqlQuery("select * from hive.kv limit 0")
+        .expectsEmptyResultSet()
+        .baselineColumns("key", "value")
+        .go();
+  }
+
+  @Test
+  public void hiveReadLimitZeroPlan() throws Exception {
+    final String[] expectedPlan = {
+      ".*Project.*\n" +
+      ".*Scan.*ColumnNamesReader.*"
+    };
+    final String[] excludedPlan = {
+      ".*Limit.fetch.*"
+    };
+    PlanTestBase.testPlanMatchingPatterns("select * from hive.kv limit 0", expectedPlan, excludedPlan);
   }
 
   @Test
