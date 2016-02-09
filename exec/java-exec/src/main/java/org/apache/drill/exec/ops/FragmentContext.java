@@ -136,7 +136,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     this.accountingUserConnection = new AccountingUserConnection(connection, sendingAccountor, statusHandler);
     this.fragment = fragment;
     this.funcRegistry = funcRegistry;
-    contextInformation = new ContextInformation(fragment.getCredentials(), fragment.getContext());
+    contextInformation = new ContextInformation(fragment.getCredentials().getUserName(), fragment.getContext());
 
     logger.debug("Getting initial memory allocation of {}", fragment.getMemInitial());
     logger.debug("Fragment max allocation: {}", fragment.getMemMax());

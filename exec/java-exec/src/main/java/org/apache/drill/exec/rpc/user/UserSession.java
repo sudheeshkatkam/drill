@@ -42,9 +42,8 @@ public class UserSession {
   public static final String SCHEMA = "schema";
   public static final String USER = "user";
   public static final String PASSWORD = "password";
+  public static final String DELEGATION_UID = "delegationuid";
 
-  private DrillUser user;
-  private boolean enableExchanges = true;
   private boolean supportComplexTypes = false;
   private UserCredentials credentials;
   private Map<String, String> properties;
@@ -82,7 +81,7 @@ public class UserSession {
       if (properties != null) {
         for (int i = 0; i < properties.getPropertiesCount(); i++) {
           Property prop = properties.getProperties(i);
-          userSession.properties.put(prop.getKey(), prop.getValue());
+          userSession.properties.put(prop.getKey().toLowerCase(), prop.getValue());
         }
       }
       return this;
@@ -116,12 +115,12 @@ public class UserSession {
     return sessionOptions;
   }
 
-  public DrillUser getUser() {
-    return user;
-  }
-
   public UserCredentials getCredentials() {
     return credentials;
+  }
+
+  public String getQueryUser() {
+    return properties.containsKey(DELEGATION_UID) ? properties.get(DELEGATION_UID) : credentials.getUserName();
   }
 
   public String getDefaultSchemaName() {

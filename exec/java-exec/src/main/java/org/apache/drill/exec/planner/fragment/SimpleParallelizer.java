@@ -47,6 +47,7 @@ import org.apache.drill.exec.proto.BitControl.PlanFragment;
 import org.apache.drill.exec.proto.BitControl.QueryContextInformation;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
+import org.apache.drill.exec.proto.UserBitShared;
 import org.apache.drill.exec.proto.UserBitShared.QueryId;
 import org.apache.drill.exec.rpc.user.UserSession;
 import org.apache.drill.exec.server.options.OptionList;
@@ -383,7 +384,9 @@ public class SimpleParallelizer {
             .setMemInitial(wrapper.getInitialAllocation())//
             .setMemMax(wrapper.getMaxAllocation())
             .setOptionsJson(optionsData)
-            .setCredentials(session.getCredentials())
+            .setCredentials(UserBitShared.UserCredentials.newBuilder()
+                .setUserName(session.getQueryUser())
+                .build())
             .addAllCollector(CountRequiredFragments.getCollectors(root))
             .build();
 

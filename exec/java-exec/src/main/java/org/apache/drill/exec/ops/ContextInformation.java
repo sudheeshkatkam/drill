@@ -29,8 +29,8 @@ public class ContextInformation {
   private final long queryStartTime;
   private final int rootFragmentTimeZone;
 
-  public ContextInformation(final UserCredentials userCredentials, final QueryContextInformation queryContextInfo) {
-    this.queryUser = userCredentials.getUserName();
+  public ContextInformation(final String queryUser, final QueryContextInformation queryContextInfo) {
+    this.queryUser = queryUser;
     this.currentDefaultSchema = queryContextInfo.getDefaultSchemaName();
     this.queryStartTime = queryContextInfo.getQueryStartTime();
     this.rootFragmentTimeZone = queryContextInfo.getTimeZone();
