@@ -35,6 +35,7 @@ public class PlannerSettings implements Context{
   private int numEndPoints = 0;
   private boolean useDefaultCosting = false; // True: use default Optiq costing, False: use Drill costing
   private boolean forceSingleMode;
+  private boolean hasLimit0 = false;
 
   public static final int MAX_BROADCAST_THRESHOLD = Integer.MAX_VALUE;
   public static final int DEFAULT_IDENTIFIER_MAX_LENGTH = 1024;
@@ -99,6 +100,14 @@ public class PlannerSettings implements Context{
 
   public void forceSingleMode() {
     forceSingleMode = true;
+  }
+
+  public void setLimit0(boolean limit) {
+    hasLimit0 = limit;
+  }
+
+  public boolean hasLimit0() {
+    return hasLimit0;
   }
 
   public int numEndPoints() {
