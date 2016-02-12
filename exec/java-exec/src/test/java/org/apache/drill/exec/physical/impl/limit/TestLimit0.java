@@ -462,7 +462,7 @@ public class TestLimit0 extends BaseTestQuery {
         "SUM(1) as s1, " +
         "COUNT(1) as c1, " +
         "COUNT(*) as cs, " +
-        "COUNT(n_regionkey) as cc " +
+        "COUNT(CAST(n_regionkey AS INT)) as cc " +
         "FROM cp.`tpch/nation.parquet` " +
         "GROUP BY CAST(n_regionkey AS INT)";
 
@@ -571,7 +571,6 @@ public class TestLimit0 extends BaseTestQuery {
   }
 
   @Test
-  @Ignore("Drill UDFs are currently not optimized.")
   public void concat() throws Exception {
     concatTest("SELECT CONCAT(full_name, education_level) AS c FROM " + viewName);
   }

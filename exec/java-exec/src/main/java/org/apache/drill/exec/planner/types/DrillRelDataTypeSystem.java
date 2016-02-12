@@ -18,11 +18,8 @@
 
 package org.apache.drill.exec.planner.types;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.sql.type.SqlTypeName;
 
 public class DrillRelDataTypeSystem extends RelDataTypeSystemImpl {
 
@@ -36,50 +33,5 @@ public class DrillRelDataTypeSystem extends RelDataTypeSystemImpl {
   @Override
   public int getMaxNumericPrecision() {
     return 38;
-  }
-
-  @Override
-  public RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
-    // return type is nullable if and only if argument type is nullable
-    switch (argumentType.getSqlTypeName()) {
-    case TINYINT:
-    case SMALLINT:
-    case INTEGER:
-    case BIGINT:
-      if (argumentType.isNullable()) {
-        return typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), true);
-      } else {
-        return typeFactory.createSqlType(SqlTypeName.BIGINT);
-      }
-    case FLOAT:
-    case DOUBLE:
-      if (argumentType.isNullable()) {
-        return typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
-      } else {
-        return typeFactory.createSqlType(SqlTypeName.DOUBLE);
-      }
-    default:
-      return super.deriveSumType(typeFactory, argumentType);
-    }
-  }
-
-  @Override
-  public RelDataType deriveAvgType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
-    // return type is nullable if and only if argument type is nullable
-    switch (argumentType.getSqlTypeName()) {
-    case TINYINT:
-    case SMALLINT:
-    case INTEGER:
-    case BIGINT:
-    case FLOAT:
-    case DOUBLE:
-      if (argumentType.isNullable()) {
-        return typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
-      } else {
-        return typeFactory.createSqlType(SqlTypeName.DOUBLE);
-      }
-    default:
-      return super.deriveSumType(typeFactory, argumentType);
-    }
   }
 }

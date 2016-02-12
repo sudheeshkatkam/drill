@@ -282,11 +282,16 @@ public class PlanTestBase extends BaseTestQuery {
     return getPlanInString(sql, OPTIQ_FORMAT);
   }
 
+  protected static String getPlanInString(String sql, String columnName)
+      throws Exception {
+    return getPlanInString(sql, columnName, false);
+  }
+
   /*
    * This will submit an "EXPLAIN" statement, and return the column value which
    * contains the plan's string.
    */
-  protected static String getPlanInString(String sql, String columnName)
+  protected static String getPlanInString(String sql, String columnName, boolean printPlan)
       throws Exception {
     final List<QueryDataBatch> results = testSqlWithResults(sql);
     final RecordBatchLoader loader = new RecordBatchLoader(getDrillbitContext().getAllocator());
@@ -308,12 +313,16 @@ public class PlanTestBase extends BaseTestQuery {
         throw new Exception("Looks like you did not provide an explain plan query, please add EXPLAIN PLAN FOR to the beginning of your query.");
       }
 
-      System.out.println(vw.getValueVector().getField().toExpr());
+      if (printPlan) {
+        System.out.println(vw.getValueVector().getField().toExpr());
+      }
       final ValueVector vv = vw.getValueVector();
       for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
         final Object o = vv.getAccessor().getObject(i);
         builder.append(o);
-        System.out.println(vv.getAccessor().getObject(i));
+        if (printPlan) {
+          System.out.println(o);
+        }
       }
       loader.clear();
       b.release();

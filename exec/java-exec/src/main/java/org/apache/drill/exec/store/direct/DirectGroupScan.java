@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,8 +17,7 @@
  */
 package org.apache.drill.exec.store.direct;
 
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.physical.PhysicalOperatorSetupException;
@@ -30,7 +29,10 @@ import org.apache.drill.exec.physical.base.SubScan;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.store.RecordReader;
 
-public class DirectGroupScan extends AbstractGroupScan{
+import java.util.List;
+
+@JsonTypeName("direct-scan")
+public class DirectGroupScan extends AbstractGroupScan {
 //  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DirectGroupScan.class);
 
   private final RecordReader reader;
@@ -62,7 +64,8 @@ public class DirectGroupScan extends AbstractGroupScan{
     return 1;
   }
 
-  public ScanStats getScanStats(){
+  @Override
+  public ScanStats getScanStats() {
     return stats;
   }
 

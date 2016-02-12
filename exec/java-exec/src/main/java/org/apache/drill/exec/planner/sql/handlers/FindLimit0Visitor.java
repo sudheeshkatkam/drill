@@ -21,36 +21,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelShuttleImpl;
-import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlAvgAggFunction;
-import org.apache.calcite.sql.fun.SqlCaseOperator;
-import org.apache.calcite.sql.fun.SqlCastFunction;
-import org.apache.calcite.sql.fun.SqlCountAggFunction;
-import org.apache.calcite.sql.fun.SqlExtractFunction;
-import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlSubstringFunction;
-import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
@@ -65,7 +46,6 @@ import org.apache.drill.exec.planner.logical.DrillRel;
 import org.apache.drill.exec.record.MaterializedField;
 import org.apache.drill.exec.store.AbstractRecordReader;
 import org.apache.drill.exec.store.direct.DirectGroupScan;
-import org.apache.drill.exec.util.Pointer;
 
 import java.util.List;
 
@@ -114,26 +94,6 @@ public class FindLimit0Visitor extends RelShuttleImpl {
     return visitor.isContains();
   }
 
-  private static boolean isSupportedScalarFunction(final SqlOperator operator) {
-    return
-        (operator instanceof SqlFunction &&
-            (operator instanceof SqlCastFunction ||
-            operator instanceof SqlExtractFunction ||
-            operator instanceof SqlSubstringFunction)) ||
-        operator instanceof SqlCaseOperator ||
-        operator instanceof SqlBinaryOperator ||
-        operator == SqlStdOperatorTable.IS_NOT_NULL ||
-        operator == SqlStdOperatorTable.IS_NULL;
-  }
-
-  private static boolean isSupportedAggregateFunction(final SqlAggFunction aggregation) {
-    return
-        aggregation instanceof SqlSumAggFunction ||
-        aggregation instanceof SqlAvgAggFunction ||
-        aggregation instanceof SqlCountAggFunction ||
-        aggregation instanceof SqlMinMaxAggFunction;
-  }
-
   /**
    * If all field types of the given node are {@link #TYPES recognized types} and honored by execution, then this
    * method returns the tree:
@@ -146,55 +106,6 @@ public class FindLimit0Visitor extends RelShuttleImpl {
    * @return drill logical rel tree
    */
   public static DrillRel getDirectScanRelIfFullySchemaed(RelNode rel) {
-    // restrict to functions with return types that are honored by execution
-    final Pointer<Boolean> functionReturnTypesKnown = new Pointer<>(true);
-
-    // to visit scalar functions
-    final RexShuttle rexShuttle = new RexShuttle() {
-      @Override
-      public RexNode visitCall(RexCall call) {
-        final SqlOperator operator = call.getOperator();
-        if (!isSupportedScalarFunction(operator)) {
-          functionReturnTypesKnown.value = false;
-        }
-        return super.visitCall(call);
-      }
-    };
-
-    // to visit aggregate functions
-    final RelShuttle relShuttle = new RelShuttleImpl() {
-      @Override
-      public RelNode visit(LogicalAggregate aggregate) {
-        for (AggregateCall call : aggregate.getAggCallList()) {
-          final SqlAggFunction aggregation = call.getAggregation();
-          if (!isSupportedAggregateFunction(aggregation)) {
-            functionReturnTypesKnown.value = false;
-            break;
-          }
-        }
-        return super.visit(aggregate);
-      }
-
-      @Override
-      public RelNode visit(LogicalProject project) {
-        project.accept(rexShuttle);
-        return super.visit(project);
-      }
-
-      @Override
-      public RelNode visit(RelNode other) {
-        // disable optimization for window functions
-        if (other instanceof LogicalWindow) {
-          functionReturnTypesKnown.value = false;
-        }
-        return super.visit(other);
-      }
-    };
-    rel.accept(relShuttle);
-    if (! functionReturnTypesKnown.value) {
-      return null;
-    }
-
     final List<SqlTypeName> columnTypes = Lists.newArrayList();
     final List<RelDataTypeField> fieldList = rel.getRowType().getFieldList();
     final List<TypeProtos.DataMode> dataModes = Lists.newArrayList();
