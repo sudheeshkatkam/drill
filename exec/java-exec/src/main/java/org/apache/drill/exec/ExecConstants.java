@@ -31,6 +31,7 @@ import org.apache.drill.exec.server.options.TypeValidators.RangeLongValidator;
 import org.apache.drill.exec.server.options.TypeValidators.StringValidator;
 import org.apache.drill.exec.testing.ExecutionControls;
 import org.apache.drill.exec.util.ImpersonationUtil;
+import org.apache.drill.exec.util.UserDelegationUtil;
 
 public interface ExecConstants {
   String ZK_RETRY_TIMES = "drill.exec.zk.retry.count";
@@ -88,6 +89,7 @@ public interface ExecConstants {
   String USER_AUTHENTICATION_ENABLED = "drill.exec.security.user.auth.enabled";
   String USER_AUTHENTICATOR_IMPL = "drill.exec.security.user.auth.impl";
   String PAM_AUTHENTICATOR_PROFILES = "drill.exec.security.user.auth.pam_profiles";
+  String USER_DELEGATION_ENABLED = "drill.exec.delegation.enabled";
   /** Size of JDBC batch queue (in batches) above which throttling begins. */
   String JDBC_BATCH_QUEUE_THROTTLING_THRESHOLD =
       "drill.jdbc.batch_queue_throttling_threshold";
@@ -281,4 +283,27 @@ public interface ExecConstants {
    */
   String ADMIN_USER_GROUPS_KEY = "security.admin.user_groups";
   StringValidator ADMIN_USER_GROUPS_VALIDATOR = new AdminOptionValidator(ADMIN_USER_GROUPS_KEY, "");
+
+  /**
+   * Option whose value is a comma separated list of authorized delegates.
+   */
+  String DELEGATES_KEY = "drill.exec.delegation.delegates";
+  StringValidator DELEGATES_VALIDATOR = new AdminOptionValidator(DELEGATES_KEY, "");
+
+  /**
+   * Option whose value is the user delegation definitions.
+   * E.g.: 'tuser1=euser1,euser2;tuser2=*;tuser3=euser2"
+   */
+  String USER_DELEGATION_DEFINITIONS_KEY = "drill.exec.delegation.user_definitions";
+  StringValidator USER_DELEGATION_DEFINITIONS_VALIDATOR =
+      new UserDelegationUtil.DelegationDefinitionsValidator(USER_DELEGATION_DEFINITIONS_KEY, "");
+
+  /**
+   * Option whose value is the group delegation definitions.
+   * E.g.: 'tuser1=egroup1,egroup2;tuser2=*;tuser3=egroup2"
+   */
+  String GROUP_DELEGATION_DEFINITIONS_KEY = "drill.exec.delegation.group_definitions";
+  StringValidator GROUP_DELEGATION_DEFINITIONS_VALIDATOR =
+      new UserDelegationUtil.DelegationDefinitionsValidator(GROUP_DELEGATION_DEFINITIONS_KEY, "");
+
 }

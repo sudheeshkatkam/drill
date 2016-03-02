@@ -67,6 +67,8 @@ public class UserServer extends BasicServer<RpcType, UserServer.UserClientConnec
   final BufferAllocator alloc;
   final UserAuthenticator authenticator;
 
+  private final boolean isUserDelegationEnabled;
+
   public UserServer(DrillConfig config, ScanResult classpathScan, BufferAllocator alloc, EventLoopGroup eventLoopGroup,
       UserWorker worker, Executor executor) throws DrillbitStartupException {
     super(UserRpcConfig.getMapping(config, executor),
@@ -80,6 +82,7 @@ public class UserServer extends BasicServer<RpcType, UserServer.UserClientConnec
     } else {
       authenticator = null;
     }
+    isUserDelegationEnabled = config.getBoolean(ExecConstants.USER_DELEGATION_ENABLED);
   }
 
   @Override
@@ -149,6 +152,7 @@ public class UserServer extends BasicServer<RpcType, UserServer.UserClientConnec
           .withCredentials(inbound.getCredentials())
           .withOptionManager(worker.getSystemOptions())
           .withUserProperties(inbound.getProperties())
+          .enableDelegation(isUserDelegationEnabled)
           .setSupportComplexTypes(inbound.getSupportComplexTypes())
           .build();
     }
