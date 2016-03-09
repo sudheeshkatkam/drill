@@ -24,9 +24,6 @@ import io.netty.channel.EventLoopGroup;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.drill.common.AutoCloseables;
 import org.apache.drill.common.config.DrillConfig;
@@ -62,6 +59,7 @@ public class ServiceEngine implements AutoCloseable {
   private final BufferAllocator userAllocator;
   private final BufferAllocator controlAllocator;
   private final BufferAllocator dataAllocator;
+  private final EventLoopGroup userServerLoopGroup;
 
 
   public ServiceEngine(ControlMessageHandler controlMessageHandler, UserWorker userWorker, BootStrapContext context,
@@ -72,13 +70,13 @@ public class ServiceEngine implements AutoCloseable {
         "drill.exec.rpc.bit.server.memory.control.reservation", "drill.exec.rpc.bit.server.memory.control.maximum");
     dataAllocator = newAllocator(context, "rpc:bit-data",
         "drill.exec.rpc.bit.server.memory.data.reservation", "drill.exec.rpc.bit.server.memory.data.maximum");
-    final EventLoopGroup eventLoopGroup = TransportCheck.createEventLoopGroup(
+    userServerLoopGroup = TransportCheck.createEventLoopGroup(
         context.getConfig().getInt(ExecConstants.USER_SERVER_RPC_THREADS), "UserServer-");
     this.userServer = new UserServer(
         context.getConfig(),
         context.getClasspathScan(),
         userAllocator,
-        eventLoopGroup,
+        userServerLoopGroup,
         userWorker,
         context.getExecutor());
     this.controller = new ControllerImpl(context, controlMessageHandler, controlAllocator, allowPortHunting);
@@ -89,7 +87,7 @@ public class ServiceEngine implements AutoCloseable {
 
   }
 
-  private final void registerMetrics(final MetricRegistry registry) {
+  private void registerMetrics(final MetricRegistry registry) {
     final String prefix = PooledByteBufAllocatorL.METRIC_PREFIX + "rpc.";
     DrillMetrics.register(prefix + "user.current", new Gauge<Long>() {
       @Override
@@ -179,19 +177,8 @@ public class ServiceEngine implements AutoCloseable {
 
   @Override
   public void close() throws Exception {
-    // this takes time so close them in parallel
-    // Ideally though we fix this netty bug: https://github.com/netty/netty/issues/2545
-    ExecutorService p = Executors.newFixedThreadPool(2);
-    submit(p, "userServer", userServer);
-    submit(p, "dataPool", dataPool);
-    submit(p, "controller", controller);
-    p.shutdown();
-    try {
-      p.awaitTermination(3, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-    AutoCloseables.close(userAllocator, controlAllocator, dataAllocator);
-
+    TransportCheck.shutDownEventLoopGroup(userServerLoopGroup, "user server event loop", logger);
+    AutoCloseables.close(userServer, dataPool, controller,
+        userAllocator, controlAllocator, dataAllocator);
   }
 }

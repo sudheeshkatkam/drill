@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.exec.rpc.control;
 
-public interface AvailabilityListener {
-  public void isAvailable(ControlConnection connection);
-}
+/**
+ *
+ */
+package org.apache.drill.exec.rpc.control;

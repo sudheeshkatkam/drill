@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.server;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import io.netty.channel.EventLoopGroup;
 
 import java.util.concurrent.ExecutorService;
@@ -24,7 +25,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.drill.common.DrillAutoCloseables;
+import org.apache.drill.common.AutoCloseables;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.common.scanner.persistence.ScanResult;
 import org.apache.drill.exec.ExecConstants;
@@ -103,27 +104,12 @@ public class BootStrapContext implements AutoCloseable {
       logger.warn("failure resetting metrics.", e);
     }
 
-    if (executor != null) {
-      executor.shutdown(); // Disable new tasks from being submitted
-      try {
-        // Wait a while for existing tasks to terminate
-        if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-          executor.shutdownNow(); // Cancel currently executing tasks
-          // Wait a while for tasks to respond to being cancelled
-          if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-            logger.error("Pool did not terminate");
-          }
-        }
-      } catch (InterruptedException ie) {
-        logger.warn("Executor interrupted while awaiting termination");
-
-        // (Re-)Cancel if current thread also interrupted
-        executor.shutdownNow();
-        // Preserve interrupt status
-        Thread.currentThread().interrupt();
-      }
+    if (executor != null && !MoreExecutors.shutdownAndAwaitTermination(executor, 2, TimeUnit.SECONDS)) {
+      logger.error("Worker pool did not terminate.");
     }
 
-    DrillAutoCloseables.closeNoChecked(allocator);
+    TransportCheck.shutDownEventLoopGroup(loop, "bit server event loop", logger);
+    TransportCheck.shutDownEventLoopGroup(loop2, "bit client event loop", logger);
+    AutoCloseables.closeNoChecked(allocator);
   }
 }

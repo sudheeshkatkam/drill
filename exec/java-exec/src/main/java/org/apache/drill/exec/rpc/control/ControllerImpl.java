@@ -50,7 +50,7 @@ public class ControllerImpl implements Controller {
     super();
     this.handler = handler;
     this.context = context;
-    this.connectionRegistry = new ConnectionManagerRegistry(allocator, handler, context);
+    this.connectionRegistry = new ConnectionManagerRegistry(allocator, context);
     this.allowPortHunting = allowPortHunting;
     this.handlerRegistry = handler.getHandlerRegistry();
   }
@@ -67,8 +67,8 @@ public class ControllerImpl implements Controller {
   }
 
   @Override
-  public ControlTunnel getTunnel(DrillbitEndpoint endpoint) {
-    return new ControlTunnel(endpoint, connectionRegistry.getConnectionManager(endpoint));
+  public ControlTunnel getTunnel(DrillbitEndpoint remoteEndpoint) {
+    return new ControlTunnel(connectionRegistry.getOrCreateConnectionManager(remoteEndpoint));
   }
 
 
@@ -91,7 +91,7 @@ public class ControllerImpl implements Controller {
     handlerRegistry.registerCustomHandler(messageTypeId, handler, requestSerde, responseSerde);
   }
 
-
+  @Override
   public void close() throws Exception {
     List<AutoCloseable> closeables = Lists.newArrayList();
     closeables.add(server);

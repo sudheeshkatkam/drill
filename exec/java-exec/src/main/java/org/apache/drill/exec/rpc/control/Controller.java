@@ -29,8 +29,10 @@ import com.google.protobuf.Parser;
 
 /**
  * Service that allows one Drillbit to communicate with another. Internally manages whether each particular bit is a
- * server or a client depending on who initially made the connection. If no connection exists, the Controller is responsible for
- * making a connection. TODO: Controller should automatically straight route local BitCommunication rather than connecting to its
+ * server or a client depending on who initially made the connection. If no connection exists, the Controller is
+ * responsible for making a connection.
+ *
+ * TODO: Controller should automatically straight route local BitCommunication rather than connecting to its
  * self.
  */
 public interface Controller extends AutoCloseable {
@@ -39,12 +41,12 @@ public interface Controller extends AutoCloseable {
    * Get a Bit to Bit communication tunnel. If the BitCom doesn't have a tunnel attached to the node already, it will
    * start creating one. This create the connection asynchronously.
    *
-   * @param node
-   * @return
+   * @param remoteEndpoint remote endpoint
+   * @return control tunnel
    */
-  public ControlTunnel getTunnel(DrillbitEndpoint node) ;
+  ControlTunnel getTunnel(DrillbitEndpoint remoteEndpoint);
 
-  public DrillbitEndpoint start(DrillbitEndpoint partialEndpoint) throws DrillbitStartupException;
+  DrillbitEndpoint start(DrillbitEndpoint partialEndpoint) throws DrillbitStartupException;
 
   /**
    * Register a new handler for custom message types. Should be done before any messages. This is threadsafe as this
@@ -57,7 +59,7 @@ public interface Controller extends AutoCloseable {
    * @param parser
    *          The parser used to handle the types of messages the handler above handles.
    */
-  public <REQUEST extends MessageLite, RESPONSE extends MessageLite> void registerCustomHandler(int messageTypeId,
+  <REQUEST extends MessageLite, RESPONSE extends MessageLite> void registerCustomHandler(int messageTypeId,
       CustomMessageHandler<REQUEST, RESPONSE> handler, Parser<REQUEST> parser);
 
   /**
@@ -73,8 +75,7 @@ public interface Controller extends AutoCloseable {
    * @param responseSerde
    *          CustomSerDe for serializing responses.
    */
-  public <REQUEST, RESPONSE> void registerCustomHandler(int messageTypeId,
-      CustomMessageHandler<REQUEST, RESPONSE> handler,
+  <REQUEST, RESPONSE> void registerCustomHandler(int messageTypeId, CustomMessageHandler<REQUEST, RESPONSE> handler,
       CustomSerDe<REQUEST> requestSerde,
       CustomSerDe<RESPONSE> responseSerde);
 
@@ -86,7 +87,7 @@ public interface Controller extends AutoCloseable {
    * @param <RESPONSE>
    *          The type of the response message.
    */
-  public interface CustomMessageHandler<REQUEST, RESPONSE> {
+  interface CustomMessageHandler<REQUEST, RESPONSE> {
 
     /**
      * Handle an incoming message.
@@ -98,45 +99,53 @@ public interface Controller extends AutoCloseable {
      * @throws UserRpcException
      *           throw this exception if there is an RPC failure that should be communicated to the sender.
      */
-    public CustomResponse<RESPONSE> onMessage(REQUEST pBody, DrillBuf dBody) throws UserRpcException;
+    CustomResponse<RESPONSE> onMessage(REQUEST pBody, DrillBuf dBody) throws UserRpcException;
 
   }
-
-
 
   /**
    * A simple interface that describes the nature of the response to the custom incoming message.
    *
    * @param <RESPONSE>
-   *          The type of message that the respopnse contains. Must be a protobuf message type.
+   *          The type of message that the response contains. Must be a protobuf message type.
    */
-  public interface CustomResponse<RESPONSE> {
+  interface CustomResponse<RESPONSE> {
 
     /**
      * The structured portion of the response.
      * @return A protobuf message of type RESPONSE
      */
-    public RESPONSE getMessage();
+    RESPONSE getMessage();
 
     /**
      * The optional unstructured portion of the message.
      * @return null or one or more unstructured bodies.
      */
-    public ByteBuf[] getBodies();
+    ByteBuf[] getBodies();
   }
+
 
   /**
    * Interface for defining how to serialize and deserialize custom message for consumer who want to use something other
    * than Protobuf messages.
    *
-   * @param <SEND>
-   *          The class that is expected to be sent.
-   * @param <RECEIVE>
-   *          The class that is expected to received.
+   * @param <MSG> message type
    */
-  public interface CustomSerDe<MSG> {
-    public byte[] serializeToSend(MSG send);
+  interface CustomSerDe<MSG> {
 
-    public MSG deserializeReceived(byte[] bytes) throws Exception;
+    /**
+     * Serialize the message to send.
+     * @param send message
+     * @return byte array
+     */
+    byte[] serializeToSend(MSG send);
+
+    /**
+     * Deserialize the received message.
+     * @param bytes byte array
+     * @return message
+     * @throws Exception
+     */
+    MSG deserializeReceived(byte[] bytes) throws Exception;
   }
 }

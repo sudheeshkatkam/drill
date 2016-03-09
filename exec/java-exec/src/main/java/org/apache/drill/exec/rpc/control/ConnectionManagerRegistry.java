@@ -27,35 +27,43 @@ import org.apache.drill.exec.work.batch.ControlMessageHandler;
 
 import com.google.common.collect.Maps;
 
+/**
+ * Registry of {@link ControlConnectionManager connection managers} that maintain control connections between this
+ * bits and other bits.
+ */
 public class ConnectionManagerRegistry implements Iterable<ControlConnectionManager> {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ConnectionManagerRegistry.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ConnectionManagerRegistry.class);
 
   private final ConcurrentMap<DrillbitEndpoint, ControlConnectionManager> registry = Maps.newConcurrentMap();
 
-  private final ControlMessageHandler handler;
   private final BootStrapContext context;
   private volatile DrillbitEndpoint localEndpoint;
   private final BufferAllocator allocator;
 
-  public ConnectionManagerRegistry(BufferAllocator allocator, ControlMessageHandler handler, BootStrapContext context) {
-    super();
-    this.handler = handler;
+  public ConnectionManagerRegistry(BufferAllocator allocator, BootStrapContext context) {
     this.context = context;
     this.allocator = allocator;
   }
 
-  public ControlConnectionManager getConnectionManager(DrillbitEndpoint endpoint) {
+  /**
+   * Gets the connection manager to the given remote endpoint, creates a new manager if one does not exist.
+   *
+   * @param remoteEndpoint remote drillbit endpoint
+   * @return connection manager
+   */
+  public ControlConnectionManager getOrCreateConnectionManager(DrillbitEndpoint remoteEndpoint) {
     assert localEndpoint != null : "DrillbitEndpoint must be set before a connection manager can be retrieved";
-    ControlConnectionManager m = registry.get(endpoint);
-    if (m == null) {
-      m = new ControlConnectionManager(allocator, endpoint, localEndpoint, handler, context);
-      ControlConnectionManager m2 = registry.putIfAbsent(endpoint, m);
-      if (m2 != null) {
-        m = m2;
+    ControlConnectionManager manager = registry.get(remoteEndpoint);
+    if (manager == null) {
+      manager = new ControlConnectionManager(allocator, remoteEndpoint, localEndpoint, context);
+      final ControlConnectionManager otherManager = registry.putIfAbsent(remoteEndpoint, manager);
+      if (otherManager != null) {
+        manager.close();
+        manager = otherManager;
       }
     }
 
-    return m;
+    return manager;
   }
 
   @Override

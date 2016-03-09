@@ -29,9 +29,8 @@ import org.apache.drill.exec.rpc.RpcException;
 
 import com.google.protobuf.MessageLite;
 
-public class DefaultInstanceHandler {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultInstanceHandler.class);
-
+class DefaultInstanceHandler {
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultInstanceHandler.class);
 
   public static MessageLite getResponseDefaultInstance(int rpcType) throws RpcException {
     switch (rpcType) {
@@ -52,5 +51,9 @@ public class DefaultInstanceHandler {
     default:
       throw new UnsupportedOperationException();
     }
+  }
+
+  // prevents instantiation
+  private DefaultInstanceHandler() {
   }
 }

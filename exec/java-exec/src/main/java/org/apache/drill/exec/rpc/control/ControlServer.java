@@ -92,7 +92,7 @@ public class ControlServer extends BasicServer<RpcType, ControlConnection>{
         connection.setEndpoint(inbound.getEndpoint());
 
         // add the
-        ControlConnectionManager manager = connectionRegistry.getConnectionManager(inbound.getEndpoint());
+        ControlConnectionManager manager = connectionRegistry.getOrCreateConnectionManager(inbound.getEndpoint());
 
         // update the close handler.
         proxyCloseHandler.setHandler(manager.getCloseHandlerCreator().getHandler(connection, proxyCloseHandler.getHandler()));
