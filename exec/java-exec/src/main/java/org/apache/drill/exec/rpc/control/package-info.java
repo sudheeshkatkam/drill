@@ -17,6 +17,6 @@
  */
 
 /**
- *
+ * All bit-to-bit communication happens through control connections.
  */
 package org.apache.drill.exec.rpc.control;

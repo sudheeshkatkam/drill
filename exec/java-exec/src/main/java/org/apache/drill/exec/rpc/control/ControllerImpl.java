@@ -36,7 +36,7 @@ import com.google.protobuf.Parser;
  * Manages communication tunnels between nodes.
  */
 public class ControllerImpl implements Controller {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControllerImpl.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControllerImpl.class);
 
   private volatile ControlServer server;
   private final ControlMessageHandler handler;
@@ -71,7 +71,6 @@ public class ControllerImpl implements Controller {
     return new ControlTunnel(connectionRegistry.getOrCreateConnectionManager(remoteEndpoint));
   }
 
-
   @SuppressWarnings("unchecked")
   @Override
   public <REQUEST extends MessageLite, RESPONSE extends MessageLite> void registerCustomHandler(int messageTypeId,
@@ -102,6 +101,5 @@ public class ControllerImpl implements Controller {
 
     AutoCloseables.close(closeables);
   }
-
 
 }

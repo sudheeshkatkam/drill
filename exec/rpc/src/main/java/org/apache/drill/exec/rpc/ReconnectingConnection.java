@@ -45,7 +45,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
 
   public ReconnectingConnection(OUTBOUND_HANDSHAKE handshake, String host, int port) {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(host), "Endpoint address cannot be null or empty.");
-    Preconditions.checkArgument(port > 0, "Bit Port must be set to a port between 1 and 65k. Was set to: " + port);
+    Preconditions.checkArgument(port > 0, "Port must be set to a port between 1 and 65k. Was set to: " + port);
     this.host = host;
     this.port = port;
     this.handshake = handshake;

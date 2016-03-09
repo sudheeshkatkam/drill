@@ -25,12 +25,10 @@ import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.proto.BitControl.BitControlHandshake;
 import org.apache.drill.exec.proto.BitControl.RpcType;
-import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.rpc.BasicClient;
 import org.apache.drill.exec.rpc.OutOfMemoryHandler;
 import org.apache.drill.exec.rpc.ProtobufLengthDecoder;
 import org.apache.drill.exec.rpc.Response;
-import org.apache.drill.exec.rpc.RpcConnectionHandler;
 import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.server.BootStrapContext;
 
@@ -39,33 +37,19 @@ import com.google.protobuf.MessageLite;
 public class ControlClient extends BasicClient<RpcType, ControlConnection, BitControlHandshake, BitControlHandshake> {
   // private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControlClient.class);
 
-  private final DrillbitEndpoint remoteEndpoint;
   private final ControlConnectionManager.CloseHandlerCreator closeHandlerFactory;
-  private final DrillbitEndpoint localIdentity;
   private final BufferAllocator allocator;
 
-  public ControlClient(BufferAllocator allocator, DrillbitEndpoint remoteEndpoint, DrillbitEndpoint localEndpoint,
-                       BootStrapContext context, ControlConnectionManager.CloseHandlerCreator closeHandlerFactory) {
+  public ControlClient(BufferAllocator allocator, BootStrapContext context,
+                       ControlConnectionManager.CloseHandlerCreator closeHandlerFactory) {
     super(ControlRpcConfig.getMapping(context.getConfig(), context.getExecutor()),
         allocator.getAsByteBufAllocator(),
         context.getBitClientLoopGroup(),
         RpcType.HANDSHAKE,
         BitControlHandshake.class,
         BitControlHandshake.PARSER);
-    this.localIdentity = localEndpoint;
-    this.remoteEndpoint = remoteEndpoint;
     this.closeHandlerFactory = closeHandlerFactory;
     this.allocator = context.getAllocator();
-  }
-
-  public void connect(RpcConnectionHandler<ControlConnection> connectionHandler) {
-    connectAsClient(connectionHandler,
-        BitControlHandshake.newBuilder()
-            .setRpcVersion(ControlRpcConfig.RPC_VERSION)
-            .setEndpoint(localIdentity)
-            .build(),
-        remoteEndpoint.getAddress(),
-        remoteEndpoint.getControlPort());
   }
 
   @SuppressWarnings("unchecked")

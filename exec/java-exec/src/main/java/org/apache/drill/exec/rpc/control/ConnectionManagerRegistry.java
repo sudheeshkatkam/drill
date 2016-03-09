@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.server.BootStrapContext;
-import org.apache.drill.exec.work.batch.ControlMessageHandler;
 
 import com.google.common.collect.Maps;
 

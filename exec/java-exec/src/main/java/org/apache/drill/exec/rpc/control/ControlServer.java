@@ -36,7 +36,7 @@ import org.apache.drill.exec.work.batch.ControlMessageHandler;
 import com.google.protobuf.MessageLite;
 
 public class ControlServer extends BasicServer<RpcType, ControlConnection>{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControlServer.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControlServer.class);
 
   private final ControlMessageHandler handler;
   private final ConnectionManagerRegistry connectionRegistry;

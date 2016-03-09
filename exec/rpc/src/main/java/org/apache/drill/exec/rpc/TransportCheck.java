@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-
 /**
  * TransportCheck decides whether or not to use the native EPOLL mechanism for communication.
  */

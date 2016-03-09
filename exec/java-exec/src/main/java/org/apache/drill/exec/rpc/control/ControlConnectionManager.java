@@ -32,8 +32,6 @@ public class ControlConnectionManager extends ReconnectingConnection<ControlConn
 //  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ControlConnectionManager.class);
 
   private final BufferAllocator allocator;
-  private final DrillbitEndpoint remoteEndpoint;
-  private final DrillbitEndpoint localEndpoint;
   private final BootStrapContext context;
 
   public ControlConnectionManager(BufferAllocator allocator, DrillbitEndpoint remoteEndpoint,
@@ -47,14 +45,12 @@ public class ControlConnectionManager extends ReconnectingConnection<ControlConn
         remoteEndpoint.getControlPort());
 
     this.allocator = allocator;
-    this.remoteEndpoint = remoteEndpoint;
-    this.localEndpoint = localEndpoint;
     this.context = context;
   }
 
   @Override
   protected BasicClient<?, ControlConnection, BitControlHandshake, ?> getNewClient() {
-    return new ControlClient(allocator, remoteEndpoint, localEndpoint, context, new CloseHandlerCreator());
+    return new ControlClient(allocator, context, new CloseHandlerCreator());
   }
 
 }
