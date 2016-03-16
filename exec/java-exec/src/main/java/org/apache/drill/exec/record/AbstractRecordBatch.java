@@ -139,7 +139,9 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
       stats.startProcessing();
       switch (state) {
         case BUILD_SCHEMA: {
-          buildSchema();
+          if (!buildSchema()) {
+            return IterOutcome.NOT_YET;
+          }
           switch (state) {
             case DONE:
               return IterOutcome.NONE;
@@ -179,7 +181,8 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
     }
   }
 
-  protected void buildSchema() throws SchemaChangeException {
+  protected boolean buildSchema() throws SchemaChangeException {
+    return true;
   }
 
   @Override

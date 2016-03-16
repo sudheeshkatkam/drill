@@ -17,9 +17,12 @@
  */
 package org.apache.drill.exec.server;
 
+import com.google.common.collect.Queues;
 import io.netty.channel.EventLoopGroup;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +42,8 @@ import com.codahale.metrics.MetricRegistry;
 public class BootStrapContext implements AutoCloseable {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BootStrapContext.class);
 
+  private static final double cpuFraction = 1.0;
+
   private final DrillConfig config;
   private final EventLoopGroup loop;
   private final EventLoopGroup loop2;
@@ -46,6 +51,7 @@ public class BootStrapContext implements AutoCloseable {
   private final BufferAllocator allocator;
   private final ScanResult classpathScan;
   private final ExecutorService executor;
+  private final BlockingQueue<Runnable> tasks;
 
   public BootStrapContext(DrillConfig config, ScanResult classpathScan) {
     this.config = config;
@@ -54,8 +60,10 @@ public class BootStrapContext implements AutoCloseable {
     this.loop2 = TransportCheck.createEventLoopGroup(config.getInt(ExecConstants.BIT_SERVER_RPC_THREADS), "BitClient-");
     this.metrics = DrillMetrics.getInstance();
     this.allocator = RootAllocatorFactory.newRoot(config);
-    this.executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-        new SynchronousQueue<Runnable>(),
+    this.tasks = Queues.newLinkedBlockingQueue();
+    final int numCores = Runtime.getRuntime().availableProcessors();
+    final int numThreads = (int)Math.ceil(cpuFraction * numCores);
+    this.executor = new ThreadPoolExecutor(numThreads, numThreads, 60L, TimeUnit.SECONDS, tasks,
         new NamedThreadFactory("drill-executor-")) {
       @Override
       protected void afterExecute(final Runnable r, final Throwable t) {
@@ -65,6 +73,10 @@ public class BootStrapContext implements AutoCloseable {
         super.afterExecute(r, t);
       }
     };
+  }
+
+  public BlockingQueue<Runnable> getTaskQueue() {
+    return tasks;
   }
 
   public ExecutorService getExecutor() {

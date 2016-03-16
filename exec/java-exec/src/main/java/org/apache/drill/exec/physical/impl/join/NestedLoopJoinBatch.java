@@ -166,9 +166,10 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
           case NONE:
           case STOP:
             //TODO we got a STOP, shouldn't we stop immediately ?
-          case NOT_YET:
             drainRight = false;
             break;
+          case NOT_YET:
+            return rightUpstream;
         }
       }
       nljWorker.setupNestedLoopJoin(context, left, rightContainer, rightCounts, this);
@@ -290,20 +291,26 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
    * @throws SchemaChangeException
    */
   @Override
-  protected void buildSchema() throws SchemaChangeException {
+  protected boolean buildSchema() throws SchemaChangeException {
 
     try {
       leftUpstream = next(LEFT_INPUT, left);
+      if (leftUpstream == IterOutcome.NOT_YET) {
+        return false;
+      }
       rightUpstream = next(RIGHT_INPUT, right);
+      if (rightUpstream == IterOutcome.NOT_YET) {
+        return false;
+      }
 
       if (leftUpstream == IterOutcome.STOP || rightUpstream == IterOutcome.STOP) {
         state = BatchState.STOP;
-        return;
+        return true;
       }
 
       if (leftUpstream == IterOutcome.OUT_OF_MEMORY || rightUpstream == IterOutcome.OUT_OF_MEMORY) {
         state = BatchState.OUT_OF_MEMORY;
-        return;
+        return true;
       }
 
       if (leftUpstream != IterOutcome.NONE) {
@@ -337,6 +344,7 @@ public class NestedLoopJoinBatch extends AbstractRecordBatch<NestedLoopJoinPOP> 
     } catch (ClassTransformationException | IOException e) {
       throw new SchemaChangeException(e);
     }
+    return true;
   }
 
   private void addBatchToHyperContainer(RecordBatch inputBatch) {

@@ -167,6 +167,11 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     }
   }
 
+  private final List<RawFragmentBatch> rawBatches = Lists.newArrayList();
+  private int providerIndex = 0;
+  private boolean populateQueue = false;
+  private int populatedBatchIndex = 0;
+
   @Override
   public IterOutcome innerNext() {
     if (fragProviders.length == 0) {
@@ -191,18 +196,18 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     if (!hasRun) {
       schemaChanged = true; // first iteration is always a schema change
 
+      if (!populateQueue) {
+
       // set up each (non-empty) incoming record batch
-      final List<RawFragmentBatch> rawBatches = Lists.newArrayList();
-      int p = 0;
-      for (final RawFragmentBatchProvider provider : fragProviders) {
+      for (;providerIndex<fragProviders.length;providerIndex++) {
         RawFragmentBatch rawBatch;
         // check if there is a batch in temp holder before calling getNext(), as it may have been used when building schema
-        if (tempBatchHolder[p] != null) {
-          rawBatch = tempBatchHolder[p];
-          tempBatchHolder[p] = null;
+        if (tempBatchHolder[providerIndex] != null) {
+          rawBatch = tempBatchHolder[providerIndex];
+          tempBatchHolder[providerIndex] = null;
         } else {
           try {
-            rawBatch = getNext(p);
+            rawBatch = getNext(providerIndex);
           } catch (final IOException e) {
             context.fail(e);
             return IterOutcome.STOP;
@@ -211,6 +216,10 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
         if (rawBatch == null && !context.shouldContinue()) {
           clearBatches(rawBatches);
           return IterOutcome.STOP;
+        }
+
+        if (rawBatch != null && rawBatch.isNone()) {
+          return IterOutcome.NOT_YET;
         }
 
         assert rawBatch != null : "rawBatch is null although context.shouldContinue() == true";
@@ -222,8 +231,11 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             emptyBatch = rawBatch;
           }
           try {
-            while ((rawBatch = getNext(p)) != null && rawBatch.getHeader().getDef().getRecordCount() == 0) {
+            while ((rawBatch = getNext(providerIndex)) != null && rawBatch.getHeader().getDef().getRecordCount() == 0) {
               // Do nothing
+              if (rawBatch.isNone()) {
+                return IterOutcome.NOT_YET;
+              }
             }
             if (rawBatch == null && !context.shouldContinue()) {
               clearBatches(rawBatches);
@@ -240,7 +252,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             rawBatches.add(emptyBatch);
           }
         }
-        p++;
+        providerIndex++;
       }
 
       // allocate the incoming record batch loaders
@@ -320,17 +332,23 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
         }
       });
 
+      populateQueue = true;
+      } else {
+
       // populate the priority queue with initial values
-      for (int b = 0; b < senderCount; ++b) {
-        while (batchLoaders[b] != null && batchLoaders[b].getRecordCount() == 0) {
+      for (; populatedBatchIndex < senderCount; ++populatedBatchIndex) {
+        while (batchLoaders[populatedBatchIndex] != null && batchLoaders[populatedBatchIndex].getRecordCount() == 0) {
           try {
-            final RawFragmentBatch batch = getNext(b);
-            incomingBatches[b] = batch;
+            final RawFragmentBatch batch = getNext(populatedBatchIndex);
+            if (batch != null && batch.isNone()) {
+              return IterOutcome.NOT_YET;
+            }
+            incomingBatches[populatedBatchIndex] = batch;
             if (batch != null) {
-              batchLoaders[b].load(batch.getHeader().getDef(), batch.getBody());
+              batchLoaders[populatedBatchIndex].load(batch.getHeader().getDef(), batch.getBody());
             } else {
-              batchLoaders[b].clear();
-              batchLoaders[b] = null;
+              batchLoaders[populatedBatchIndex].clear();
+              batchLoaders[populatedBatchIndex] = null;
               if (!context.shouldContinue()) {
                 return IterOutcome.STOP;
               }
@@ -340,9 +358,11 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             return IterOutcome.STOP;
           }
         }
-        if (batchLoaders[b] != null) {
-          pqueue.add(new Node(b, 0));
+        if (batchLoaders[populatedBatchIndex] != null) {
+          pqueue.add(new Node(populatedBatchIndex, 0));
         }
+      }
+
       }
 
       hasRun = true;
@@ -352,20 +372,23 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     while (!pqueue.isEmpty()) {
       // pop next value from pq and copy to outgoing batch
       final Node node = pqueue.peek();
-      if (!copyRecordToOutgoingBatch(node)) {
+      final boolean depleted = node.valueIndex == batchLoaders[node.batchId].getRecordCount() - 1;
+      if (!depleted && !copyRecordToOutgoingBatch(node)) {
         logger.debug("Outgoing vectors space is full; breaking");
         prevBatchWasFull = true;
       }
       pqueue.poll();
 
-      if (node.valueIndex == batchLoaders[node.batchId].getRecordCount() - 1) {
+      if (depleted) {
         // reached the end of an incoming record batch
         RawFragmentBatch nextBatch;
         try {
-          nextBatch = getNext(node.batchId);
 
-          while (nextBatch != null && nextBatch.getHeader().getDef().getRecordCount() == 0) {
-            nextBatch = getNext(node.batchId);
+          while ((nextBatch = getNext(node.batchId)) != null && nextBatch.getHeader().getDef().getRecordCount() == 0) {
+            if (nextBatch.isNone()) {
+              pqueue.add(node); // re-enqueue for retry later
+              return IterOutcome.NOT_YET;
+            }
           }
 
           assert nextBatch != null || inputCounts[node.batchId] == outputCounts[node.batchId]
@@ -459,18 +482,21 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     return outgoingContainer.getSchema();
   }
 
+  private int batchIndex = 0;
+
   @Override
-  public void buildSchema() throws SchemaChangeException {
+  public boolean buildSchema() throws SchemaChangeException {
     // find frag provider that has data to use to build schema, and put in tempBatchHolder for later use
-    tempBatchHolder = new RawFragmentBatch[fragProviders.length];
-    int i = 0;
+    if (tempBatchHolder == null) {
+      tempBatchHolder = new RawFragmentBatch[fragProviders.length];
+    }
     try {
       while (true) {
-        if (i >= fragProviders.length) {
+        if (batchIndex >= fragProviders.length) {
           state = BatchState.DONE;
-          return;
+          return true;
         }
-        final RawFragmentBatch batch = getNext(i);
+        final RawFragmentBatch batch = getNext(batchIndex);
         if (batch == null) {
           if (!context.shouldContinue()) {
             state = BatchState.STOP;
@@ -480,11 +506,14 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
 
           break;
         }
+        if (batch.isNone()) {
+          return false;
+        }
         if (batch.getHeader().getDef().getFieldCount() == 0) {
-          i++;
+          batchIndex++;
           continue;
         }
-        tempBatchHolder[i] = batch;
+        tempBatchHolder[batchIndex] = batch;
         for (final SerializedField field : batch.getHeader().getDef().getFieldList()) {
           final ValueVector v = outgoingContainer.addOrGet(MaterializedField.create(field));
           v.allocateNew();
@@ -496,6 +525,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     }
     outgoingContainer = VectorContainer.canonicalize(outgoingContainer);
     outgoingContainer.buildSchema(SelectionVectorMode.NONE);
+    return true;
   }
 
   @Override

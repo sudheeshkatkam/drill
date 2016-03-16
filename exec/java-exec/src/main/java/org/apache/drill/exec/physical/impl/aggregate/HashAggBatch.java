@@ -93,19 +93,21 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
   }
 
   @Override
-  public void buildSchema() throws SchemaChangeException {
+  public boolean buildSchema() throws SchemaChangeException {
     IterOutcome outcome = next(incoming);
     switch (outcome) {
+      case NOT_YET:
+        return false;
       case NONE:
         state = BatchState.DONE;
         container.buildSchema(SelectionVectorMode.NONE);
-        return;
+        return true;
       case OUT_OF_MEMORY:
         state = BatchState.OUT_OF_MEMORY;
-        return;
+        return true;
       case STOP:
         state = BatchState.STOP;
-        return;
+        return true;
     }
 
     if (!createAggregator()) {
@@ -114,6 +116,7 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
     for (VectorWrapper w : container) {
       AllocationHelper.allocatePrecomputedChildCount(w.getValueVector(), 0, 0, 0);
     }
+    return true;
   }
 
   @Override
@@ -133,6 +136,8 @@ public class HashAggBatch extends AbstractRecordBatch<HashAggregate> {
     AggOutcome out = aggregator.doWork();
     logger.debug("Aggregator response {}, records {}", out, aggregator.getOutputCount());
     switch (out) {
+    case NOT_YET:
+      return IterOutcome.NOT_YET;
     case CLEANUP_AND_RETURN:
       container.zeroVectors();
       aggregator.cleanup();

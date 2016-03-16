@@ -91,12 +91,18 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     if (shouldStop) {
       if (!noMoreBatches) {
         IterOutcome upstream = next(incoming);
+        if (upstream == IterOutcome.NOT_YET) {
+          return IterOutcome.NOT_YET;
+        }
         while (upstream == IterOutcome.OK || upstream == IterOutcome.OK_NEW_SCHEMA) {
           // Clear the memory for the incoming batch
           for (VectorWrapper<?> wrapper : incoming) {
             wrapper.getValueVector().clear();
           }
           upstream = next(incoming);
+          if (upstream == IterOutcome.NOT_YET) {
+            return IterOutcome.NOT_YET;
+          }
         }
       }
 
@@ -112,8 +118,9 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
         case NONE:
           noMoreBatches = true;
           break;
-        case OUT_OF_MEMORY:
         case NOT_YET:
+          return IterOutcome.NOT_YET;
+        case OUT_OF_MEMORY:
         case STOP:
           cleanup();
           return upstream;
@@ -221,20 +228,22 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   }
 
   @Override
-  protected void buildSchema() throws SchemaChangeException {
+  protected boolean buildSchema() throws SchemaChangeException {
     logger.trace("buildSchema()");
     final IterOutcome outcome = next(incoming);
     switch (outcome) {
+      case NOT_YET:
+        return false;
       case NONE:
         state = BatchState.DONE;
         container.buildSchema(BatchSchema.SelectionVectorMode.NONE);
-        return;
+        return true;
       case STOP:
         state = BatchState.STOP;
-        return;
+        return true;
       case OUT_OF_MEMORY:
         state = BatchState.OUT_OF_MEMORY;
-        return;
+        return true;
     }
 
     try {
@@ -246,6 +255,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     if (incoming.getRecordCount() > 0) {
       batches.add(new WindowDataBatch(incoming, oContext));
     }
+    return true;
   }
 
   private void createFramers(VectorAccessible batch) throws SchemaChangeException, IOException, ClassTransformationException {

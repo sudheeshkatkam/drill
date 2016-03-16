@@ -47,9 +47,9 @@ public class PartitionerDecorator {
 
   private List<Partitioner> partitioners;
   private final OperatorStats stats;
-  private final String tName;
-  private final String childThreadPrefix;
-  private final ExecutorService executor;
+//  private final String tName;
+//  private final String childThreadPrefix;
+//  private final ExecutorService executor;
   private final FragmentContext context;
 
 
@@ -57,9 +57,9 @@ public class PartitionerDecorator {
     this.partitioners = partitioners;
     this.stats = stats;
     this.context = context;
-    this.executor = context.getDrillbitContext().getExecutor();
-    this.tName = Thread.currentThread().getName();
-    this.childThreadPrefix = "Partitioner-" + tName + "-";
+//    this.executor = context.getDrillbitContext().getExecutor();
+//    this.tName = Thread.currentThread().getName();
+//    this.childThreadPrefix = "Partitioner-" + tName + "-";
   }
 
   /**
@@ -129,6 +129,7 @@ public class PartitionerDecorator {
    * @throws IOException
    */
   protected void executeMethodLogic(final GeneralExecuteIface iface) throws IOException {
+    assert partitioners.size() == 1;
     if (partitioners.size() == 1 ) {
       // no need for threads
       final OperatorStats localStatsSingle = partitioners.get(0).getStats();
@@ -145,79 +146,79 @@ public class PartitionerDecorator {
       }
       return;
     }
-
-    long maxProcessTime = 0l;
-    // start waiting on main stats to adjust by sum(max(processing)) at the end
-    stats.startWait();
-    final CountDownLatch latch = new CountDownLatch(partitioners.size());
-    final List<CustomRunnable> runnables = Lists.newArrayList();
-    final List<Future<?>> taskFutures = Lists.newArrayList();
-    CountDownLatchInjection testCountDownLatch = null;
-    try {
-      // To simulate interruption of main fragment thread and interrupting the partition threads, create a
-      // CountDownInject patch. Partitioner threads await on the latch and main fragment thread counts down or
-      // interrupts waiting threads. This makes sures that we are actually interrupting the blocked partitioner threads.
-      testCountDownLatch = injector.getLatch(context.getExecutionControls(), "partitioner-sender-latch");
-      testCountDownLatch.initialize(1);
-      for (final Partitioner part : partitioners) {
-        final CustomRunnable runnable = new CustomRunnable(childThreadPrefix, latch, iface, part, testCountDownLatch);
-        runnables.add(runnable);
-        taskFutures.add(executor.submit(runnable));
-      }
-
-      while (true) {
-        try {
-          // Wait for main fragment interruption.
-          injector.injectInterruptiblePause(context.getExecutionControls(), "wait-for-fragment-interrupt", logger);
-
-          // If there is no pause inserted at site "wait-for-fragment-interrupt", release the latch.
-          injector.getLatch(context.getExecutionControls(), "partitioner-sender-latch").countDown();
-
-          latch.await();
-          break;
-        } catch (final InterruptedException e) {
-          // If the fragment state says we shouldn't continue, cancel or interrupt partitioner threads
-          if (!context.shouldContinue()) {
-            logger.debug("Interrupting partioner threads. Fragment thread {}", tName);
-            for(Future<?> f : taskFutures) {
-              f.cancel(true);
-            }
-
-            break;
-          }
-        }
-      }
-
-      IOException excep = null;
-      for (final CustomRunnable runnable : runnables ) {
-        IOException myException = runnable.getException();
-        if ( myException != null ) {
-          if ( excep == null ) {
-            excep = myException;
-          } else {
-            excep.addSuppressed(myException);
-          }
-        }
-        final OperatorStats localStats = runnable.getPart().getStats();
-        long currentProcessingNanos = localStats.getProcessingNanos();
-        // find out max Partitioner processing time
-        maxProcessTime = (currentProcessingNanos > maxProcessTime) ? currentProcessingNanos : maxProcessTime;
-        stats.mergeMetrics(localStats);
-      }
-      if ( excep != null ) {
-        throw excep;
-      }
-    } finally {
-      stats.stopWait();
-      // scale down main stats wait time based on calculated processing time
-      // since we did not wait for whole duration of above execution
-      stats.adjustWaitNanos(-maxProcessTime);
-
-      // Done with the latch, close it.
-      if (testCountDownLatch != null) {
-        testCountDownLatch.close();
-      }
-    }
+//
+//    long maxProcessTime = 0l;
+//    // start waiting on main stats to adjust by sum(max(processing)) at the end
+//    stats.startWait();
+//    final CountDownLatch latch = new CountDownLatch(partitioners.size());
+//    final List<CustomRunnable> runnables = Lists.newArrayList();
+//    final List<Future<?>> taskFutures = Lists.newArrayList();
+//    CountDownLatchInjection testCountDownLatch = null;
+//    try {
+//      // To simulate interruption of main fragment thread and interrupting the partition threads, create a
+//      // CountDownInject patch. Partitioner threads await on the latch and main fragment thread counts down or
+//      // interrupts waiting threads. This makes sures that we are actually interrupting the blocked partitioner threads.
+//      testCountDownLatch = injector.getLatch(context.getExecutionControls(), "partitioner-sender-latch");
+//      testCountDownLatch.initialize(1);
+//      for (final Partitioner part : partitioners) {
+//        final CustomRunnable runnable = new CustomRunnable(childThreadPrefix, latch, iface, part, testCountDownLatch);
+//        runnables.add(runnable);
+//        taskFutures.add(executor.submit(runnable));
+//      }
+//
+//      while (true) {
+//        try {
+//          // Wait for main fragment interruption.
+//          injector.injectInterruptiblePause(context.getExecutionControls(), "wait-for-fragment-interrupt", logger);
+//
+//          // If there is no pause inserted at site "wait-for-fragment-interrupt", release the latch.
+//          injector.getLatch(context.getExecutionControls(), "partitioner-sender-latch").countDown();
+//
+//          latch.await();
+//          break;
+//        } catch (final InterruptedException e) {
+//          // If the fragment state says we shouldn't continue, cancel or interrupt partitioner threads
+//          if (!context.shouldContinue()) {
+//            logger.debug("Interrupting partioner threads. Fragment thread {}", tName);
+//            for(Future<?> f : taskFutures) {
+//              f.cancel(true);
+//            }
+//
+//            break;
+//          }
+//        }
+//      }
+//
+//      IOException excep = null;
+//      for (final CustomRunnable runnable : runnables ) {
+//        IOException myException = runnable.getException();
+//        if ( myException != null ) {
+//          if ( excep == null ) {
+//            excep = myException;
+//          } else {
+//            excep.addSuppressed(myException);
+//          }
+//        }
+//        final OperatorStats localStats = runnable.getPart().getStats();
+//        long currentProcessingNanos = localStats.getProcessingNanos();
+//        // find out max Partitioner processing time
+//        maxProcessTime = (currentProcessingNanos > maxProcessTime) ? currentProcessingNanos : maxProcessTime;
+//        stats.mergeMetrics(localStats);
+//      }
+//      if ( excep != null ) {
+//        throw excep;
+//      }
+//    } finally {
+//      stats.stopWait();
+//      // scale down main stats wait time based on calculated processing time
+//      // since we did not wait for whole duration of above execution
+//      stats.adjustWaitNanos(-maxProcessTime);
+//
+//      // Done with the latch, close it.
+//      if (testCountDownLatch != null) {
+//        testCountDownLatch.close();
+//      }
+//    }
   }
 
   /**

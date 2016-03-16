@@ -122,10 +122,12 @@ public class TopNBatch extends AbstractRecordBatch<TopN> {
   }
 
   @Override
-  public void buildSchema() throws SchemaChangeException {
+  public boolean buildSchema() throws SchemaChangeException {
     VectorContainer c = new VectorContainer(oContext);
     IterOutcome outcome = next(incoming);
     switch (outcome) {
+      case NOT_YET:
+        return false;
       case OK:
       case OK_NEW_SCHEMA:
         for (VectorWrapper w : incoming) {
@@ -147,18 +149,19 @@ public class TopNBatch extends AbstractRecordBatch<TopN> {
         container.buildSchema(SelectionVectorMode.NONE);
         container.setRecordCount(0);
 
-        return;
+        break;
       case STOP:
         state = BatchState.STOP;
-        return;
+        break;
       case OUT_OF_MEMORY:
         state = BatchState.OUT_OF_MEMORY;
-        return;
+        break;
       case NONE:
         state = BatchState.DONE;
       default:
-        return;
+        break;
     }
+    return true;
   }
 
   @Override
@@ -197,7 +200,7 @@ public class TopNBatch extends AbstractRecordBatch<TopN> {
         case NONE:
           break outer;
         case NOT_YET:
-          throw new UnsupportedOperationException();
+          return IterOutcome.NOT_YET;
         case OUT_OF_MEMORY:
         case STOP:
           return upstream;

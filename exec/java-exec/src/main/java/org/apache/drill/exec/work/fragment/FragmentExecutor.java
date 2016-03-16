@@ -19,6 +19,7 @@ package org.apache.drill.exec.work.fragment;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,7 +36,9 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.FragmentContext.ExecutorState;
 import org.apache.drill.exec.physical.base.FragmentRoot;
 import org.apache.drill.exec.physical.impl.ImplCreator;
+import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.physical.impl.RootExec;
+import org.apache.drill.exec.physical.impl.SendAvailabilityListener;
 import org.apache.drill.exec.proto.BitControl.FragmentStatus;
 import org.apache.drill.exec.proto.BitControl.PlanFragment;
 import org.apache.drill.exec.proto.CoordinationProtos;
@@ -74,6 +77,11 @@ public class FragmentExecutor implements Runnable {
   // Thread that is currently executing the Fragment. Value is null if the fragment hasn't started running or finished
   private final AtomicReference<Thread> myThreadRef = new AtomicReference<>(null);
 
+  private final DrillbitStatusListener drillbitStatusListener = new FragmentDrillbitStatusListener();
+  private final FragmentHandle fragmentHandle;
+  private final DrillbitContext drillbitContext;
+  private final ClusterCoordinator clusterCoordinator;
+
   /**
    * Create a FragmentExecutor where we need to parse and materialize the root operator.
    *
@@ -102,7 +110,9 @@ public class FragmentExecutor implements Runnable {
     this.rootOperator = rootOperator;
     this.fragmentName = QueryIdHelper.getQueryIdentifier(context.getHandle());
     this.receiverExecutor = new ReceiverExecutor(fragmentName, fragmentContext.getExecutor());
-
+    this.fragmentHandle = fragmentContext.getHandle();
+    this.drillbitContext = fragmentContext.getDrillbitContext();
+    this.clusterCoordinator = drillbitContext.getClusterCoordinator();
     context.setExecutorState(new ExecutorStateImpl());
   }
 
@@ -213,13 +223,9 @@ public class FragmentExecutor implements Runnable {
 
     final Thread myThread = Thread.currentThread();
     myThreadRef.set(myThread);
-    final String originalThreadName = myThread.getName();
-    final FragmentHandle fragmentHandle = fragmentContext.getHandle();
-    final DrillbitContext drillbitContext = fragmentContext.getDrillbitContext();
-    final ClusterCoordinator clusterCoordinator = drillbitContext.getClusterCoordinator();
-    final DrillbitStatusListener drillbitStatusListener = new FragmentDrillbitStatusListener();
+//    this.originalThreadName = myThread.getName();
     final String newThreadName = QueryIdHelper.getExecutorThreadName(fragmentHandle);
-
+    boolean success = false;
     try {
 
       myThread.setName(newThreadName);
@@ -228,10 +234,11 @@ public class FragmentExecutor implements Runnable {
       final FragmentRoot rootOperator = this.rootOperator != null ? this.rootOperator :
           drillbitContext.getPlanReader().readFragmentOperator(fragment.getFragmentJson());
 
-          root = ImplCreator.getExec(fragmentContext, rootOperator);
-          if (root == null) {
-            return;
-          }
+      root = ImplCreator.getExec(fragmentContext, rootOperator);
+      if (root == null) {
+        logger.warn("unable to create RootExec for fragment {}", fragmentHandle);
+        return;
+      }
 
       clusterCoordinator.addDrillbitStatusListener(drillbitStatusListener);
       updateState(FragmentState.RUNNING);
@@ -248,20 +255,68 @@ public class FragmentExecutor implements Runnable {
           ImpersonationUtil.createProxyUgi(fragmentContext.getQueryUserName()) :
           ImpersonationUtil.getProcessUserUGI();
 
+      final Queue<Runnable> queue = fragmentContext.getDrillbitContext().getTaskQueue();
+
       queryUserUgi.doAs(new PrivilegedExceptionAction<Void>() {
         public Void run() throws Exception {
+          final Runnable task = new Runnable() {
+            int count = 1;
+
+            @Override
+            public void run() {
+              final Thread executor = Thread.currentThread();
+              final String originalThreadName = executor.getName();
+              final String newThreadName = QueryIdHelper.getExecutorThreadName(fragmentHandle);
+              /*
+               * Run the query until root.next returns false OR we no longer need to continue.
+               */
+              boolean continueExecution = true;
+              try {
+                executor.setName(newThreadName);
+
+                final IterationResult result = root.next();
+                switch (result) {
+                  case SENDING_BUFFER_FULL:
+                    final Runnable task = this;
+                    root.setSendAvailabilityListener(new SendAvailabilityListener() {
+                      @Override
+                      public void onSendAvailable(final RootExec exec) {
+                        queue.offer(task);
+                        logger.warn("sending buffer is now available");
+                      }
+                    });
+                    logger.warn("sending buffer is full. backing off...");
+                    return;
+                  case CONTINUE:
+                    continueExecution = shouldContinue();
+                    if (continueExecution) {
+                      queue.offer(this);
+                    }
+                    logger.warn("executor state -> iterations: {} continue: {}", count++, continueExecution);
+                    return;
+                  case COMPLETED:
+                    continueExecution = false;
+                    return;
+                }
+              } catch (final Exception ex) {
+                fail(ex);
+                continueExecution = false;
+              } finally {
+                if (!continueExecution) {
+                  onComplete();
+                }
+                executor.setName(originalThreadName);
+              }
+            }
+          };
+
           injector.injectChecked(fragmentContext.getExecutionControls(), "fragment-execution", IOException.class);
-          /*
-           * Run the query until root.next returns false OR we no longer need to continue.
-           */
-          while (shouldContinue() && root.next()) {
-            // loop
-          }
+          queue.offer(task);
 
           return null;
         }
       });
-
+      success = true;
     } catch (OutOfMemoryError | OutOfMemoryException e) {
       if (!(e instanceof OutOfMemoryError) || "Direct buffer memory".equals(e.getMessage())) {
         fail(UserException.memoryError(e).build(logger));
@@ -272,25 +327,33 @@ public class FragmentExecutor implements Runnable {
     } catch (AssertionError | Exception e) {
       fail(e);
     } finally {
-
-      // no longer allow this thread to be interrupted. We synchronize here to make sure that cancel can't set an
-      // interruption after we have moved beyond this block.
-      synchronized (myThreadRef) {
-        myThreadRef.set(null);
-        Thread.interrupted();
+      if (!success) {
+        onComplete();
       }
-
-      // We need to sure we countDown at least once. We'll do it here to guarantee that.
-      acceptExternalEvents.countDown();
-
-      // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
-      cleanup(FragmentState.FINISHED);
-
-      clusterCoordinator.removeDrillbitStatusListener(drillbitStatusListener);
-
-      myThread.setName(originalThreadName);
-
     }
+  }
+
+  protected void onComplete() {
+    // no longer allow this thread to be interrupted. We synchronize here to make sure that cancel can't set an
+    // interruption after we have moved beyond this block.
+    final Thread thread;
+    synchronized (myThreadRef) {
+      thread = myThreadRef.get();
+      myThreadRef.set(null);
+      Thread.interrupted();
+    }
+
+    // We need to sure we countDown at least once. We'll do it here to guarantee that.
+    acceptExternalEvents.countDown();
+
+    // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
+    cleanup(FragmentState.FINISHED);
+
+    clusterCoordinator.removeDrillbitStatusListener(drillbitStatusListener);
+    if (thread != null) {
+//      thread.setName(originalThreadName);
+    }
+
   }
 
   /**
@@ -307,7 +370,7 @@ public class FragmentExecutor implements Runnable {
    *
    * @return Whether this state is in a terminal state.
    */
-  private boolean isCompleted() {
+  public boolean isCompleted() {
     return isTerminal(fragmentState.get());
   }
 

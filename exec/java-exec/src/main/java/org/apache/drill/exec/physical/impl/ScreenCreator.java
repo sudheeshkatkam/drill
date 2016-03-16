@@ -21,8 +21,8 @@ import java.util.List;
 
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.exec.exception.OutOfMemoryException;
-import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.AccountingUserConnection;
+import org.apache.drill.exec.ops.DelegatingAccountingUserConnection;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
 import org.apache.drill.exec.physical.config.Screen;
@@ -77,14 +77,22 @@ public class ScreenCreator implements RootCreator<Screen> {
     }
 
     @Override
-    public boolean innerNext() {
+    protected boolean canSend() {
+      // no backpressure here.
+      return true;
+    }
+
+    @Override
+    public IterationResult innerNext() {
       IterOutcome outcome = next(incoming);
       logger.trace("Screen Outcome {}", outcome);
       switch (outcome) {
+      case NOT_YET:
+        return IterationResult.CONTINUE;
       case OUT_OF_MEMORY:
         throw new OutOfMemoryException();
       case STOP:
-        return false;
+        return IterationResult.COMPLETED;
       case NONE:
         if (firstBatch) {
           // this is the only data message sent to the client and may contain the schema
@@ -105,7 +113,7 @@ public class ScreenCreator implements RootCreator<Screen> {
           firstBatch = false; // we don't really need to set this. But who knows!
         }
 
-        return false;
+        return IterationResult.COMPLETED;
       case OK_NEW_SCHEMA:
         materializer = new VectorRecordMaterializer(context, oContext, incoming);
         //$FALL-THROUGH$
@@ -121,7 +129,7 @@ public class ScreenCreator implements RootCreator<Screen> {
         }
         firstBatch = false;
 
-        return true;
+        return IterationResult.CONTINUE;
       default:
         throw new UnsupportedOperationException();
       }

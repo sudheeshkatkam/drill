@@ -138,22 +138,31 @@ public class MergeJoinBatch extends AbstractRecordBatch<MergeJoinPOP> {
   }
 
   @Override
-  public void buildSchema() {
+  public boolean buildSchema() {
     // initialize iterators
     status.initialize();
 
     final IterOutcome leftOutcome = status.getLeftStatus();
+    if (leftOutcome == IterOutcome.NOT_YET) {
+      return false;
+    }
+
     final IterOutcome rightOutcome = status.getRightStatus();
+    if (rightOutcome == IterOutcome.NOT_YET) {
+      return false;
+    }
+
     if (leftOutcome == IterOutcome.STOP || rightOutcome == IterOutcome.STOP) {
       state = BatchState.STOP;
-      return;
+      return true;
     }
 
     if (leftOutcome == IterOutcome.OUT_OF_MEMORY || rightOutcome == IterOutcome.OUT_OF_MEMORY) {
       state = BatchState.OUT_OF_MEMORY;
-      return;
+      return true;
     }
     allocateBatch(true);
+    return true;
   }
 
   @Override

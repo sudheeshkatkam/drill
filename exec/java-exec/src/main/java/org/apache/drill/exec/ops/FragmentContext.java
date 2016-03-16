@@ -35,6 +35,7 @@ import org.apache.drill.exec.expr.ClassGenerator;
 import org.apache.drill.exec.expr.CodeGenerator;
 import org.apache.drill.exec.expr.fn.FunctionImplementationRegistry;
 import org.apache.drill.exec.memory.BufferAllocator;
+import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
 import org.apache.drill.exec.proto.BitControl.PlanFragment;
@@ -67,7 +68,7 @@ import com.google.common.collect.Maps;
 public class FragmentContext implements AutoCloseable, UdfUtilities {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FragmentContext.class);
 
-  private final Map<DrillbitEndpoint, AccountingDataTunnel> tunnels = Maps.newHashMap();
+  private final Map<MinorFragmentEndpoint, AccountingDataTunnel> tunnels = Maps.newHashMap();
   private final List<OperatorContextImpl> contexts = Lists.newLinkedList();
 
   private final DrillbitContext context;
@@ -133,7 +134,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     this.context = dbContext;
     this.queryContext = queryContext;
     this.connection = connection;
-    this.accountingUserConnection = new AccountingUserConnection(connection, sendingAccountor, statusHandler);
+    this.accountingUserConnection = new DefaultAccountingUserConnection(connection, sendingAccountor, statusHandler);
     this.fragment = fragment;
     this.funcRegistry = funcRegistry;
     contextInformation = new ContextInformation(fragment.getCredentials(), fragment.getContext());
@@ -327,11 +328,12 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     return context.getController().getTunnel(endpoint);
   }
 
-  public AccountingDataTunnel getDataTunnel(final DrillbitEndpoint endpoint) {
-    AccountingDataTunnel tunnel = tunnels.get(endpoint);
+  public AccountingDataTunnel getDataTunnel(final MinorFragmentEndpoint minorEndpoint) {
+    AccountingDataTunnel tunnel = tunnels.get(minorEndpoint);
     if (tunnel == null) {
-      tunnel = new AccountingDataTunnel(context.getDataConnectionsPool().getTunnel(endpoint), sendingAccountor, statusHandler);
-      tunnels.put(endpoint, tunnel);
+      tunnel = new DefaultAccountingDataTunnel(context.getDataConnectionsPool().getTunnel(minorEndpoint.getEndpoint()),
+          minorEndpoint, sendingAccountor, statusHandler);
+      tunnels.put(minorEndpoint, tunnel);
     }
     return tunnel;
   }
@@ -398,6 +400,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
 
   @Override
   public void close() {
+    //TODO: we do not want to block here. this is unnecessary with async back pressure.
     waitForSendComplete();
 
     // close operator context

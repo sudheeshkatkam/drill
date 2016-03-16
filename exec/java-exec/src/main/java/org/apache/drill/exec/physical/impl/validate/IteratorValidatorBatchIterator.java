@@ -125,6 +125,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
               operation, instNum, batchTypeName));
     }
     switch (batchState) {
+    case NOT_YET: // this should report empty state (empty iterator, zero record count etc)
     case OK:
     case OK_NEW_SCHEMA:
       return;
@@ -231,8 +232,8 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
           if (validationState != ValidationState.HAVE_SCHEMA) {
             throw new IllegalStateException(
                 String.format(
-                    "next() returned %s without first returning %s [#%d, %s]",
-                    batchState, OK_NEW_SCHEMA, instNum, batchTypeName));
+                    "next() returned %s in validation state %s without first returning %s [#%d, %s]",
+                    batchState, validationState, OK_NEW_SCHEMA, instNum, batchTypeName));
           }
           // OK doesn't change high-level state.
           break;

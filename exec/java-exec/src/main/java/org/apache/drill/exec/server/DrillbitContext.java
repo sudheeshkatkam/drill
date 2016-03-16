@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.netty.channel.EventLoopGroup;
 
 import java.util.Collection;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.drill.common.config.DrillConfig;
@@ -110,6 +111,10 @@ public class DrillbitContext implements AutoCloseable {
 
   public DrillbitEndpoint getEndpoint() {
     return endpoint;
+  }
+
+  public Queue<Runnable> getTaskQueue() {
+    return context.getTaskQueue();
   }
 
   public DrillConfig getConfig() {

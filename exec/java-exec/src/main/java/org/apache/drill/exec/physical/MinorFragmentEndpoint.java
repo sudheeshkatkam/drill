@@ -20,7 +20,10 @@ package org.apache.drill.exec.physical;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.common.base.Objects;
+import org.apache.drill.exec.proto.CoordinationProtos;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
+import org.apache.drill.exec.proto.ExecProtos;
 
 /**
  * MinorFragmentEndpoint represents fragment's MinorFragmentId and Drillbit endpoint to which the fragment is
@@ -58,6 +61,27 @@ public class MinorFragmentEndpoint {
 
   @Override
   public String toString() {
-    return "FragmentEndPoint: id = " + id + ", ep = " + endpoint;
+    return "MinorFragmentEndpoint{" +
+        "endpoint=" + endpoint +
+        ", id=" + id +
+        '}';
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    final MinorFragmentEndpoint that = (MinorFragmentEndpoint) o;
+    return Objects.equal(id, that.id) && Objects.equal(endpoint, that.endpoint);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(id, endpoint);
+  }
+
+  public static MinorFragmentEndpoint of(final int minorId,
+                                    final DrillbitEndpoint endpoint) {
+    return new MinorFragmentEndpoint(minorId, endpoint);
   }
 }

@@ -105,7 +105,7 @@ public abstract class HashJoinProbeTemplate implements HashJoinProbe {
     }
   }
 
-  public void executeProbePhase() throws SchemaChangeException {
+  public ProbeResult executeProbePhase() throws SchemaChangeException {
     while (outputRecords < TARGET_RECORDS_PER_BATCH && probeState != ProbeState.DONE && probeState != ProbeState.PROJECT_RIGHT) {
 
       // Check if we have processed all records in this batch we need to invoke next
@@ -119,8 +119,9 @@ public abstract class HashJoinProbeTemplate implements HashJoinProbe {
         IterOutcome leftUpstream = outgoingJoinBatch.next(HashJoinHelper.LEFT_INPUT, probeBatch);
 
         switch (leftUpstream) {
-          case NONE:
           case NOT_YET:
+            return ProbeResult.of(true, outputRecords);
+          case NONE:
           case STOP:
             recordsProcessed = 0;
             recordsToProcess = 0;
@@ -213,14 +214,18 @@ public abstract class HashJoinProbeTemplate implements HashJoinProbe {
         }
       }
     }
+    return ProbeResult.of(false, outputRecords);
   }
 
-  public int probeAndProject() throws SchemaChangeException, ClassTransformationException, IOException {
+  public ProbeResult probeAndProject() throws SchemaChangeException, ClassTransformationException, IOException {
 
     outputRecords = 0;
 
     if (probeState == ProbeState.PROBE_PROJECT) {
-      executeProbePhase();
+      final ProbeResult result = executeProbePhase();
+      if (result.receivedNotYet) {
+        return result;
+      }
     }
 
     if (probeState == ProbeState.PROJECT_RIGHT) {
@@ -237,7 +242,7 @@ public abstract class HashJoinProbeTemplate implements HashJoinProbe {
       executeProjectRightPhase();
     }
 
-    return outputRecords;
+    return ProbeResult.of(false, outputRecords);
   }
 
   public abstract void doSetup(@Named("context") FragmentContext context, @Named("buildBatch") VectorContainer buildBatch, @Named("probeBatch") RecordBatch probeBatch,

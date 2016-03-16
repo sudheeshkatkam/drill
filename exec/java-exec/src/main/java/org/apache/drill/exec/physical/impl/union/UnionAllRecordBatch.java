@@ -104,6 +104,8 @@ public class UnionAllRecordBatch extends AbstractRecordBatch<UnionAll> {
       IterOutcome upstream = unionAllInput.nextBatch();
       logger.debug("Upstream of Union-All: {}", upstream);
       switch(upstream) {
+        case NOT_YET:
+          return IterOutcome.NOT_YET;
         case NONE:
         case OUT_OF_MEMORY:
         case STOP:
