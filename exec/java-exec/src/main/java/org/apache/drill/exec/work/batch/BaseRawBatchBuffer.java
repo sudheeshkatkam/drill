@@ -71,7 +71,6 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
 
   @Override
   public synchronized void enqueue(final RawFragmentBatch batch) throws IOException {
-
     // if this fragment is already canceled or failed, we shouldn't need any or more stuff. We do the null check to
     // ensure that tests run.
     if (context != null && !context.shouldContinue()) {
@@ -145,6 +144,7 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
   private void allStreamsFinished() {
     if (state != BufferState.KILLED) {
       state = BufferState.STREAMS_FINISHED;
+      logger.warn("all streams finished");
     }
 
     if (!bufferQueue.isEmpty()) {
@@ -167,9 +167,10 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
 
       // if we didn't get a batch, block on waiting for queue.
       if (b == null && (!isTerminated() || !bufferQueue.isEmpty())) {
-        b = bufferQueue.take();
+//        b = bufferQueue.take();
+        return RawFragmentBatch.NONE;
       }
-    } catch (final InterruptedException e) {
+    } catch (final Exception e) {
 
       // We expect that the interrupt means the fragment is canceled or failed, so we should kill this buffer
       if (!context.shouldContinue()) {

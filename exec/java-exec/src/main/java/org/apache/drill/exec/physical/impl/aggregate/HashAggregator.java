@@ -40,7 +40,7 @@ public interface HashAggregator {
       new TemplateClassDefinition<HashAggregator>(HashAggregator.class, HashAggTemplate.class);
 
   public static enum AggOutcome {
-    RETURN_OUTCOME, CLEANUP_AND_RETURN, UPDATE_AGGREGATOR
+    RETURN_OUTCOME, CLEANUP_AND_RETURN, UPDATE_AGGREGATOR, NOT_YET
   }
 
   public abstract void setup(HashAggregate hashAggrConfig, HashTableConfig htConfig, FragmentContext context,

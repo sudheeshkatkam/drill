@@ -19,13 +19,21 @@ package org.apache.drill.exec.physical.impl.broadcastsender;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.AccountingDataTunnel;
+import org.apache.drill.exec.ops.DelegatingAccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
 import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.config.BroadcastSender;
 import org.apache.drill.exec.physical.impl.BaseRootExec;
+import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.proto.ExecProtos;
 import org.apache.drill.exec.record.FragmentWritableBatch;
@@ -39,13 +47,12 @@ import com.google.common.collect.ArrayListMultimap;
  * This is useful in cases such as broadcast join where sending the entire table to join
  * to all nodes is cheaper than merging and computing all the joins in the same node.
  */
-public class BroadcastSenderRootExec extends BaseRootExec {
+public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterationState> {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BroadcastSenderRootExec.class);
   private final BroadcastSender config;
-  private final int[][] receivingMinorFragments;
-  private final AccountingDataTunnel[] tunnels;
+//  private final int[][] receivingMinorFragments;
+  private final List<AccountingDataTunnel> tunnels;
   private final ExecProtos.FragmentHandle handle;
-  private volatile boolean ok;
   private final RecordBatch incoming;
 
   public enum Metric implements MetricDef {
@@ -57,98 +64,112 @@ public class BroadcastSenderRootExec extends BaseRootExec {
     }
   }
 
-  public BroadcastSenderRootExec(FragmentContext context,
-                                 RecordBatch incoming,
-                                 BroadcastSender config) throws OutOfMemoryException {
+  public BroadcastSenderRootExec(final FragmentContext context, final RecordBatch incoming, final BroadcastSender config) {
     super(context, context.newOperatorContext(config, null), config);
-    this.ok = true;
     this.incoming = incoming;
     this.config = config;
     this.handle = context.getHandle();
-    List<MinorFragmentEndpoint> destinations = config.getDestinations();
-    ArrayListMultimap<DrillbitEndpoint, Integer> dests = ArrayListMultimap.create();
-
-    for(MinorFragmentEndpoint destination : destinations) {
-      dests.put(destination.getEndpoint(), destination.getId());
-    }
-
-    int destCount = dests.keySet().size();
-    int i = 0;
-
-    this.tunnels = new AccountingDataTunnel[destCount];
-    this.receivingMinorFragments = new int[destCount][];
-    for(final DrillbitEndpoint ep : dests.keySet()){
-      List<Integer> minorsList= dests.get(ep);
-      int[] minorsArray = new int[minorsList.size()];
-      int x = 0;
-      for(Integer m : minorsList){
-        minorsArray[x++] = m;
-      }
-      receivingMinorFragments[i] = minorsArray;
-      tunnels[i] = context.getDataTunnel(ep);
-      i++;
-    }
+    this.tunnels = Lists.transform(config.getDestinations(),
+      new Function<MinorFragmentEndpoint, AccountingDataTunnel>() {
+        @Nullable
+        @Override
+        public AccountingDataTunnel apply(final MinorFragmentEndpoint endpoint) {
+          return DelegatingAccountingDataTunnel.of(context.getDataTunnel(endpoint), getSendAvailabilityNotifier());
+        }
+      });
   }
 
   @Override
-  public boolean innerNext() {
-    RecordBatch.IterOutcome out = next(incoming);
+  protected boolean canSend() {
+    for (final AccountingDataTunnel tunnel:tunnels) {
+      if (!tunnel.isSendingBufferAvailable()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override
+  public IterationResult innerNext() {
+    final BroadcastSenderIterationState state;
+    final boolean isPendingIteration = hasPendingState();
+    if (isPendingIteration) {
+      state = pendingState;
+      pendingState = null;
+    } else {
+      final RecordBatch.IterOutcome out = next(incoming);
+      state = new BroadcastSenderIterationState(out, 0, null);
+    }
+
+    final RecordBatch.IterOutcome out = state.outcome;
     logger.debug("Outcome of sender next {}", out);
     switch(out){
       case OUT_OF_MEMORY:
         throw new OutOfMemoryException();
       case STOP:
       case NONE:
-        for (int i = 0; i < tunnels.length; ++i) {
+        for (int i = state.tunnelIndex; i < tunnels.size(); ++i) {
+          if (!tunnels.get(i).isSendingBufferAvailable()) {
+            pendingState = new BroadcastSenderIterationState(out, i, null);
+            return IterationResult.SENDING_BUFFER_FULL;
+          }
           FragmentWritableBatch b2 = FragmentWritableBatch.getEmptyLast(
               handle.getQueryId(),
               handle.getMajorFragmentId(),
               handle.getMinorFragmentId(),
               config.getOppositeMajorFragmentId(),
-              receivingMinorFragments[i]);
+              tunnels.get(i).getRemoteEndpoint().getId());
           stats.startWait();
           try {
-            tunnels[i].sendRecordBatch(b2);
+            tunnels.get(i).sendRecordBatch(b2);
           } finally {
             stats.stopWait();
           }
         }
-        return false;
+        return IterationResult.COMPLETED;
 
       case OK_NEW_SCHEMA:
       case OK:
-        WritableBatch writableBatch = incoming.getWritableBatch().transfer(oContext.getAllocator());
-        if (tunnels.length > 1) {
-          writableBatch.retainBuffers(tunnels.length - 1);
+        final WritableBatch writableBatch;
+        if (isPendingIteration) {
+          writableBatch = state.batch;
+        } else {
+          writableBatch = incoming.getWritableBatch().transfer(oContext.getAllocator());
+          if (tunnels.size() > 1) {
+            writableBatch.retainBuffers(tunnels.size() - 1);
+          }
         }
-        for (int i = 0; i < tunnels.length; ++i) {
+        for (int i = state.tunnelIndex; i < tunnels.size(); ++i) {
+          if (!tunnels.get(i).isSendingBufferAvailable()) {
+            pendingState = new BroadcastSenderIterationState(out, i, writableBatch);
+            return IterationResult.SENDING_BUFFER_FULL;
+          }
           FragmentWritableBatch batch = new FragmentWritableBatch(
               false,
               handle.getQueryId(),
               handle.getMajorFragmentId(),
               handle.getMinorFragmentId(),
               config.getOppositeMajorFragmentId(),
-              receivingMinorFragments[i],
+              tunnels.get(i).getRemoteEndpoint().getId(),
               writableBatch);
-          updateStats(batch);
           stats.startWait();
           try {
-            tunnels[i].sendRecordBatch(batch);
+            tunnels.get(i).sendRecordBatch(batch);
+            updateStats(batch);
           } finally {
             stats.stopWait();
           }
         }
-
-        return ok;
-
+      // fall through
       case NOT_YET:
+        return IterationResult.CONTINUE;
       default:
         throw new IllegalStateException();
     }
   }
 
   public void updateStats(FragmentWritableBatch writableBatch) {
-    stats.setLongStat(Metric.N_RECEIVERS, tunnels.length);
+    stats.setLongStat(Metric.N_RECEIVERS, tunnels.size());
     stats.addLongStat(Metric.BYTES_SENT, writableBatch.getByteCount());
   }
 }

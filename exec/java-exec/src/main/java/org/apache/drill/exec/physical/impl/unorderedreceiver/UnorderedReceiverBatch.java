@@ -147,7 +147,7 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       return null;
     }
   }
-
+  int count;
   @Override
   public IterOutcome next() {
     batchLoader.resetRecordCount();
@@ -156,12 +156,18 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       RawFragmentBatch batch;
       try {
         stats.startWait();
-        batch = getNextBatch();
 
         // skip over empty batches. we do this since these are basically control messages.
-        while (batch != null && batch.getHeader().getDef().getRecordCount() == 0
+        while ((batch = getNextBatch()) != null && batch.getHeader().getDef().getRecordCount() == 0
             && (!first || batch.getHeader().getDef().getFieldCount() == 0)) {
-          batch = getNextBatch();
+          logger.debug("Got empty batch from {}:{}",
+              batch.getHeader().getSendingMajorFragmentId(),
+              batch.getHeader().getSendingMinorFragmentId()
+          );
+          if (batch.isNone()) {
+            logger.warn("not yet");
+            return IterOutcome.NOT_YET;
+          }
         }
       } finally {
         stats.stopWait();
@@ -189,7 +195,10 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       // TODO:  Clean:  DRILL-2933:  That load(...) no longer throws
       // SchemaChangeException, so check/clean catch clause below.
       stats.addLongStat(Metric.BYTES_RECEIVED, batch.getByteCount());
-
+      logger.warn("returning batch #{} from {}:{}", ++count,
+          batch.getHeader().getSendingMajorFragmentId(),
+          batch.getHeader().getSendingMinorFragmentId()
+      );
       batch.release();
       if(schemaChanged) {
         this.schema = batchLoader.getSchema();

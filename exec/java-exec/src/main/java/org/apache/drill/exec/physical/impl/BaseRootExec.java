@@ -19,6 +19,8 @@ package org.apache.drill.exec.physical.impl;
 
 import java.util.List;
 
+import com.google.common.base.Preconditions;
+import io.netty.buffer.ByteBuf;
 import org.apache.drill.common.DeferredException;
 import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.FragmentContext;
@@ -27,19 +29,58 @@ import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.ops.OperatorStats;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
+import org.apache.drill.exec.proto.GeneralRPCProtos;
 import org.apache.drill.exec.record.CloseableRecordBatch;
 import org.apache.drill.exec.record.RecordBatch;
 import org.apache.drill.exec.record.RecordBatch.IterOutcome;
 
 import com.google.common.base.Supplier;
+import org.apache.drill.exec.rpc.BaseRpcOutcomeListener;
+import org.apache.drill.exec.rpc.RpcException;
+import org.apache.drill.exec.rpc.RpcOutcomeListener;
 
-public abstract class BaseRootExec implements RootExec {
+public abstract class BaseRootExec<S extends BaseRootExec.IteratorState> implements RootExec {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BaseRootExec.class);
 
   protected OperatorStats stats = null;
   protected OperatorContext oContext = null;
   protected FragmentContext fragmentContext = null;
   private List<CloseableRecordBatch> operators;
+  private SendAvailabilityListener sendListener = SendAvailabilityListener.SINK;
+  protected S pendingState;
+
+  private final RpcOutcomeListener<GeneralRPCProtos.Ack> sendAvailabilityHandler = new BaseRpcOutcomeListener<GeneralRPCProtos.Ack>() {
+    @Override
+    public void failed(final RpcException ex) {
+      fireIfOutgoingBuffersAvailable();
+    }
+
+    @Override
+    public void success(final GeneralRPCProtos.Ack value, final ByteBuf buffer) {
+      fireIfOutgoingBuffersAvailable();
+    }
+
+    protected void fireIfOutgoingBuffersAvailable() {
+      if (canSend()) {
+        synchronized (BaseRootExec.this) {
+          sendListener.onSendAvailable(BaseRootExec.this);
+          sendListener = SendAvailabilityListener.SINK;
+        }
+      }
+    }
+  };
+
+  public static class IteratorState {
+    public final IterOutcome outcome;
+
+    protected IteratorState(final IterOutcome outcome) {
+      this.outcome = outcome;
+    }
+
+    public static IteratorState of(final IterOutcome outcome) {
+      return new IteratorState(outcome);
+    }
+  }
 
   public BaseRootExec(final FragmentContext fragmentContext, final PhysicalOperator config) throws OutOfMemoryException {
     this.oContext = fragmentContext.newOperatorContext(config, stats);
@@ -83,15 +124,19 @@ public abstract class BaseRootExec implements RootExec {
   }
 
   @Override
-  public final boolean next() {
+  public final IterationResult next() {
     // Stats should have been initialized
     assert stats != null;
     if (!fragmentContext.shouldContinue()) {
-      return false;
+      return IterationResult.COMPLETED;
     }
     try {
       stats.startProcessing();
       return innerNext();
+    } catch (final Throwable ex) {
+      logger.error("fragment failed", ex);
+      fragmentContext.fail(ex);
+      return IterationResult.COMPLETED;
     } finally {
       stats.stopProcessing();
     }
@@ -117,7 +162,7 @@ public abstract class BaseRootExec implements RootExec {
     return next;
   }
 
-  public abstract boolean innerNext();
+  public abstract IterationResult innerNext();
 
   @Override
   public void receivingFragmentFinished(final FragmentHandle handle) {
@@ -159,4 +204,31 @@ public abstract class BaseRootExec implements RootExec {
       }
     }
   }
+
+  /**
+   * Returns true if none of underlying outgoing buffers are full.
+   */
+  protected abstract boolean canSend();
+
+  @Override
+  public void setSendAvailabilityListener(final SendAvailabilityListener listener) {
+    final SendAvailabilityListener handler = Preconditions.checkNotNull(listener, "listener cannot be null.");
+    synchronized (this) {
+      if (canSend()) {
+        handler.onSendAvailable(this);
+        sendListener = SendAvailabilityListener.SINK;
+      } else {
+        sendListener = handler;
+      }
+    }
+  }
+
+  protected boolean hasPendingState() {
+    return pendingState != null;
+  }
+
+  protected RpcOutcomeListener<GeneralRPCProtos.Ack> getSendAvailabilityNotifier() {
+    return sendAvailabilityHandler;
+  }
+
 }

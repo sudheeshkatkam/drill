@@ -17,16 +17,18 @@
  */
 package org.apache.drill.exec.physical.impl.partitionsender;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.drill.exec.compile.TemplateClassDefinition;
-import org.apache.drill.exec.exception.SchemaChangeException;
+import org.apache.drill.exec.ops.AccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.ops.OperatorStats;
 import org.apache.drill.exec.physical.config.HashPartitionSender;
+import org.apache.drill.exec.proto.GeneralRPCProtos;
+import org.apache.drill.exec.record.FragmentWritableBatch;
 import org.apache.drill.exec.record.RecordBatch;
+import org.apache.drill.exec.rpc.RpcOutcomeListener;
 
 public interface Partitioner {
 
@@ -35,10 +37,11 @@ public interface Partitioner {
                           HashPartitionSender popConfig,
                           OperatorStats stats,
                           OperatorContext oContext,
-                          int start, int count) throws SchemaChangeException;
+                          int start, int count,
+                           RpcOutcomeListener<GeneralRPCProtos.Ack> sendAvailabilityNotifier);
 
-  public abstract void partitionBatch(RecordBatch incoming) throws IOException;
-  public abstract void flushOutgoingBatches(boolean isLastBatch, boolean schemaChanged) throws IOException;
+  public abstract void partitionBatch(RecordBatch incoming);
+  public abstract boolean flushOutgoingBatches(boolean isLastBatch, boolean schemaChanged);
   public abstract void initialize();
   public abstract void clear();
   public abstract List<? extends PartitionOutgoingBatch> getOutgoingBatches();
@@ -50,6 +53,11 @@ public interface Partitioner {
    */
   public abstract PartitionOutgoingBatch getOutgoingBatch(int index);
   public abstract OperatorStats getStats();
+
+  AccountingDataTunnel[] getTunnels();
+  boolean canSend();
+  boolean flushIfReady();
+  boolean send(final FragmentWritableBatch batch);
 
   public static TemplateClassDefinition<Partitioner> TEMPLATE_DEFINITION = new TemplateClassDefinition<>(Partitioner.class, PartitionerTemplate.class);
 }

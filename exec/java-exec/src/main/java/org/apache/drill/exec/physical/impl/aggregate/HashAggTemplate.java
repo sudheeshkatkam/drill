@@ -316,8 +316,9 @@ public abstract class HashAggTemplate implements HashAggregator {
               logger.debug("Received IterOutcome of {}", out);
             }
             switch (out) {
-              case OUT_OF_MEMORY:
               case NOT_YET:
+                return AggOutcome.NOT_YET;
+              case OUT_OF_MEMORY:
                 this.outcome = out;
                 return AggOutcome.RETURN_OUTCOME;
 

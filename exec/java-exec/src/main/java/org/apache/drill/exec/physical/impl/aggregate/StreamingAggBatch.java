@@ -96,19 +96,21 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
   }
 
   @Override
-  public void buildSchema() throws SchemaChangeException {
+  public boolean buildSchema() throws SchemaChangeException {
     IterOutcome outcome = next(incoming);
     switch (outcome) {
+      case NOT_YET:
+        return false;
       case NONE:
         state = BatchState.DONE;
         container.buildSchema(SelectionVectorMode.NONE);
-        return;
+        return true;
       case OUT_OF_MEMORY:
         state = BatchState.OUT_OF_MEMORY;
-        return;
+        return true;
       case STOP:
         state = BatchState.STOP;
-        return;
+        return true;
     }
 
     if (!createAggregator()) {
@@ -117,6 +119,7 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
     for (final VectorWrapper<?> w : container) {
       w.getValueVector().allocateNew();
     }
+    return true;
   }
 
   @Override
@@ -136,7 +139,6 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
       } else {
         outcome = next(incoming);
       }
-      logger.debug("Next outcome of {}", outcome);
       switch (outcome) {
       case NONE:
         if (first && popConfig.getKeys().length == 0) {

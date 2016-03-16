@@ -248,8 +248,10 @@ public class WorkManager implements AutoCloseable {
       executor.execute(new SelfCleaningRunnable(fragmentExecutor) {
         @Override
         protected void cleanup() {
-          runningFragments.remove(fragmentHandle);
-          indicateIfSafeToExit();
+          if (fragmentExecutor.isCompleted()) {
+            runningFragments.remove(fragmentHandle);
+            indicateIfSafeToExit();
+          }
         }
       });
     }
@@ -270,9 +272,11 @@ public class WorkManager implements AutoCloseable {
       executor.execute(new SelfCleaningRunnable(fragmentExecutor) {
         @Override
         protected void cleanup() {
-          runningFragments.remove(fragmentHandle);
-          workBus.removeFragmentManager(fragmentHandle);
-          indicateIfSafeToExit();
+          if (fragmentExecutor.isCompleted()) {
+            runningFragments.remove(fragmentHandle);
+            workBus.removeFragmentManager(fragmentHandle);
+            indicateIfSafeToExit();
+          }
         }
       });
     }

@@ -232,9 +232,11 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   }
 
   @Override
-  public void buildSchema() throws SchemaChangeException {
+  public boolean buildSchema() throws SchemaChangeException {
     IterOutcome outcome = next(incoming);
     switch (outcome) {
+      case NOT_YET:
+        return false;
       case OK:
       case OK_NEW_SCHEMA:
         for (VectorWrapper<?> w : incoming) {
@@ -260,13 +262,19 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
       default:
         break;
     }
+    return true;
   }
 
   @Override
   public IterOutcome innerNext() {
     if (schema != null) {
       if (spillCount == 0) {
-        return (getSelectionVector4().next()) ? IterOutcome.OK : IterOutcome.NONE;
+        // selection vector is assigned down in this method.
+        final SelectionVector4 vector = getSelectionVector4();
+        if (vector == null) {
+          return IterOutcome.NOT_YET;
+        }
+        return (vector.next()) ? IterOutcome.OK : IterOutcome.NONE;
       } else {
         Stopwatch w = Stopwatch.createStarted();
         int count = copier.next(targetRecordCount);
@@ -298,13 +306,13 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
           upstream = IterOutcome.OK_NEW_SCHEMA;
         }
         switch (upstream) {
+        case NOT_YET:
+          return IterOutcome.NOT_YET;
         case NONE:
           if (first) {
             return upstream;
           }
           break outer;
-        case NOT_YET:
-          throw new UnsupportedOperationException();
         case STOP:
           return upstream;
         case OK_NEW_SCHEMA:

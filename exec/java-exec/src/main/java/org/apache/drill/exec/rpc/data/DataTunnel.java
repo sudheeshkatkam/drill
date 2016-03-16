@@ -39,8 +39,9 @@ import org.apache.drill.exec.testing.ExecutionControlsInjector;
 public class DataTunnel {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataTunnel.class);
 
+  public static final int SENDING_BUFFER_SIZE = 3;
   private final DataConnectionManager manager;
-  private final Semaphore sendingSemaphore = new Semaphore(3);
+  private final Semaphore sendingSemaphore;
 
   // Needed for injecting a test pause
   private boolean isInjectionControlSet;
@@ -51,6 +52,15 @@ public class DataTunnel {
 
   public DataTunnel(DataConnectionManager manager) {
     this.manager = manager;
+    this.sendingSemaphore = new Semaphore(getSendingBufferCapacity());
+  }
+
+  public int getSendingBufferCapacity() {
+    return SENDING_BUFFER_SIZE;
+  }
+
+  public int getSendingBufferAvailability() {
+    return sendingSemaphore.availablePermits();
   }
 
   /**

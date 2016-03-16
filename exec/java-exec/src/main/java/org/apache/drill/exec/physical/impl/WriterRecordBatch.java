@@ -96,6 +96,7 @@ public class WriterRecordBatch extends AbstractRecordBatch<Writer> {
             return upstream;
 
           case NOT_YET:
+            return IterOutcome.NOT_YET;
           case NONE:
             break;
 

@@ -97,13 +97,13 @@ public class SimpleRootExec implements RootExec, Iterable<ValueVector> {
   }
 
   @Override
-  public boolean next() {
+  public IterationResult next() {
     switch (incoming.next()) {
     case NONE:
     case STOP:
-      return false;
+      return IterationResult.COMPLETED;
     default:
-      return true;
+      return IterationResult.CONTINUE;
     }
   }
 
@@ -135,4 +135,6 @@ public class SimpleRootExec implements RootExec, Iterable<ValueVector> {
     return incoming;
   }
 
+  @Override
+  public void setSendAvailabilityListener(final SendAvailabilityListener listener) { }
 }

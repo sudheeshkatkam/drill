@@ -28,11 +28,23 @@ public interface RootExec extends AutoCloseable {
    * Do the next batch of work.
    * @return Whether or not additional batches of work are necessary.  False means that this fragment is done.
    */
-  public boolean next();
+  IterationResult next();
 
   /**
    * Inform sender that receiving fragment is finished and doesn't need any more data
    * @param handle
    */
   public void receivingFragmentFinished(FragmentHandle handle);
+
+  /**
+   * Sets a one-time sending buffer availability listener.
+   *
+   * Implementor must gguaranteed to be invoked at most once.
+   * <p>
+   * Leak warning: concrete implementors might keep a strong reference to listener.
+   * </p>
+   *
+   * @param listener  sending buffer availability listener.
+   */
+  void setSendAvailabilityListener(SendAvailabilityListener listener);
 }

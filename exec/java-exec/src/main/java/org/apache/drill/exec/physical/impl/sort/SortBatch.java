@@ -104,7 +104,7 @@ public class SortBatch extends AbstractRecordBatch<Sort> {
         case NONE:
           break outer;
         case NOT_YET:
-          throw new UnsupportedOperationException();
+          return IterOutcome.NOT_YET;
         case OUT_OF_MEMORY:
         case STOP:
           return upstream;

@@ -61,10 +61,13 @@ import org.apache.calcite.rel.core.JoinRelType;
 import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JVar;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
   public static final long ALLOCATOR_INITIAL_RESERVATION = 1 * 1024 * 1024;
   public static final long ALLOCATOR_MAX_RESERVATION = 20L * 1000 * 1000 * 1000;
+  private static final Logger logger = LoggerFactory.getLogger(HashJoinBatch.class);
 
   // Probe side record batch
   private final RecordBatch left;
@@ -167,18 +170,25 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
   }
 
   @Override
-  protected void buildSchema() throws SchemaChangeException {
+  protected boolean buildSchema() throws SchemaChangeException {
     leftUpstream = next(left);
+    if (leftUpstream == IterOutcome.NOT_YET) {
+      return false;
+    }
+
     rightUpstream = next(right);
+    if (rightUpstream == IterOutcome.NOT_YET) {
+      return false;
+    }
 
     if (leftUpstream == IterOutcome.STOP || rightUpstream == IterOutcome.STOP) {
       state = BatchState.STOP;
-      return;
+      return true;
     }
 
     if (leftUpstream == IterOutcome.OUT_OF_MEMORY || rightUpstream == IterOutcome.OUT_OF_MEMORY) {
       state = BatchState.OUT_OF_MEMORY;
-      return;
+      return true;
     }
 
     // Initialize the hash join helper context
@@ -205,6 +215,7 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
     } catch (IOException | ClassTransformationException e) {
       throw new SchemaChangeException(e);
     }
+    return true;
   }
 
   @Override
@@ -215,13 +226,18 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
        */
       if (state == BatchState.FIRST) {
         // Build the hash table, using the build side record batches.
-        executeBuildPhase();
+        final IterOutcome outcome = executeBuildPhase();
+        if (outcome == IterOutcome.NOT_YET) {
+          return outcome;
+        }
         //                IterOutcome next = next(HashJoinHelper.LEFT_INPUT, left);
         hashJoinProbe.setupHashJoinProbe(context, hyperContainer, left, left.getRecordCount(), this, hashTable,
             hjHelper, joinType);
 
         // Update the hash table related stats for the operator
         updateStats(this.hashTable);
+        state = BatchState.NOT_FIRST;
+        logger.warn("build is completed");
       }
 
       // Store the number of records projected
@@ -230,23 +246,25 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
         // Allocate the memory for the vectors in the output container
         allocateVectors();
 
-        outputRecords = hashJoinProbe.probeAndProject();
-
+        final ProbeResult result = hashJoinProbe.probeAndProject();
+        outputRecords = result.recordsEmitted;
         /* We are here because of one the following
          * 1. Completed processing of all the records and we are done
          * 2. We've filled up the outgoing batch to the maximum and we need to return upstream
          * Either case build the output container's schema and return
          */
-        if (outputRecords > 0 || state == BatchState.FIRST) {
-          if (state == BatchState.FIRST) {
-            state = BatchState.NOT_FIRST;
-          }
-
+        if (outputRecords > 0) {
           for (final VectorWrapper<?> v : container) {
             v.getValueVector().getMutator().setValueCount(outputRecords);
           }
 
           return IterOutcome.OK;
+        }
+
+        // if no residue from the previous probe iteration is emitted and NOT_YET is received during probing
+        // we bubble NOT_YET up immediately
+        if (result.receivedNotYet) {
+          return IterOutcome.NOT_YET;
         }
       } else {
         // Our build side is empty, we won't have any matches, clear the probe side
@@ -317,7 +335,7 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
     hashTable = ht.createAndSetupHashTable(null);
   }
 
-  public void executeBuildPhase() throws SchemaChangeException, ClassTransformationException, IOException {
+  public IterOutcome executeBuildPhase() throws SchemaChangeException, ClassTransformationException, IOException {
     //Setup the underlying hash table
 
     // skip first batch if count is zero, as it may be an empty schema batch
@@ -328,16 +346,13 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
       rightUpstream = next(right);
     }
 
-    boolean moreData = true;
-
-    while (moreData) {
+    while (true) {
       switch (rightUpstream) {
       case OUT_OF_MEMORY:
       case NONE:
       case NOT_YET:
       case STOP:
-        moreData = false;
-        continue;
+        return rightUpstream;
 
       case OK_NEW_SCHEMA:
         if (rightSchema == null) {

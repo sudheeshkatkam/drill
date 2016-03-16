@@ -19,6 +19,7 @@ package org.apache.drill.exec.record;
 
 import io.netty.buffer.DrillBuf;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.drill.exec.proto.BitData.FragmentRecordBatch;
@@ -26,6 +27,15 @@ import org.apache.drill.exec.rpc.data.AckSender;
 
 public class RawFragmentBatch {
   //private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RawFragmentBatch.class);
+  public static final RawFragmentBatch NONE;
+
+  static {
+    final FragmentRecordBatch header = FragmentRecordBatch.newBuilder()
+        .setReceivingMajorFragmentId(-1)
+        .setSendingMajorFragmentId(-1)
+        .build();
+    NONE = new RawFragmentBatch(header, null, null);
+  }
 
   private final FragmentRecordBatch header;
   private final DrillBuf body;
@@ -39,6 +49,20 @@ public class RawFragmentBatch {
     if (body != null) {
       body.retain(1);
     }
+  }
+
+  public boolean isNone() {
+    return equals(NONE);
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if (obj instanceof RawFragmentBatch) {
+      final RawFragmentBatch other = RawFragmentBatch.class.cast(obj);
+      return Objects.equals(header, other.header) && Objects.equals(body, other.body)
+          && Objects.equals(sender, other.sender) && Objects.equals(ackSent, other.ackSent);
+    }
+    return false;
   }
 
   public FragmentRecordBatch getHeader() {

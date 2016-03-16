@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,40 +17,28 @@
  */
 package org.apache.drill.exec.ops;
 
-import org.apache.drill.exec.proto.GeneralRPCProtos.Ack;
+import org.apache.drill.exec.physical.MinorFragmentEndpoint;
+import org.apache.drill.exec.proto.GeneralRPCProtos;
 import org.apache.drill.exec.record.FragmentWritableBatch;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
 import org.apache.drill.exec.rpc.data.DataTunnel;
 import org.apache.drill.exec.testing.ControlsInjector;
 import org.apache.drill.exec.testing.ExecutionControls;
-import org.apache.drill.exec.testing.ExecutionControlsInjector;
 import org.slf4j.Logger;
 
-/**
- * Wrapper around a {@link org.apache.drill.exec.rpc.data.DataTunnel} that tracks the status of batches sent to
- * to other Drillbits.
- */
-public class AccountingDataTunnel {
-  private final DataTunnel tunnel;
-  private final SendingAccountor sendingAccountor;
-  private final RpcOutcomeListener<Ack> statusHandler;
+public interface AccountingDataTunnel {
 
-  public AccountingDataTunnel(DataTunnel tunnel, SendingAccountor sendingAccountor, RpcOutcomeListener<Ack> statusHandler) {
-    this.tunnel = tunnel;
-    this.sendingAccountor = sendingAccountor;
-    this.statusHandler = statusHandler;
-  }
+  boolean isSendingBufferAvailable();
+  MinorFragmentEndpoint getRemoteEndpoint();
 
-  public void sendRecordBatch(FragmentWritableBatch batch) {
-    sendingAccountor.increment();
-    tunnel.sendRecordBatch(statusHandler, batch);
-  }
+  RpcOutcomeListener<GeneralRPCProtos.Ack> getStatusHandler();
+
+  void sendRecordBatch(FragmentWritableBatch batch);
+  void sendRecordBatch(RpcOutcomeListener<GeneralRPCProtos.Ack> listener, FragmentWritableBatch batch);
 
   /**
    * See {@link DataTunnel#setTestInjectionControls(ControlsInjector, ExecutionControls, Logger)}.
    */
-  public void setTestInjectionControls(final ControlsInjector testInjector,
-      final ExecutionControls testControls, final org.slf4j.Logger testLogger) {
-    tunnel.setTestInjectionControls(testInjector, testControls, testLogger);
-  }
+  void setTestInjectionControls(ControlsInjector testInjector,
+                                ExecutionControls testControls, Logger testLogger);
 }

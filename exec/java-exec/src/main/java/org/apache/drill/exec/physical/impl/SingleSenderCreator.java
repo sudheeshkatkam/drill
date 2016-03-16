@@ -22,8 +22,10 @@ import java.util.List;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.AccountingDataTunnel;
+import org.apache.drill.exec.ops.DelegatingAccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
+import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.config.SingleSender;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
 import org.apache.drill.exec.record.BatchSchema;
@@ -51,7 +53,6 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
     private RecordBatch incoming;
     private AccountingDataTunnel tunnel;
     private FragmentHandle handle;
-    private int recMajor;
     private volatile boolean ok = true;
     private volatile boolean done = false;
 
@@ -69,31 +70,52 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
       this.incoming = batch;
       assert incoming != null;
       handle = context.getHandle();
-      recMajor = config.getOppositeMajorFragmentId();
-      tunnel = context.getDataTunnel(config.getDestination());
       oppositeHandle = handle.toBuilder()
           .setMajorFragmentId(config.getOppositeMajorFragmentId())
           .setMinorFragmentId(config.getOppositeMinorFragmentId())
           .build();
-      tunnel = context.getDataTunnel(config.getDestination());
+      final MinorFragmentEndpoint endpoint = MinorFragmentEndpoint.of(config.getOppositeMinorFragmentId(),
+          config.getDestination());
+      tunnel = context.getDataTunnel(endpoint);
+      tunnel = DelegatingAccountingDataTunnel.of(context.getDataTunnel(endpoint), getSendAvailabilityNotifier());
       tunnel.setTestInjectionControls(injector, context.getExecutionControls(), logger);
     }
 
     @Override
-    public boolean innerNext() {
+    protected boolean canSend() {
+      return tunnel.isSendingBufferAvailable();
+    }
+
+    @Override
+    public IterationResult innerNext() {
       if (!ok) {
         incoming.kill(false);
-
-        return false;
+        return IterationResult.COMPLETED;
       }
 
       IterOutcome out;
-      if (!done) {
+      if (hasPendingState()) {
+        if (!canSend()) { // this should never happen
+          logger.error("sending buffers must have been available at this point");
+          return IterationResult.SENDING_BUFFER_FULL;
+        }
+        // restore previous outcome
+        out = pendingState.outcome;
+        logger.warn("restored pending state outcome {}", out);
+      } else if (!done) {
         out = next(incoming);
+        // if we got a state where we need to send a batch but buffer is not available. save the state and back off.
+        logger.warn("got new outcome {}", out);
+        if (RootExecHelper.isInSendingState(out) && !canSend()) {
+          pendingState = IteratorState.of(out);
+          logger.warn("cannot send. saving state of {}", out);
+          return IterationResult.SENDING_BUFFER_FULL;
+        }
       } else {
         incoming.kill(true);
         out = IterOutcome.NONE;
       }
+      pendingState = null;
 //      logger.debug("Outcome of sender next {}", out);
       switch (out) {
       case OUT_OF_MEMORY:
@@ -105,32 +127,32 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
             BatchSchema.newBuilder().build() : incoming.getSchema();
 
         final FragmentWritableBatch b2 = FragmentWritableBatch.getEmptyLastWithSchema(handle.getQueryId(),
-            handle.getMajorFragmentId(), handle.getMinorFragmentId(), recMajor, oppositeHandle.getMinorFragmentId(),
+            handle.getMajorFragmentId(), handle.getMinorFragmentId(), oppositeHandle.getMajorFragmentId(), oppositeHandle.getMinorFragmentId(),
             sendSchema);
         stats.startWait();
         try {
           tunnel.sendRecordBatch(b2);
+          updateStats(b2);
         } finally {
           stats.stopWait();
         }
-        return false;
+        return IterationResult.COMPLETED;
 
       case OK_NEW_SCHEMA:
       case OK:
         final FragmentWritableBatch batch = new FragmentWritableBatch(
             false, handle.getQueryId(), handle.getMajorFragmentId(),
-            handle.getMinorFragmentId(), recMajor, oppositeHandle.getMinorFragmentId(),
+            handle.getMinorFragmentId(), oppositeHandle.getMajorFragmentId(), oppositeHandle.getMinorFragmentId(),
             incoming.getWritableBatch().transfer(oContext.getAllocator()));
-        updateStats(batch);
         stats.startWait();
         try {
           tunnel.sendRecordBatch(batch);
+          updateStats(batch);
         } finally {
           stats.stopWait();
         }
-        return true;
-
       case NOT_YET:
+        return IterationResult.CONTINUE;
       default:
         throw new IllegalStateException();
       }
