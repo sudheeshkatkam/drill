@@ -20,6 +20,7 @@ package org.apache.drill.exec.work.batch;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.base.Preconditions;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.ops.FragmentContext;
@@ -51,6 +52,9 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
   private int streamCounter;
   private final int fragmentCount;
   protected final FragmentContext context;
+
+  private final Object readListenerlock = new Object();
+  private ReadAvailabilityListener readListener = ReadAvailabilityListener.LOGGING_SINK;
 
   public BaseRawBatchBuffer(final FragmentContext context, final int fragmentCount) {
     bufferSizePerSocket = context.getConfig().getInt(ExecConstants.INCOMING_BUFFER_SIZE);
@@ -88,6 +92,7 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
       }
     }
     enqueueInner(batch);
+    fireReadAvailabilityListener();
   }
 
   /**
@@ -119,6 +124,7 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
   public synchronized void kill(final FragmentContext context) {
     state = BufferState.KILLED;
     clearBufferWithBody();
+    fireReadAvailabilityListener();
   }
 
   /**
@@ -168,6 +174,7 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
       // if we didn't get a batch, block on waiting for queue.
       if (b == null && (!isTerminated() || !bufferQueue.isEmpty())) {
 //        b = bufferQueue.take();
+        context.setBlockingIncomingBatchProvider(this);
         return RawFragmentBatch.NONE;
       }
     } catch (final Exception e) {
@@ -236,5 +243,22 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
 
   protected boolean isTerminated() {
     return (state == BufferState.KILLED || state == BufferState.STREAMS_FINISHED);
+  }
+
+  @Override
+  public void setReadAvailabilityListener(final ReadAvailabilityListener listener) {
+    // let's protect the shared state, bufferQueue.
+    synchronized (this) {
+      if (bufferQueue.isEmpty()) {
+        readListener = Preconditions.checkNotNull(listener, "read listener is required");
+      } else {
+        listener.onReadAvailable(this);
+      }
+    }
+  }
+
+  protected synchronized void fireReadAvailabilityListener() {
+    readListener.onReadAvailable(this);
+    readListener = ReadAvailabilityListener.LOGGING_SINK;
   }
 }

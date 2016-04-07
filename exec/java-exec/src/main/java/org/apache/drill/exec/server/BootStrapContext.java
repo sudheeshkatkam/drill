@@ -22,8 +22,7 @@ import io.netty.channel.EventLoopGroup;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -42,7 +41,7 @@ import com.codahale.metrics.MetricRegistry;
 public class BootStrapContext implements AutoCloseable {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BootStrapContext.class);
 
-  private static final double cpuFraction = 1.0;
+  private static final double cpuFactor = Integer.getInteger("cpu.factor", 1);
 
   private final DrillConfig config;
   private final EventLoopGroup loop;
@@ -53,6 +52,24 @@ public class BootStrapContext implements AutoCloseable {
   private final ExecutorService executor;
   private final BlockingQueue<Runnable> tasks;
 
+  static class Task implements Runnable, Comparable {
+    private final Runnable delegate;
+
+    public Task(Runnable delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+      return 0;
+    }
+
+    @Override
+    public void run() {
+      delegate.run();
+    }
+  }
+
   public BootStrapContext(DrillConfig config, ScanResult classpathScan) {
     this.config = config;
     this.classpathScan = classpathScan;
@@ -60,9 +77,10 @@ public class BootStrapContext implements AutoCloseable {
     this.loop2 = TransportCheck.createEventLoopGroup(config.getInt(ExecConstants.BIT_SERVER_RPC_THREADS), "BitClient-");
     this.metrics = DrillMetrics.getInstance();
     this.allocator = RootAllocatorFactory.newRoot(config);
-    this.tasks = Queues.newLinkedBlockingQueue();
+    this.tasks = new PriorityBlockingQueue<>();
     final int numCores = Runtime.getRuntime().availableProcessors();
-    final int numThreads = (int)Math.ceil(cpuFraction * numCores);
+    final int numThreads = (int)Math.ceil(cpuFactor * numCores);
+    System.err.println("cpuFactor: " + cpuFactor + " -- numThreads: " +  numThreads);
     this.executor = new ThreadPoolExecutor(numThreads, numThreads, 60L, TimeUnit.SECONDS, tasks,
         new NamedThreadFactory("drill-executor-")) {
       @Override
@@ -71,6 +89,14 @@ public class BootStrapContext implements AutoCloseable {
           logger.error("{}.run() leaked an exception.", r.getClass().getName(), t);
         }
         super.afterExecute(r, t);
+      }
+
+      @Override
+      public void execute(final Runnable command) {
+        if (command instanceof Comparable) {
+          super.execute(command);
+        }
+        super.execute(new Task(command));
       }
     };
   }

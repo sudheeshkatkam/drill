@@ -134,7 +134,7 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
   }
 
   @Override
-  public final IterOutcome next() {
+  public IterOutcome next() {
     try {
       stats.startProcessing();
       switch (state) {

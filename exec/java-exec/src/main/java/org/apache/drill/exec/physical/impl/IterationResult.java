@@ -19,6 +19,7 @@ package org.apache.drill.exec.physical.impl;
 
 public enum IterationResult {
   SENDING_BUFFER_FULL,
+  NOT_YET,
   CONTINUE,
   COMPLETED
 }

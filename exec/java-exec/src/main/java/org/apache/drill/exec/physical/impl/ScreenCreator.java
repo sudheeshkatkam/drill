@@ -88,7 +88,7 @@ public class ScreenCreator implements RootCreator<Screen> {
       logger.trace("Screen Outcome {}", outcome);
       switch (outcome) {
       case NOT_YET:
-        return IterationResult.CONTINUE;
+        return IterationResult.NOT_YET;
       case OUT_OF_MEMORY:
         throw new OutOfMemoryException();
       case STOP:

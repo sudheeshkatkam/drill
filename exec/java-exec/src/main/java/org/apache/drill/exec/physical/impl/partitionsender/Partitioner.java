@@ -41,8 +41,7 @@ public interface Partitioner {
                            RpcOutcomeListener<GeneralRPCProtos.Ack> sendAvailabilityNotifier);
 
   public abstract void partitionBatch(RecordBatch incoming);
-  public abstract boolean flushOutgoingBatches(boolean isLastBatch, boolean schemaChanged);
-  public abstract void initialize();
+//  public abstract boolean flushOutgoingBatches(boolean isLastBatch, boolean schemaChanged);
   public abstract void clear();
   public abstract List<? extends PartitionOutgoingBatch> getOutgoingBatches();
   /**
@@ -54,10 +53,11 @@ public interface Partitioner {
   public abstract PartitionOutgoingBatch getOutgoingBatch(int index);
   public abstract OperatorStats getStats();
 
-  AccountingDataTunnel[] getTunnels();
   boolean canSend();
-  boolean flushIfReady();
-  boolean send(final FragmentWritableBatch batch);
+//  boolean flushIfReady();
+  boolean flush(boolean isLast, boolean ignoreBatchLimits);
+  int getRecordCount();
+  List<Integer> getRecordCounts();
 
   public static TemplateClassDefinition<Partitioner> TEMPLATE_DEFINITION = new TemplateClassDefinition<>(Partitioner.class, PartitionerTemplate.class);
 }

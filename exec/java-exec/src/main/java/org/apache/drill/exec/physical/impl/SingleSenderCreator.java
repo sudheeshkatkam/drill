@@ -27,6 +27,7 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
 import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.config.SingleSender;
+import org.apache.drill.exec.physical.impl.partitionsender.PartitionSenderIterationState;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
 import org.apache.drill.exec.record.BatchSchema;
 import org.apache.drill.exec.record.FragmentWritableBatch;
@@ -94,12 +95,14 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
       }
 
       IterOutcome out;
-      if (hasPendingState()) {
+      final boolean isPendingIteration = hasPendingState();
+      if (isPendingIteration) {
         if (!canSend()) { // this should never happen
           logger.error("sending buffers must have been available at this point");
           return IterationResult.SENDING_BUFFER_FULL;
         }
         // restore previous outcome
+        final IterationState pendingState = restorePendingState();
         out = pendingState.outcome;
         logger.warn("restored pending state outcome {}", out);
       } else if (!done) {
@@ -107,7 +110,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         // if we got a state where we need to send a batch but buffer is not available. save the state and back off.
         logger.warn("got new outcome {}", out);
         if (RootExecHelper.isInSendingState(out) && !canSend()) {
-          pendingState = IteratorState.of(out);
+          savePendingState(IterationState.of(out));
           logger.warn("cannot send. saving state of {}", out);
           return IterationResult.SENDING_BUFFER_FULL;
         }
@@ -115,9 +118,11 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         incoming.kill(true);
         out = IterOutcome.NONE;
       }
-      pendingState = null;
+      clearPendingState();
 //      logger.debug("Outcome of sender next {}", out);
       switch (out) {
+      case NOT_YET:
+        return IterationResult.NOT_YET;
       case OUT_OF_MEMORY:
         throw new OutOfMemoryException();
       case STOP:
@@ -151,7 +156,6 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         } finally {
           stats.stopWait();
         }
-      case NOT_YET:
         return IterationResult.CONTINUE;
       default:
         throw new IllegalStateException();

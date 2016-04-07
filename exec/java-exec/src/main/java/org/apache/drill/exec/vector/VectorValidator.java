@@ -17,23 +17,46 @@
  */
 package org.apache.drill.exec.vector;
 
+import com.google.common.base.Preconditions;
 import org.apache.drill.exec.record.BatchSchema.SelectionVectorMode;
+import org.apache.drill.exec.record.MaterializedField;
 import org.apache.drill.exec.record.RecordBatch;
 import org.apache.drill.exec.record.VectorWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class VectorValidator {
+  private static final Logger logger = LoggerFactory.getLogger(VectorValidator.class);
+
   public static void validate(RecordBatch batch) {
-    int count = batch.getRecordCount();
+    int batchNumRecords = batch.getRecordCount();
+    for (VectorWrapper w : batch) {
+      final ValueVector vector = w.getValueVector();
+      final MaterializedField field = vector.getField();
+      final ValueVector.Accessor accessor = vector.getAccessor();
+      final int vectorNumRecords = accessor.getValueCount();
+      Preconditions.checkNotNull(vectorNumRecords == batchNumRecords,
+          String.format("vectors must have the same number of records with batch. batch has {} vector[{}] has {}",
+          batchNumRecords, field, vectorNumRecords));
+    }
+
     long hash = 12345;
     SelectionVectorMode mode = batch.getSchema().getSelectionVectorMode();
     switch(mode) {
       case NONE: {
         for (VectorWrapper w : batch) {
           ValueVector v = w.getValueVector();
-          for (int i = 0; i < count; i++) {
-            Object obj = v.getAccessor().getObject(i);
-            if (obj != null) {
-              hash = obj.hashCode() ^ hash;
+          final MaterializedField field = v.getField();
+
+          for (int i = 0; i < batchNumRecords; i++) {
+            try {
+              Object obj = v.getAccessor().getObject(i);
+              if (obj != null) {
+                hash = obj.hashCode() ^ hash;
+              }
+            } catch (final Exception ex) {
+              logger.error("unable to validate row: {} - field: {}", i, field, ex);
+              throw ex;
             }
           }
         }
@@ -42,7 +65,7 @@ public class VectorValidator {
       case TWO_BYTE: {
         for (VectorWrapper w : batch) {
           ValueVector v = w.getValueVector();
-          for (int i = 0; i < count; i++) {
+          for (int i = 0; i < batchNumRecords; i++) {
             int index = batch.getSelectionVector2().getIndex(i);
             Object obj = v.getAccessor().getObject(index);
             if (obj != null) {
@@ -55,7 +78,7 @@ public class VectorValidator {
       case FOUR_BYTE: {
         for (VectorWrapper w : batch) {
           ValueVector[] vv = w.getValueVectors();
-          for (int i = 0; i < count; i++) {
+          for (int i = 0; i < batchNumRecords; i++) {
             int index = batch.getSelectionVector4().get(i);
             ValueVector v = vv[index >> 16];
             Object obj = v.getAccessor().getObject(index & 65535);

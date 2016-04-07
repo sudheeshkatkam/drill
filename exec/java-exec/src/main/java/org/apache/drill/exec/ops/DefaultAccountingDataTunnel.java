@@ -68,14 +68,14 @@ public class DefaultAccountingDataTunnel implements AccountingDataTunnel {
   }
 
   @Override
-  public void sendRecordBatch(FragmentWritableBatch batch) {
+  public void sendRecordBatch(final FragmentWritableBatch batch) {
     sendRecordBatch(getStatusHandler(), batch);
   }
 
   @Override
-  public void sendRecordBatch(RpcOutcomeListener<Ack> listener, FragmentWritableBatch batch) {
+  public void sendRecordBatch(final RpcOutcomeListener<Ack> listener, final FragmentWritableBatch batch) {
     sendingAccountor.increment();
-    tunnel.sendRecordBatch(getStatusHandler(), batch);
+    tunnel.sendRecordBatch(listener, batch);
   }
 
   @Override

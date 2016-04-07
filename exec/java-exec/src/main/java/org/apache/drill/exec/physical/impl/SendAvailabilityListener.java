@@ -18,11 +18,8 @@
 package org.apache.drill.exec.physical.impl;
 
 public interface SendAvailabilityListener {
-  SendAvailabilityListener SINK = new SendAvailabilityListener() {
-    @Override
-    public void onSendAvailable(final RootExec exec) { }
-  };
+  SendAvailabilityListener LOGGING_SINK = new LoggingSendAvailabilityListener();
 
-  void onSendAvailable(final RootExec exec);
+  void onSendAvailable(RootExec exec);
 
 }
