@@ -114,9 +114,12 @@ public class RecordBatchLoader implements VectorAccessible, Iterable<VectorWrapp
           AllocationHelper.allocate(vector, 0, 0, 0);
         } else {
           vector.load(field, buf.slice(bufOffset, field.getBufferLength()));
+          bufOffset += field.getBufferLength();
         }
-        bufOffset += field.getBufferLength();
         newVectors.add(vector);
+      }
+      if (buf != null) {
+        Preconditions.checkArgument(bufOffset == buf.capacity(), "received buffer is not entirely consumed");
       }
 
 

@@ -15,19 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.exec.physical.impl.broadcastsender;
+package org.apache.drill.exec.physical.impl.partitionsender;
 
 import org.apache.drill.exec.physical.impl.BaseRootExec;
 import org.apache.drill.exec.record.RecordBatch;
-import org.apache.drill.exec.record.WritableBatch;
 
-public class BroadcastSenderIterationState extends BaseRootExec.IterationState {
-  public final int tunnelIndex;
-  public final WritableBatch batch;
-
-  public BroadcastSenderIterationState(final RecordBatch.IterOutcome outcome, final int tunnelIndex, final WritableBatch batch) {
+public class PartitionSenderIterationState extends BaseRootExec.IterationState {
+  public final boolean isPartitioned;
+  public PartitionSenderIterationState(final RecordBatch.IterOutcome outcome, final boolean isPartitioned) {
     super(outcome);
-    this.tunnelIndex = tunnelIndex;
-    this.batch = batch;
+    this.isPartitioned = isPartitioned;
+  }
+
+
+  public static PartitionSenderIterationState of(final RecordBatch.IterOutcome outcome,  final boolean isPartitioned) {
+    return new PartitionSenderIterationState(outcome, isPartitioned);
   }
 }

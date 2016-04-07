@@ -230,7 +230,7 @@ public class Foreman implements Runnable {
     // rename the thread we're using for debugging purposes
     final Thread currentThread = Thread.currentThread();
     final String originalName = currentThread.getName();
-    currentThread.setName(queryIdString + ":foreman");
+    currentThread.setName(":foreman");
 
     // track how long the query takes
     queryManager.markStartTime();

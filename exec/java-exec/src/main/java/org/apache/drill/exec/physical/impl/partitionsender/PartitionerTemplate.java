@@ -21,10 +21,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nullable;
 import javax.inject.Named;
 
-import com.google.common.base.Function;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.compile.sig.RuntimeOverridden;
 import org.apache.drill.exec.expr.TypeHelper;
@@ -54,7 +52,6 @@ import org.apache.drill.exec.rpc.RpcOutcomeListener;
 import org.apache.drill.exec.vector.ValueVector;
 
 import com.google.common.collect.Lists;
-import org.apache.parquet.Preconditions;
 
 public abstract class PartitionerTemplate implements Partitioner {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PartitionerTemplate.class);
@@ -136,12 +133,36 @@ public abstract class PartitionerTemplate implements Partitioner {
       default:
         throw new UnsupportedOperationException("Unknown selection vector mode: " + svMode.toString());
     }
+
+    initialize();
   }
 
   @Override
-  public void initialize() {
+  public int getRecordCount() {
+    int count = 0;
+    for (final OutgoingRecordBatch batch:outgoingBatches) {
+      count += batch.getRecordCount();
+    }
+    return count;
+  }
+
+  @Override
+  public List<Integer> getRecordCounts() {
+    final List<Integer> counts = Lists.newArrayList();
+    for (final OutgoingRecordBatch batch:outgoingBatches) {
+      counts.add(batch.getRecordCount());
+    }
+    return counts;
+  }
+
+  protected void initialize() {
     for (final OutgoingRecordBatch batch : outgoingBatches) {
-      batch.initialize();
+      // skip completed batches
+      if (batch.isCompleted()) {
+        continue;
+      }
+
+      batch.reinitialize();
     }
   }
 
@@ -150,77 +171,64 @@ public abstract class PartitionerTemplate implements Partitioner {
     return stats;
   }
 
-  /**
-   * Flush each outgoing record batch, and optionally reset the state of each outgoing record
-   * batch (on schema change).  Note that the schema is updated based on incoming at the time
-   * this function is invoked.
-   *
-   * @param isLastBatch    true if this is the last incoming batch
-   * @param isSchemaChanged  true if the schema has changed
-   */
   @Override
-  public boolean flushOutgoingBatches(boolean isLastBatch, boolean isSchemaChanged) {
+  public boolean flush(final boolean isLast, final boolean ignoreBatchLimits) {
     boolean allFlushed = true;
     for (final OutgoingRecordBatch batch : outgoingBatches) {
-      final boolean isFlushed = batch.flush(isLastBatch);
-      logger.debug("flushing batch: {} -- flushed: {}", batch.getTunnel().getRemoteEndpoint(), isFlushed);
+      // skip completed batches
+      if (batch.isCompleted()) {
+        continue;
+      }
 
-      if (isFlushed || isSchemaChanged) {
-        batch.clear();
-        if (!isLastBatch) {
-          batch.initialize();
+      final int numRecords = batch.recordCount;
+      final boolean shouldFlush = isLast // if the last batch
+          || (ignoreBatchLimits && numRecords > 0) // if batch is non-empty and we ignore about batch limits
+          || (numRecords >= outgoingRecordBatchSize); // if batch is filled
+      if (shouldFlush) {
+        final boolean isFlushed = batch.flush(isLast);
+        if (isFlushed && !isLast) {
+          batch.reinitialize();
         }
+        allFlushed = allFlushed && isFlushed;
       }
-      allFlushed = allFlushed && isFlushed;
-    }
-    logger.debug("Attempted to flush all outgoing batches. total: {} allFlushed: {}", outgoingBatches.size(), allFlushed);
-    return allFlushed;
-  }
-
-  public boolean send(final FragmentWritableBatch batch) {
-    boolean allSent = true;
-    for (final OutgoingRecordBatch outgoing:outgoingBatches) {
-      final boolean sent = outgoing.send(batch);
-      allSent = allSent && sent;
-    }
-    return allSent;
-  }
-
-  @Override
-  public boolean flushIfReady() {
-    boolean allFlushed = true;
-    for (final OutgoingRecordBatch batch : outgoingBatches) {
-      final boolean isFlushed = batch.flushIfBatchIsFilled();
-      if (isFlushed) {
-        batch.clear();
-        batch.initialize();
-      }
-      allFlushed = allFlushed && isFlushed;
     }
     return allFlushed;
   }
 
+  private void increaseContainerCapacity(final int capacity) {
+    for (final OutgoingRecordBatch batch:outgoingBatches) {
+      if (batch.isCompleted()) {
+        continue;
+      }
+
+      final int recordCount = batch.getRecordCount();
+      batch.setContainerCapacity(recordCount + capacity);
+    }
+  }
+
   @Override
-  public void partitionBatch(RecordBatch incoming) {
-    SelectionVectorMode svMode = incoming.getSchema().getSelectionVectorMode();
+  public void partitionBatch(final RecordBatch incoming) {
+    final SelectionVectorMode svMode = incoming.getSchema().getSelectionVectorMode();
+    final int recordCount = incoming.getRecordCount();
+    increaseContainerCapacity(recordCount);
 
     // Keeping the for loop inside the case to avoid case evaluation for each record.
     switch(svMode) {
       case NONE:
-        for (int recordId = 0; recordId < incoming.getRecordCount(); ++recordId) {
+        for (int recordId = 0; recordId < recordCount; ++recordId) {
           doCopy(recordId);
         }
         break;
 
       case TWO_BYTE:
-        for (int recordId = 0; recordId < incoming.getRecordCount(); ++recordId) {
+        for (int recordId = 0; recordId < recordCount; ++recordId) {
           int svIndex = sv2.getIndex(recordId);
           doCopy(svIndex);
         }
         break;
 
       case FOUR_BYTE:
-        for (int recordId = 0; recordId < incoming.getRecordCount(); ++recordId) {
+        for (int recordId = 0; recordId < recordCount; ++recordId) {
           int svIndex = sv4.get(recordId);
           doCopy(svIndex);
         }
@@ -238,10 +246,11 @@ public abstract class PartitionerTemplate implements Partitioner {
    */
   private void doCopy(int svIndex) {
     int index = doEval(svIndex);
-    if ( index >= start && index < end) {
-      OutgoingRecordBatch outgoingBatch = outgoingBatches.get(index - start);
-      outgoingBatch.copy(svIndex);
+    if (index < start || index >= end) {
+      throw new IndexOutOfBoundsException(String.format("Computed batch index[%d] is beyond max[%d]", index, end));
     }
+    OutgoingRecordBatch outgoingBatch = outgoingBatches.get(index - start);
+    outgoingBatch.copy(svIndex);
   }
 
   @Override
@@ -254,25 +263,16 @@ public abstract class PartitionerTemplate implements Partitioner {
   @Override
   public boolean canSend() {
     for (final OutgoingRecordBatch batch:outgoingBatches) {
+      // skip completed batches
+      if (batch.isCompleted()) {
+        continue;
+      }
+
       if (!batch.tunnel.isSendingBufferAvailable()) {
         return false;
       }
     }
     return true;
-  }
-
-  @Override
-  public AccountingDataTunnel[] getTunnels() {
-    final List<AccountingDataTunnel> tunnels = Lists.transform(outgoingBatches,
-        new Function<OutgoingRecordBatch, AccountingDataTunnel>() {
-          @Nullable
-          @Override
-          public AccountingDataTunnel apply(final OutgoingRecordBatch input) {
-            return Preconditions.checkNotNull(input, "outgoing batch is required").tunnel;
-          }
-        });
-
-    return (AccountingDataTunnel[])tunnels.toArray();
   }
 
   public abstract void doSetup(@Named("context") FragmentContext context, @Named("incoming") RecordBatch incoming, @Named("outgoing") OutgoingRecordBatch[] outgoing);
@@ -287,7 +287,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     private final VectorContainer vectorContainer = new VectorContainer();
     private final OperatorStats stats;
 
-    private volatile boolean dropAll = false;
+    private volatile PartitionState state = PartitionState.INITIAL;
     private int recordCount;
     private int totalRecords;
 
@@ -309,7 +309,16 @@ public abstract class PartitionerTemplate implements Partitioner {
     @Override
     public void terminate() {
       // receiver already terminated, don't send anything to it from now on
-      dropAll = true;
+      state = PartitionState.CANCELLED;
+    }
+
+    public boolean isCompleted() {
+      return state == PartitionState.COMPLETED;
+    }
+
+    @Override
+    public PartitionState getState() {
+      return state;
     }
 
     @RuntimeOverridden
@@ -317,13 +326,6 @@ public abstract class PartitionerTemplate implements Partitioner {
 
     @RuntimeOverridden
     protected void doEval(@Named("inIndex") int inIndex, @Named("outIndex") int outIndex) { };
-
-    public boolean flushIfBatchIsFilled() {
-      if (recordCount == outgoingRecordBatchSize) {
-        return flush(false);
-      }
-      return true;
-    }
 
     public boolean send(final FragmentWritableBatch batch) {
       stats.startWait();
@@ -340,68 +342,66 @@ public abstract class PartitionerTemplate implements Partitioner {
     }
 
     public boolean flush(final boolean isLastBatch) {
-      logger.debug("flushing outgoing batch. isLast: {} -- recordCount: {}", isLastBatch, recordCount);
+      if (isCompleted()) {
+        throw new IllegalStateException("illegal attempt to flush partition in completed state");
+      }
 
-      if (dropAll) {
-        logger.debug("this batch is terminated. dropping all records");
-
-        // If we are in dropAll mode, we still want to copy the data, because we can't stop copying a single outgoing
-        // batch with out stopping all outgoing batches. Other option is check for status of dropAll before copying
-        // every single record in copy method which has the overhead for every record all the time. Resetting the output
-        // count, reusing the same buffers and copying has overhead only for outgoing batches whose receiver has
-        // terminated.
-
-        // Reset the count to 0 and use existing buffers for exhausting input where receiver of this batch is terminated
-        recordCount = 0;
-        // allow sending last batch even after termination
-        if (!isLastBatch) {
-          return true;
+      if (isLastBatch) {
+        logger.trace("flushing last batch to frag:{}:{}", operator.getOppositeMajorFragmentId(),
+            tunnel.getRemoteEndpoint().getId());
+      }
+      // first, we make sure tunnel is writable before creating writable batch since getWritableBatch cleans incoming
+      // batch. there is no way to retry sending the batch once the incoming batch is cleared.
+      if (!tunnel.isSendingBufferAvailable()) {
+        if (isLastBatch) {
+          logger.trace("send buffer full: flushing last batch to frag:{}:{}", operator.getOppositeMajorFragmentId(),
+              tunnel.getRemoteEndpoint().getId());
         }
-      }
-      final FragmentHandle handle = context.getHandle();
-
-      // We need to send the last batch when
-      //   1. we are actually done processing the incoming RecordBatches and no more input available
-      //   2. receiver wants to terminate (possible in case of queries involving limit clause). Even when receiver wants
-      //      to terminate we need to send at least one batch with "isLastBatch" set to true, so that receiver knows
-      //      sender has acknowledged the terminate request. After sending the last batch, all further batches are
-      //      dropped.
-
-      // if the batch is not the last batch and the current recordCount is zero, then no need to send any RecordBatches
-      if (!isLastBatch && recordCount == 0) {
-        return true;
-      }
-
-      if (recordCount != 0) {
-        for (VectorWrapper<?> w : vectorContainer) {
-          w.getValueVector().getMutator().setValueCount(recordCount);
-        }
-      }
-
-      FragmentWritableBatch writableBatch = new FragmentWritableBatch(isLastBatch,
-          handle.getQueryId(),
-          handle.getMajorFragmentId(),
-          handle.getMinorFragmentId(),
-          operator.getOppositeMajorFragmentId(),
-          tunnel.getRemoteEndpoint().getId(), // opposite minor fragment id
-          getWritableBatch());
-
-      if (!send(writableBatch)) {
         return false;
       }
 
-      recordCount = 0;
+      final FragmentHandle handle = context.getHandle();
+      final FragmentWritableBatch batch;
+      if (state == PartitionState.CANCELLED) {
+        // we drop all from this point on, always send last batch.
+        batch = FragmentWritableBatch.getEmptyLastWithSchema(handle.getQueryId(),
+            handle.getMajorFragmentId(),
+            handle.getMinorFragmentId(),
+            operator.getOppositeMajorFragmentId(),
+            tunnel.getRemoteEndpoint().getId(),
+            incoming.getSchema());
 
-      // If the current batch is the last batch, then set a flag to ignore any requests to flush the data
-      // This is possible when the receiver is terminated, but we still get data from input operator
-      if (isLastBatch) {
-        dropAll = true;
+        logger.trace("state was cancelled: flushing last batch to frag:{}:{}", operator.getOppositeMajorFragmentId(),
+            tunnel.getRemoteEndpoint().getId());
+
+      } else {
+        // if no records found send an empty batch with schema
+        batch = new FragmentWritableBatch(isLastBatch,
+            handle.getQueryId(),
+            handle.getMajorFragmentId(),
+            handle.getMinorFragmentId(),
+            operator.getOppositeMajorFragmentId(),
+            tunnel.getRemoteEndpoint().getId(), // opposite minor fragment id
+            getWritableBatch());
+      }
+
+      if (isLastBatch || state == PartitionState.CANCELLED) {
+        // mark this outgoing batch as completed so that no other batch is sent through.
+        state = PartitionState.COMPLETED;
+      }
+
+      // we transferred outgoing buffers. tunnel is writable. time to clean up outgoing vector.
+      clear();
+
+      if (!send(batch)) {
+        logger.error("this should never happen.");
+        return false;
       }
 
       return true;
     }
 
-    protected void allocateOutgoingRecordBatch() {
+    protected void allocate() {
       for (VectorWrapper<?> v : vectorContainer) {
         v.getValueVector().allocateNew();
       }
@@ -416,14 +416,15 @@ public abstract class PartitionerTemplate implements Partitioner {
     /**
      * Initialize the OutgoingBatch based on the current schema in incoming RecordBatch
      */
-    public void initialize() {
+    public void reinitialize() {
+      clear();
       for (VectorWrapper<?> v : incoming) {
         // create new vector
         ValueVector outgoingVector = TypeHelper.getNewVector(v.getField(), allocator);
         outgoingVector.setInitialCapacity(outgoingRecordBatchSize);
         vectorContainer.add(outgoingVector);
       }
-      allocateOutgoingRecordBatch();
+      allocate();
       doSetup(incoming, vectorContainer);
     }
 
@@ -458,7 +459,15 @@ public abstract class PartitionerTemplate implements Partitioner {
       return vectorContainer.iterator();
     }
 
+    public void setContainerCapacity(final int capacity) {
+      for (final VectorWrapper<?> vector : vectorContainer) {
+        vector.getValueVector().getMutator().setValueCount(capacity);
+      }
+    }
+
     public WritableBatch getWritableBatch() {
+      logger.info("setting record count to {}", recordCount);
+      setContainerCapacity(recordCount);
       return WritableBatch.getBatchNoHVWrap(recordCount, this, false);
     }
 

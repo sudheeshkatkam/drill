@@ -21,6 +21,7 @@ import java.util.Iterator;
 
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.ops.FragmentContext;
+import org.apache.drill.exec.physical.impl.producer.ProducerConsumerBatch;
 import org.apache.drill.exec.record.BatchSchema;
 import org.apache.drill.exec.record.CloseableRecordBatch;
 import org.apache.drill.exec.record.RecordBatch;
@@ -40,7 +41,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger =
       org.slf4j.LoggerFactory.getLogger(IteratorValidatorBatchIterator.class);
 
-  static final boolean VALIDATE_VECTORS = false;
+  static final boolean VALIDATE_VECTORS = true;
 
   /** For logging/debuggability only. */
   private static volatile int instanceCount;
@@ -286,7 +287,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
                        + "\n    {}",
                        instNum, batchTypeName, incoming.getRecordCount(),
                        lastSchema,
-                       lastSchema.equals(prevLastNewSchema) ? "equal" : "not equal",
+                      (lastSchema == null || lastSchema.equals(prevLastNewSchema)) ? "equal" : "not equal",
                        prevLastNewSchema);
           }
 

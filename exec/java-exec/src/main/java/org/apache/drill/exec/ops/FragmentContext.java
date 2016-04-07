@@ -55,12 +55,14 @@ import org.apache.drill.exec.store.PartitionExplorer;
 import org.apache.drill.exec.store.SchemaConfig;
 import org.apache.drill.exec.testing.ExecutionControls;
 import org.apache.drill.exec.util.ImpersonationUtil;
+import org.apache.drill.exec.work.batch.IncomingBatchProvider;
 import org.apache.drill.exec.work.batch.IncomingBuffers;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.drill.exec.work.batch.RawBatchBuffer;
 
 /**
  * Contextual objects required for execution of a particular fragment.
@@ -104,6 +106,8 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
 
   private final RpcOutcomeListener<Ack> statusHandler = new StatusHandler(exceptionConsumer, sendingAccountor);
   private final AccountingUserConnection accountingUserConnection;
+
+  private IncomingBatchProvider blockingProvider;
 
   /**
    * Create a FragmentContext instance for non-root fragment.
@@ -294,7 +298,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
         "op:" + QueryIdHelper.getFragmentId(fragment.getHandle()) + ":" + operatorId + ":" + operatorName,
         initialReservation,
         maximumReservation
-        );
+    );
   }
 
   public boolean isOverMemoryLimit() {
@@ -478,6 +482,16 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     @Deprecated
     public Throwable getFailureCause();
 
+  }
+
+  public void setBlockingIncomingBatchProvider(final IncomingBatchProvider provider) {
+    this.blockingProvider = Preconditions.checkNotNull(provider, "provider is required");
+  }
+
+  public IncomingBatchProvider getAndResetBlockingIncomingBatchProvider() {
+    final IncomingBatchProvider buffer = blockingProvider;
+    blockingProvider = null;
+    return buffer;
   }
 
 }

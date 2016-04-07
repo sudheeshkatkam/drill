@@ -36,14 +36,11 @@ import org.apache.drill.exec.expr.ExpressionTreeMaterializer;
 import org.apache.drill.exec.ops.AccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
-import org.apache.drill.exec.ops.OperatorContext;
-import org.apache.drill.exec.ops.OperatorStats;
 import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.config.HashPartitionSender;
 import org.apache.drill.exec.physical.impl.BaseRootExec;
 import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
-import org.apache.drill.exec.proto.GeneralRPCProtos;
 import org.apache.drill.exec.record.BatchSchema;
 import org.apache.drill.exec.record.BatchSchema.SelectionVectorMode;
 import org.apache.drill.exec.record.FragmentWritableBatch;
@@ -57,7 +54,7 @@ import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JType;
 
-public class PartitionSenderRootExec extends BaseRootExec {
+public class PartitionSenderRootExec extends BaseRootExec<PartitionSenderIterationState> {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PartitionSenderRootExec.class);
   private RecordBatch incoming;
   private HashPartitionSender operator;
@@ -81,7 +78,9 @@ public class PartitionSenderRootExec extends BaseRootExec {
     }
 
     @Override
-    public void initialize() { }
+    public void initialize() {
+      // no op as we do not want to allocate outgoing vectors here.
+    }
   };
 
   private FragmentContext context;
@@ -146,10 +145,11 @@ public class PartitionSenderRootExec extends BaseRootExec {
     }
 
     final boolean isPendingIteration = hasPendingState();
+    final PartitionSenderIterationState pendingState = restorePendingState();
     IterOutcome out;
     if (isPendingIteration) {
       out = pendingState.outcome;
-      pendingState = null;
+      clearPendingState();
     } else if (!done) {
       out = next(incoming);
     } else {
@@ -157,14 +157,15 @@ public class PartitionSenderRootExec extends BaseRootExec {
       out = IterOutcome.NONE;
     }
 
-    logger.debug("Partitioner.next(): got next record batch with status {}", out);
-    if (first && out == IterOutcome.OK) {
-      out = IterOutcome.OK_NEW_SCHEMA;
-    }
-    switch(out){
+//    if (first && out == IterOutcome.OK) {
+//      out = IterOutcome.OK_NEW_SCHEMA;
+//    }
+    switch(out) {
+      case NOT_YET:
+        return IterationResult.NOT_YET;
       case NONE:
-        if (!partitioner.flushOutgoingBatches(true, false)) {
-          pendingState = IteratorState.of(IterOutcome.NONE);
+        if (!partitioner.flush(true, true)) {
+          savePendingState(PartitionSenderIterationState.of(IterOutcome.NONE, false));
           return IterationResult.SENDING_BUFFER_FULL;
         }
         return IterationResult.COMPLETED;
@@ -178,46 +179,37 @@ public class PartitionSenderRootExec extends BaseRootExec {
 
       case OK_NEW_SCHEMA:
         // send all existing batches
-        if (!partitioner.flushOutgoingBatches(false, true)) {
-          pendingState = IteratorState.of(IterOutcome.OK_NEW_SCHEMA);
+        if (!partitioner.flush(false, true)) {
+          savePendingState(PartitionSenderIterationState.of(IterOutcome.OK_NEW_SCHEMA, false));
           return IterationResult.SENDING_BUFFER_FULL;
         }
         partitioner.clear();
 
         synchronized (this) {
           partitioner = createPartitioner(outGoingBatchCount);
-          partitioner.initialize();
           for (int index = 0; index < terminations.size(); index++) {
             partitioner.getOutgoingBatch(terminations.buffer[index]).terminate();
           }
           // TODO: clearing terminations seem wrong. commenting out for now. check again.
           // terminations.clear();
         }
-
-        if (first) {
-          // Send an empty batch for fast schema
-          if (!sendEmptyBatch(false)) {
-            pendingState = IteratorState.of(IterOutcome.OK_NEW_SCHEMA);
-            return IterationResult.SENDING_BUFFER_FULL;
-          }
-          first = false;
-        }
       // fall through
       case OK:
-        if (!partitioner.flushIfReady()) {
-          pendingState = IteratorState.of(IterOutcome.OK);
+        // we partition the incoming data if it is a not already partitioned. This happens when
+        // either (i) an entirely new/non-pending batch received
+        // or (ii) we got a pending batch that was not partitioned in the previous iteration.
+        if (!isPendingIteration || !pendingState.isPartitioned) {
+          partitioner.partitionBatch(incoming);
+
+          for (VectorWrapper<?> v : incoming) {
+            v.clear();
+          }
+        }
+
+        if (!partitioner.flush(false, false)) {
+          savePendingState(PartitionSenderIterationState.of(IterOutcome.OK, true));
           return IterationResult.SENDING_BUFFER_FULL;
         }
-
-        // we partition the incoming data if this is a new iteration because the old batch is already partitioned.
-        if (!isPendingIteration) {
-          partitioner.partitionBatch(incoming);
-        }
-
-        for (VectorWrapper<?> v : incoming) {
-          v.clear();
-        }
-      case NOT_YET:
         return IterationResult.CONTINUE;
       default:
         throw new IllegalStateException();
@@ -303,39 +295,6 @@ public class PartitionSenderRootExec extends BaseRootExec {
     ok = false;
     updateAggregateStats();
     partitioner.clear();
-  }
-
-  public boolean sendEmptyBatch(boolean isLast) {
-    BatchSchema schema = incoming.getSchema();
-    if (schema == null) {
-      // If the incoming batch has no schema (possible when there are no input records),
-      // create an empty schema to avoid NPE.
-      schema = BatchSchema.newBuilder().build();
-    }
-
-    FragmentHandle handle = context.getHandle();
-    for (MinorFragmentEndpoint destination : popConfig.getDestinations()) {
-      final AccountingDataTunnel tunnel = context.getDataTunnel(destination);
-      FragmentWritableBatch writableBatch = FragmentWritableBatch.getEmptyBatchWithSchema(
-          isLast,
-          handle.getQueryId(),
-          handle.getMajorFragmentId(),
-          handle.getMinorFragmentId(),
-          operator.getOppositeMajorFragmentId(),
-          destination.getId(),
-          schema);
-      stats.startWait();
-      try {
-        if (!tunnel.isSendingBufferAvailable()) {
-          return false;
-        }
-        tunnel.sendRecordBatch(writableBatch);
-      } finally {
-        stats.stopWait();
-      }
-    }
-    stats.addLongStat(Metric.BATCHES_SENT, 1);
-    return true;
   }
 
 }

@@ -19,6 +19,7 @@ package org.apache.drill.exec.record;
 
 import io.netty.buffer.ByteBuf;
 
+import io.netty.buffer.DrillBuf;
 import org.apache.drill.exec.proto.BitData.FragmentRecordBatch;
 import org.apache.drill.exec.proto.UserBitShared.QueryId;
 import org.apache.drill.exec.proto.UserBitShared.RecordBatchDef;
@@ -102,8 +103,14 @@ public class FragmentWritableBatch{
 
   }
 
+  public void clear() {
+    if (buffers == null) {
+      return;
+    }
 
-
-
+    for (final ByteBuf buffer:buffers) {
+      buffer.clear();
+    }
+  }
 
 }

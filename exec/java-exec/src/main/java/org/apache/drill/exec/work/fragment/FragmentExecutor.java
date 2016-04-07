@@ -23,8 +23,10 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.base.Preconditions;
 import org.apache.drill.common.CatastrophicFailure;
 import org.apache.drill.common.DeferredException;
 import org.apache.drill.common.SerializedExecutor;
@@ -50,6 +52,8 @@ import org.apache.drill.exec.server.DrillbitContext;
 import org.apache.drill.exec.testing.ControlsInjector;
 import org.apache.drill.exec.testing.ControlsInjectorFactory;
 import org.apache.drill.exec.util.ImpersonationUtil;
+import org.apache.drill.exec.work.batch.IncomingBatchProvider;
+import org.apache.drill.exec.work.batch.ReadAvailabilityListener;
 import org.apache.drill.exec.work.foreman.DrillbitStatusListener;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -214,6 +218,42 @@ public class FragmentExecutor implements Runnable {
     receiverExecutor.submitReceiverFinished(handle);
   }
 
+  static class FIFOTask implements Runnable, Comparable {
+    private final static AtomicInteger sequencer = new AtomicInteger();
+    private final Runnable delegate;
+    private final FragmentHandle handle;
+    private final int rank;
+
+    public FIFOTask(final Runnable delegate, final FragmentHandle handle) {
+      this.delegate = delegate;
+      this.handle = handle;
+      this.rank = sequencer.getAndIncrement();
+    }
+
+    @Override
+    public void run() {
+      delegate.run();
+    }
+
+    @Override
+    public int compareTo(final Object o) {
+      if (o instanceof FIFOTask) {
+        final FIFOTask other = FIFOTask.class.cast(o);
+        final int result = handle.getMajorFragmentId() - other.handle.getMajorFragmentId();
+        // break ties in fifo order
+        if (result == 0) {
+          return rank - other.rank;
+        }
+      }
+      // otherwise arbitrary order
+      return 0;
+    }
+
+    public static FIFOTask of(final Runnable delegate, final FragmentHandle handle) {
+      return new FIFOTask(delegate, handle);
+    }
+  }
+
   @Override
   public void run() {
     // if a cancel thread has already entered this executor, we have not reason to continue.
@@ -221,14 +261,15 @@ public class FragmentExecutor implements Runnable {
       return;
     }
 
-    final Thread myThread = Thread.currentThread();
-    myThreadRef.set(myThread);
+//    final Thread myThread = Thread.currentThread();
+    // no interrupt
+//    myThreadRef.set(myThread);
 //    this.originalThreadName = myThread.getName();
-    final String newThreadName = QueryIdHelper.getExecutorThreadName(fragmentHandle);
+//    final String newThreadName = QueryIdHelper.getExecutorThreadName(fragmentHandle);
     boolean success = false;
     try {
 
-      myThread.setName(newThreadName);
+//      myThread.setName(newThreadName);
 
       // if we didn't get the root operator when the executor was created, create it now.
       final FragmentRoot rootOperator = this.rootOperator != null ? this.rootOperator :
@@ -270,48 +311,77 @@ public class FragmentExecutor implements Runnable {
               /*
                * Run the query until root.next returns false OR we no longer need to continue.
                */
-              boolean continueExecution = true;
-              try {
-                executor.setName(newThreadName);
+              executor.setName(newThreadName);
 
-                final IterationResult result = root.next();
-                switch (result) {
-                  case SENDING_BUFFER_FULL:
-                    final Runnable task = this;
-                    root.setSendAvailabilityListener(new SendAvailabilityListener() {
-                      @Override
-                      public void onSendAvailable(final RootExec exec) {
-                        queue.offer(task);
-                        logger.warn("sending buffer is now available");
+              boolean isCompleted;
+              int iteration = 0;
+              int maxIterations = Integer.MAX_VALUE;
+
+              do {
+                isCompleted = false;
+                iteration++;
+                try {
+                  final IterationResult result = root.next();
+                  logger.info("this iteration resulted with {}", result);
+                  switch (result) {
+                    case SENDING_BUFFER_FULL:
+                      final Runnable sendingTask = this;
+                      root.setSendAvailabilityListener(new SendAvailabilityListener() {
+                        @Override
+                        public void onSendAvailable(final RootExec exec) {
+                          queue.offer(FIFOTask.of(sendingTask, fragmentHandle));
+                          logger.debug("sending provider is now available");
+                        }
+                      });
+                      logger.debug("sending provider is full. backing off...");
+                      return;
+                    case NOT_YET:
+                      final IncomingBatchProvider blockingProvider = Preconditions.checkNotNull(
+                          fragmentContext.getAndResetBlockingIncomingBatchProvider(),
+                          "blocking provider is required.");
+
+                      final Runnable receivingTask = this;
+                      blockingProvider.setReadAvailabilityListener(new ReadAvailabilityListener() {
+                        @Override
+                        public void onReadAvailable(final IncomingBatchProvider provider) {
+                          queue.offer(FIFOTask.of(receivingTask, fragmentHandle));
+                          logger.debug("reading provider is now available");
+                        }
+                      });
+                      logger.debug("reading provider is empty. backing off...");
+                      return;
+                    case CONTINUE:
+                      isCompleted = !shouldContinue();
+                      final boolean lastIteration = iteration == maxIterations;
+                      final boolean shouldDefer = !isCompleted && (result == IterationResult.NOT_YET
+                          || result == IterationResult.SENDING_BUFFER_FULL
+                          || lastIteration);
+                      if (shouldDefer) {
+                        queue.offer(this);
+                        return;
                       }
-                    });
-                    logger.warn("sending buffer is full. backing off...");
-                    return;
-                  case CONTINUE:
-                    continueExecution = shouldContinue();
-                    if (continueExecution) {
-                      queue.offer(this);
-                    }
-                    logger.warn("executor state -> iterations: {} continue: {}", count++, continueExecution);
-                    return;
-                  case COMPLETED:
-                    continueExecution = false;
-                    return;
+                      logger.warn("executor state -> iterations: {} isCompleted? {} shouldDefer? {}", count++,
+                          isCompleted, shouldDefer);
+                      break;
+                    case COMPLETED:
+                      isCompleted = true;
+                      return;
+                  }
+                } catch (final Exception ex) {
+                  fail(ex);
+                  isCompleted = true;
+                } finally {
+                  if (isCompleted) {
+                    onComplete();
+                  }
+                  executor.setName(originalThreadName);
                 }
-              } catch (final Exception ex) {
-                fail(ex);
-                continueExecution = false;
-              } finally {
-                if (!continueExecution) {
-                  onComplete();
-                }
-                executor.setName(originalThreadName);
-              }
+              } while (!isCompleted && iteration < maxIterations);
             }
           };
 
           injector.injectChecked(fragmentContext.getExecutionControls(), "fragment-execution", IOException.class);
-          queue.offer(task);
+          queue.offer(FIFOTask.of(task, fragmentHandle));
 
           return null;
         }
@@ -492,6 +562,7 @@ public class FragmentExecutor implements Runnable {
    *          The failure that occurred.
    */
   private void fail(final Throwable excep) {
+    logger.error("failure while running fragment", excep);
     deferredException.addThrowable(excep);
     updateState(FragmentState.FAILED);
   }

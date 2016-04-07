@@ -26,7 +26,7 @@ import org.apache.drill.exec.record.RawFragmentBatchProvider;
  * A batch buffer is responsible for queuing incoming batches until a consumer is ready to receive them. It will also
  * inform upstream if the batch cannot be accepted.
  */
-public interface RawBatchBuffer extends RawFragmentBatchProvider {
+public interface RawBatchBuffer extends RawFragmentBatchProvider, IncomingBatchProvider {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RawBatchBuffer.class);
 
   /**

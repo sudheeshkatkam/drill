@@ -15,19 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.exec.physical.impl.broadcastsender;
+package org.apache.drill.exec.server;
 
-import org.apache.drill.exec.physical.impl.BaseRootExec;
-import org.apache.drill.exec.record.RecordBatch;
-import org.apache.drill.exec.record.WritableBatch;
+public interface Task extends Runnable, Comparable<Task> {
 
-public class BroadcastSenderIterationState extends BaseRootExec.IterationState {
-  public final int tunnelIndex;
-  public final WritableBatch batch;
-
-  public BroadcastSenderIterationState(final RecordBatch.IterOutcome outcome, final int tunnelIndex, final WritableBatch batch) {
-    super(outcome);
-    this.tunnelIndex = tunnelIndex;
-    this.batch = batch;
-  }
 }

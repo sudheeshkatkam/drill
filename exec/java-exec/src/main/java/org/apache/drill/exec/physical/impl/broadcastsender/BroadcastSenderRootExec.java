@@ -94,8 +94,8 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
     final BroadcastSenderIterationState state;
     final boolean isPendingIteration = hasPendingState();
     if (isPendingIteration) {
-      state = pendingState;
-      pendingState = null;
+      state = restorePendingState();
+      clearPendingState();
     } else {
       final RecordBatch.IterOutcome out = next(incoming);
       state = new BroadcastSenderIterationState(out, 0, null);
@@ -104,13 +104,15 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
     final RecordBatch.IterOutcome out = state.outcome;
     logger.debug("Outcome of sender next {}", out);
     switch(out){
+      case NOT_YET:
+        return IterationResult.NOT_YET;
       case OUT_OF_MEMORY:
         throw new OutOfMemoryException();
       case STOP:
       case NONE:
         for (int i = state.tunnelIndex; i < tunnels.size(); ++i) {
           if (!tunnels.get(i).isSendingBufferAvailable()) {
-            pendingState = new BroadcastSenderIterationState(out, i, null);
+            savePendingState(new BroadcastSenderIterationState(out, i, null));
             return IterationResult.SENDING_BUFFER_FULL;
           }
           FragmentWritableBatch b2 = FragmentWritableBatch.getEmptyLast(
@@ -141,7 +143,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
         }
         for (int i = state.tunnelIndex; i < tunnels.size(); ++i) {
           if (!tunnels.get(i).isSendingBufferAvailable()) {
-            pendingState = new BroadcastSenderIterationState(out, i, writableBatch);
+            savePendingState(new BroadcastSenderIterationState(out, i, writableBatch));
             return IterationResult.SENDING_BUFFER_FULL;
           }
           FragmentWritableBatch batch = new FragmentWritableBatch(
@@ -160,8 +162,6 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
             stats.stopWait();
           }
         }
-      // fall through
-      case NOT_YET:
         return IterationResult.CONTINUE;
       default:
         throw new IllegalStateException();

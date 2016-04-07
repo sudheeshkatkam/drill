@@ -39,15 +39,15 @@ import org.apache.drill.exec.rpc.BaseRpcOutcomeListener;
 import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
 
-public abstract class BaseRootExec<S extends BaseRootExec.IteratorState> implements RootExec {
+public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implements RootExec {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BaseRootExec.class);
 
   protected OperatorStats stats = null;
   protected OperatorContext oContext = null;
   protected FragmentContext fragmentContext = null;
   private List<CloseableRecordBatch> operators;
-  private SendAvailabilityListener sendListener = SendAvailabilityListener.SINK;
-  protected S pendingState;
+  private SendAvailabilityListener sendListener = SendAvailabilityListener.LOGGING_SINK;
+  private S pendingState;
 
   private final RpcOutcomeListener<GeneralRPCProtos.Ack> sendAvailabilityHandler = new BaseRpcOutcomeListener<GeneralRPCProtos.Ack>() {
     @Override
@@ -61,24 +61,22 @@ public abstract class BaseRootExec<S extends BaseRootExec.IteratorState> impleme
     }
 
     protected void fireIfOutgoingBuffersAvailable() {
-      if (canSend()) {
-        synchronized (BaseRootExec.this) {
-          sendListener.onSendAvailable(BaseRootExec.this);
-          sendListener = SendAvailabilityListener.SINK;
-        }
+      final boolean canSend = canSend();
+      if (canSend) {
+        fireSendAvailabilityListener();
       }
     }
   };
 
-  public static class IteratorState {
+  public static class IterationState {
     public final IterOutcome outcome;
 
-    protected IteratorState(final IterOutcome outcome) {
+    protected IterationState(final IterOutcome outcome) {
       this.outcome = outcome;
     }
 
-    public static IteratorState of(final IterOutcome outcome) {
-      return new IteratorState(outcome);
+    public static IterationState of(final IterOutcome outcome) {
+      return new IterationState(outcome);
     }
   }
 
@@ -134,7 +132,6 @@ public abstract class BaseRootExec<S extends BaseRootExec.IteratorState> impleme
       stats.startProcessing();
       return innerNext();
     } catch (final Throwable ex) {
-      logger.error("fragment failed", ex);
       fragmentContext.fail(ex);
       return IterationResult.COMPLETED;
     } finally {
@@ -211,20 +208,33 @@ public abstract class BaseRootExec<S extends BaseRootExec.IteratorState> impleme
   protected abstract boolean canSend();
 
   @Override
-  public void setSendAvailabilityListener(final SendAvailabilityListener listener) {
-    final SendAvailabilityListener handler = Preconditions.checkNotNull(listener, "listener cannot be null.");
-    synchronized (this) {
-      if (canSend()) {
-        handler.onSendAvailable(this);
-        sendListener = SendAvailabilityListener.SINK;
-      } else {
-        sendListener = handler;
-      }
+  public synchronized void setSendAvailabilityListener(final SendAvailabilityListener listener) {
+    if (canSend()) {
+      listener.onSendAvailable(this);
+    } else {
+      sendListener = Preconditions.checkNotNull(listener, "listener cannot be null.");
     }
+  }
+
+  protected synchronized void fireSendAvailabilityListener() {
+    sendListener.onSendAvailable(this);
+    sendListener = SendAvailabilityListener.LOGGING_SINK;
   }
 
   protected boolean hasPendingState() {
     return pendingState != null;
+  }
+
+  protected void savePendingState(final S newState) {
+    this.pendingState = newState;
+  }
+
+  protected S restorePendingState() {
+    return pendingState;
+  }
+
+  protected void clearPendingState() {
+    this.pendingState = null;
   }
 
   protected RpcOutcomeListener<GeneralRPCProtos.Ack> getSendAvailabilityNotifier() {

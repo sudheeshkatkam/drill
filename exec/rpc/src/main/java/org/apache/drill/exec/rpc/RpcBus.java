@@ -172,8 +172,10 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       } else {
         queue.channelClosed(new ChannelClosedException(msg));
       }
-
-      clientConnection.close();
+      // we should not close an already closed exception.
+      if (clientConnection.isOpen()) {
+        clientConnection.close();
+      }
     }
 
   }

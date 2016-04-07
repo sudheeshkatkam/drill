@@ -22,6 +22,14 @@ import org.apache.drill.exec.ops.AccountingDataTunnel;
 
 public interface PartitionOutgoingBatch {
 
+  enum PartitionState {
+    INITIAL,
+    CANCELLED,
+    COMPLETED
+  }
+
+  PartitionState getState();
+
   public long getTotalRecords();
 
   public void terminate();
