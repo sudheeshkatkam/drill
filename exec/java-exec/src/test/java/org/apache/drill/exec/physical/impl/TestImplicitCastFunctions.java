@@ -92,7 +92,7 @@ public class TestImplicitCastFunctions extends ExecTest {
 
 
     exec.next(); // skip schema batch
-    while (exec.next()) {
+    while (exec.next() != IterationResult.COMPLETED) {
       final Object [] res = getRunResult(exec);
       assertEquals("return count does not match", res.length, expectedResults.length);
 

@@ -166,7 +166,7 @@ public class TestSimpleFunctions extends ExecTest {
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final NullableVarCharVector c1 = exec.getValueVectorById(new SchemaPath("col3", ExpressionPosition.UNKNOWN), NullableVarCharVector.class);
       final NullableVarCharVector.Accessor a1 = c1.getAccessor();
 
@@ -205,7 +205,7 @@ public class TestSimpleFunctions extends ExecTest {
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final NullableVarCharVector c1 = exec.getValueVectorById(new SchemaPath("col3", ExpressionPosition.UNKNOWN), NullableVarCharVector.class);
       final NullableVarCharVector.Accessor a1 = c1.getAccessor();
 
@@ -245,7 +245,7 @@ public class TestSimpleFunctions extends ExecTest {
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final NullableVarBinaryVector c1 = exec.getValueVectorById(new SchemaPath("col3", ExpressionPosition.UNKNOWN), NullableVarBinaryVector.class);
       final NullableVarBinaryVector.Accessor a1 = c1.getAccessor();
 

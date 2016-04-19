@@ -73,7 +73,7 @@ public class TestComparisonFunctions extends ExecTest {
     final PhysicalPlan plan = reader.readPhysicalPlan(planString);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       assertEquals(String.format("Expression: %s;", expression), expectedResults,
           exec.getSelectionVector2().getCount());
 //      for (ValueVector vv: exec) {

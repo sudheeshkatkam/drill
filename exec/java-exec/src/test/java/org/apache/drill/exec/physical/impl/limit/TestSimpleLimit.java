@@ -31,6 +31,7 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.physical.base.FragmentRoot;
 import org.apache.drill.exec.physical.impl.ImplCreator;
+import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.physical.impl.OperatorCreatorRegistry;
 import org.apache.drill.exec.physical.impl.SimpleRootExec;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
@@ -110,7 +111,7 @@ public class TestSimpleLimit extends ExecTest {
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
     int recordCount = 0;
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       recordCount += exec.getRecordCount();
     }
 
@@ -131,7 +132,7 @@ public class TestSimpleLimit extends ExecTest {
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
     int recordCount = 0;
     long sum = 0;
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       recordCount += exec.getRecordCount();
       final BigIntVector v = (BigIntVector) exec.iterator().next();
       for (int i = 0; i < v.getAccessor().getValueCount(); i++) {

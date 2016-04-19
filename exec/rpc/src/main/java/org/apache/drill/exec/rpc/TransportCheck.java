@@ -63,7 +63,7 @@ public class TransportCheck {
   public static Class<? extends SocketChannel> getClientSocketChannel(){
     if(SUPPORTS_EPOLL){
       return EpollSocketChannel.class;
-    }else{                dd
+    } else {
       return NioSocketChannel.class;
     }
   }
