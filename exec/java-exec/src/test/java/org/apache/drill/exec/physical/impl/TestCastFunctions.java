@@ -93,7 +93,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final BigIntVector c0 = exec.getValueVectorById(new SchemaPath("varchar_cast", ExpressionPosition.UNKNOWN), BigIntVector.class);
       final BigIntVector.Accessor a0 = c0.getAccessor();
 
@@ -140,7 +140,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final IntVector c0 = exec.getValueVectorById(new SchemaPath("varchar_cast", ExpressionPosition.UNKNOWN), IntVector.class);
       final IntVector.Accessor a0 = c0.getAccessor();
 
@@ -184,7 +184,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final Float4Vector c0 = exec.getValueVectorById(new SchemaPath("varchar_cast2", ExpressionPosition.UNKNOWN), Float4Vector.class);
       final Float4Vector.Accessor a0 = c0.getAccessor();
 
@@ -229,7 +229,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final Float8Vector c0 = exec.getValueVectorById(new SchemaPath("varchar_cast2", ExpressionPosition.UNKNOWN), Float8Vector.class);
       final Float8Vector.Accessor a0 = c0.getAccessor();
 
@@ -275,7 +275,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final VarCharVector c0 = exec.getValueVectorById(new SchemaPath("int_lit_cast", ExpressionPosition.UNKNOWN), VarCharVector.class);
       final VarCharVector.Accessor a0 = c0.getAccessor();
 
@@ -320,7 +320,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final VarBinaryVector c0 = exec.getValueVectorById(new SchemaPath("int_lit_cast", ExpressionPosition.UNKNOWN), VarBinaryVector.class);
       final VarBinaryVector.Accessor a0 = c0.getAccessor();
 
@@ -365,7 +365,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final IntVector c0 = exec.getValueVectorById(new SchemaPath("add_cast", ExpressionPosition.UNKNOWN),IntVector.class);
       final IntVector.Accessor a0 = c0.getAccessor();
 
@@ -411,7 +411,7 @@ public class TestCastFunctions extends PopUnitTestBase{
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
     }
 
     exec.close();

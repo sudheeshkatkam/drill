@@ -34,6 +34,7 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.physical.base.FragmentRoot;
 import org.apache.drill.exec.physical.impl.ImplCreator;
+import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.physical.impl.OperatorCreatorRegistry;
 import org.apache.drill.exec.physical.impl.SimpleRootExec;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
@@ -84,7 +85,7 @@ public class TestMergeJoin extends PopUnitTestBase {
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
     int totalRecordCount = 0;
-    while (exec.next()) {
+    while (exec.next() != IterationResult.COMPLETED) {
       totalRecordCount += exec.getRecordCount();
       for (final ValueVector v : exec) {
         System.out.print("[" + v.getField().getPath() + "]        ");
@@ -142,7 +143,7 @@ public class TestMergeJoin extends PopUnitTestBase {
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
     int totalRecordCount = 0;
-    while (exec.next()) {
+    while ( exec.next() != IterationResult.COMPLETED) {
       totalRecordCount += exec.getRecordCount();
       System.out.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
       System.out.println("       t1                 t2");
@@ -199,7 +200,7 @@ public class TestMergeJoin extends PopUnitTestBase {
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
     int totalRecordCount = 0;
-    while (exec.next()) {
+    while ( exec.next() != IterationResult.COMPLETED) {
       totalRecordCount += exec.getRecordCount();
       System.out.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
       System.out.println("       t1                 t2");
@@ -256,7 +257,7 @@ public class TestMergeJoin extends PopUnitTestBase {
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
     int totalRecordCount = 0;
-    while (exec.next()) {
+    while ( exec.next() != IterationResult.COMPLETED) {
       totalRecordCount += exec.getRecordCount();
       System.out.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
 
@@ -304,7 +305,7 @@ public class TestMergeJoin extends PopUnitTestBase {
     final FragmentContext context = new FragmentContext(bitContext, PlanFragment.getDefaultInstance(), connection, registry);
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
     exec.next(); // skip schema batch
-    while (exec.next()) {
+    while (exec.next() != IterationResult.COMPLETED) {
       assertEquals(100, exec.getRecordCount());
     }
 

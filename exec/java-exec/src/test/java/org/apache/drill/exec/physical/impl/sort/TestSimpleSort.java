@@ -33,6 +33,7 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.physical.base.FragmentRoot;
 import org.apache.drill.exec.physical.impl.ImplCreator;
+import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.physical.impl.OperatorCreatorRegistry;
 import org.apache.drill.exec.physical.impl.SimpleRootExec;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
@@ -77,7 +78,7 @@ public class TestSimpleSort extends ExecTest {
     int recordCount = 0;
     int batchCount = 0;
 
-    while(exec.next()) {
+    while( exec.next() != IterationResult.COMPLETED) {
       batchCount++;
       final IntVector c1 = exec.getValueVectorById(new SchemaPath("blue", ExpressionPosition.UNKNOWN), IntVector.class);
       final IntVector c2 = exec.getValueVectorById(new SchemaPath("green", ExpressionPosition.UNKNOWN), IntVector.class);
@@ -123,7 +124,7 @@ public class TestSimpleSort extends ExecTest {
     int recordCount = 0;
     int batchCount = 0;
 
-    while(exec.next()) {
+    while( exec.next() != IterationResult.COMPLETED) {
       batchCount++;
       final IntVector c1 = exec.getValueVectorById(new SchemaPath("blue", ExpressionPosition.UNKNOWN), IntVector.class);
       final BigIntVector c2 = exec.getValueVectorById(new SchemaPath("alt", ExpressionPosition.UNKNOWN), BigIntVector.class);

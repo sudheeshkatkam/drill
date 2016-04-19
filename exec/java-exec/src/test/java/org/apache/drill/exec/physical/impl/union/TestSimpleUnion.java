@@ -31,6 +31,7 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.physical.base.FragmentRoot;
 import org.apache.drill.exec.physical.impl.ImplCreator;
+import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.physical.impl.OperatorCreatorRegistry;
 import org.apache.drill.exec.physical.impl.SimpleRootExec;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
@@ -69,7 +70,7 @@ public class TestSimpleUnion extends ExecTest {
 
     final int[] counts = new int[]{100,50};
     int i = 0;
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       System.out.println("iteration count:" + exec.getRecordCount());
       assertEquals(counts[i++], exec.getRecordCount());
     }

@@ -32,6 +32,7 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.physical.base.FragmentRoot;
 import org.apache.drill.exec.physical.impl.ImplCreator;
+import org.apache.drill.exec.physical.impl.IterationResult;
 import org.apache.drill.exec.physical.impl.OperatorCreatorRegistry;
 import org.apache.drill.exec.physical.impl.SimpleRootExec;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
@@ -76,7 +77,7 @@ public class TestAgg extends ExecTest {
   public void oneKeyAgg(@Injectable final DrillbitContext bitContext, @Injectable UserClientConnection connection) throws Throwable {
     final SimpleRootExec exec = doTest(bitContext, connection, "/agg/test1.json");
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final BigIntVector cnt = exec.getValueVectorById(SchemaPath.getSimplePath("cnt"), BigIntVector.class);
       final IntVector key = exec.getValueVectorById(SchemaPath.getSimplePath("blue"), IntVector.class);
       final long[] cntArr = {10001, 9999};
@@ -99,7 +100,7 @@ public class TestAgg extends ExecTest {
   public void twoKeyAgg(@Injectable final DrillbitContext bitContext, @Injectable UserClientConnection connection) throws Throwable {
     SimpleRootExec exec = doTest(bitContext, connection, "/agg/twokey.json");
 
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final IntVector key1 = exec.getValueVectorById(SchemaPath.getSimplePath("key1"), IntVector.class);
       final BigIntVector key2 = exec.getValueVectorById(SchemaPath.getSimplePath("key2"), BigIntVector.class);
       final BigIntVector cnt = exec.getValueVectorById(SchemaPath.getSimplePath("cnt"), BigIntVector.class);

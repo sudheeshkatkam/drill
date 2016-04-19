@@ -95,7 +95,7 @@ public class TestStringFunctions extends ExecTest {
     final SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
     exec.next(); // skip schema batch
-    while(exec.next()) {
+    while(exec.next() != IterationResult.COMPLETED) {
       final Object [] res = getRunResult(exec);
       assertEquals("return count does not match", expectedResults.length, res.length);
 

@@ -20,7 +20,6 @@ package org.apache.drill.exec.server;
 import static org.apache.drill.exec.ExecConstants.SLICE_TARGET;
 import static org.apache.drill.exec.ExecConstants.SLICE_TARGET_DEFAULT;
 import static org.apache.drill.exec.planner.physical.PlannerSettings.HASHAGG;
-import static org.apache.drill.exec.planner.physical.PlannerSettings.PARTITION_SENDER_SET_THREADS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -30,12 +29,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.math3.util.Pair;
 import org.apache.drill.BaseTestQuery;
 import org.apache.drill.QueryTestUtil;
 import org.apache.drill.SingleRowListener;
-import org.apache.drill.common.concurrent.ExtendedLatch;
 import org.apache.drill.common.DrillAutoCloseables;
+import org.apache.drill.common.concurrent.ExtendedLatch;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.types.TypeProtos.MinorType;
@@ -50,8 +50,6 @@ import org.apache.drill.exec.memory.RootAllocatorFactory;
 import org.apache.drill.exec.physical.impl.ScreenCreator;
 import org.apache.drill.exec.physical.impl.SingleSenderCreator.SingleSenderRootExec;
 import org.apache.drill.exec.physical.impl.mergereceiver.MergingRecordBatch;
-import org.apache.drill.exec.physical.impl.partitionsender.PartitionSenderRootExec;
-import org.apache.drill.exec.physical.impl.partitionsender.PartitionerDecorator;
 import org.apache.drill.exec.physical.impl.unorderedreceiver.UnorderedReceiverBatch;
 import org.apache.drill.exec.physical.impl.xsort.ExternalSortBatch;
 import org.apache.drill.exec.planner.sql.DrillSqlWorker;
@@ -73,8 +71,8 @@ import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.user.QueryDataBatch;
 import org.apache.drill.exec.rpc.user.UserResultsListener;
 import org.apache.drill.exec.store.pojo.PojoRecordReader;
-import org.apache.drill.exec.testing.ControlsInjectionUtil;
 import org.apache.drill.exec.testing.Controls;
+import org.apache.drill.exec.testing.ControlsInjectionUtil;
 import org.apache.drill.exec.util.Pointer;
 import org.apache.drill.exec.work.foreman.Foreman;
 import org.apache.drill.exec.work.foreman.ForemanException;
@@ -87,8 +85,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Test how resilient drillbits are to throwing exceptions during various phases of query
@@ -803,39 +799,6 @@ public class TestDrillbitResilience extends DrillTest {
     } finally {
       setSessionOption(SLICE_TARGET, Long.toString(SLICE_TARGET_DEFAULT));
       setSessionOption(HASHAGG.getOptionName(), HASHAGG.getDefault().bool_val.toString());
-    }
-  }
-
-  /**
-   * Tests interrupting the fragment thread that is running {@link PartitionSenderRootExec}.
-   * {@link PartitionSenderRootExec} spawns threads for partitioner. Interrupting fragment thread should also interrupt
-   * the partitioner threads.
-   */
-  @Test
-  @Repeat(count = NUM_RUNS)
-  public void interruptingPartitionerThreadFragment() {
-    try {
-      setSessionOption(SLICE_TARGET, "1");
-      setSessionOption(HASHAGG.getOptionName(), "true");
-      setSessionOption(PARTITION_SENDER_SET_THREADS.getOptionName(), "6");
-
-      final long before = countAllocatedMemory();
-
-      final String controls = Controls.newBuilder()
-      .addLatch(PartitionerDecorator.class, "partitioner-sender-latch")
-      .addPause(PartitionerDecorator.class, "wait-for-fragment-interrupt", 1)
-      .build();
-
-      final String query = "SELECT sales_city, COUNT(*) cnt FROM cp.`region.json` GROUP BY sales_city";
-      assertCancelledWithoutException(controls, new ListenerThatCancelsQueryAfterFirstBatchOfData(), query);
-
-      final long after = countAllocatedMemory();
-      assertEquals(String.format("We are leaking %d bytes", after - before), before, after);
-    } finally {
-      setSessionOption(SLICE_TARGET, Long.toString(SLICE_TARGET_DEFAULT));
-      setSessionOption(HASHAGG.getOptionName(), HASHAGG.getDefault().bool_val.toString());
-      setSessionOption(PARTITION_SENDER_SET_THREADS.getOptionName(),
-          Long.toString(PARTITION_SENDER_SET_THREADS.getDefault().num_val));
     }
   }
 
