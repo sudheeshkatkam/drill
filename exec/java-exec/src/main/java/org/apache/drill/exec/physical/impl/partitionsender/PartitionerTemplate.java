@@ -23,6 +23,8 @@ import java.util.List;
 
 import javax.inject.Named;
 
+import com.google.common.base.Preconditions;
+import io.netty.buffer.DrillBuf;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.compile.sig.RuntimeOverridden;
 import org.apache.drill.exec.expr.TypeHelper;
@@ -162,7 +164,7 @@ public abstract class PartitionerTemplate implements Partitioner {
         continue;
       }
 
-      batch.reinitialize();
+      batch.initialize();
     }
   }
 
@@ -187,7 +189,7 @@ public abstract class PartitionerTemplate implements Partitioner {
       if (shouldFlush) {
         final boolean isFlushed = batch.flush(isLast);
         if (isFlushed && !isLast) {
-          batch.reinitialize();
+          batch.initialize();
         }
         allFlushed = allFlushed && isFlushed;
       }
@@ -195,42 +197,31 @@ public abstract class PartitionerTemplate implements Partitioner {
     return allFlushed;
   }
 
-  private void increaseContainerCapacity(final int capacity) {
-    for (final OutgoingRecordBatch batch:outgoingBatches) {
-      if (batch.isCompleted()) {
-        continue;
-      }
-
-      final int recordCount = batch.getRecordCount();
-      batch.setContainerCapacity(recordCount + capacity);
-    }
-  }
-
   @Override
   public void partitionBatch(final RecordBatch incoming) {
     final SelectionVectorMode svMode = incoming.getSchema().getSelectionVectorMode();
     final int recordCount = incoming.getRecordCount();
-    increaseContainerCapacity(recordCount);
+    logger.trace("partitioning {} records", incoming.getRecordCount());
 
     // Keeping the for loop inside the case to avoid case evaluation for each record.
     switch(svMode) {
       case NONE:
         for (int recordId = 0; recordId < recordCount; ++recordId) {
-          doCopy(recordId);
+          doCopy(recordId, recordCount);
         }
         break;
 
       case TWO_BYTE:
         for (int recordId = 0; recordId < recordCount; ++recordId) {
           int svIndex = sv2.getIndex(recordId);
-          doCopy(svIndex);
+          doCopy(svIndex, recordCount);
         }
         break;
 
       case FOUR_BYTE:
         for (int recordId = 0; recordId < recordCount; ++recordId) {
           int svIndex = sv4.get(recordId);
-          doCopy(svIndex);
+          doCopy(svIndex, recordCount);
         }
         break;
 
@@ -244,13 +235,16 @@ public abstract class PartitionerTemplate implements Partitioner {
    * @param svIndex
    * @throws IOException
    */
-  private void doCopy(int svIndex) {
+  private void doCopy(final int svIndex, final int incomingRecordCount) {
     int index = doEval(svIndex);
     if (index < start || index >= end) {
       throw new IndexOutOfBoundsException(String.format("Computed batch index[%d] is beyond max[%d]", index, end));
     }
-    OutgoingRecordBatch outgoingBatch = outgoingBatches.get(index - start);
+    final OutgoingRecordBatch outgoingBatch = outgoingBatches.get(index - start);
     outgoingBatch.copy(svIndex);
+    if (outgoingBatch.recordCount == outgoingRecordBatchSize) {
+      outgoingBatch.reinitialize(outgoingBatch.recordCount + incomingRecordCount - svIndex);
+    }
   }
 
   @Override
@@ -346,9 +340,11 @@ public abstract class PartitionerTemplate implements Partitioner {
         throw new IllegalStateException("illegal attempt to flush partition in completed state");
       }
 
-      if (isLastBatch) {
-        logger.trace("flushing last batch to frag:{}:{}", operator.getOppositeMajorFragmentId(),
-            tunnel.getRemoteEndpoint().getId());
+      if (logger.isTraceEnabled()) {
+        final String msg = isLastBatch ? "attemping to flush last batch to frag:{}:{} [recordCount={}; totalRecords={}]"
+            : "attemping to flush outgoing batch to frag:{}:{} [recordCount={}; totalRecords={}]";
+
+        logger.trace(msg, operator.getOppositeMajorFragmentId(), tunnel.getRemoteEndpoint().getId(), recordCount, totalRecords);
       }
       // first, we make sure tunnel is writable before creating writable batch since getWritableBatch cleans incoming
       // batch. there is no way to retry sending the batch once the incoming batch is cleared.
@@ -401,12 +397,6 @@ public abstract class PartitionerTemplate implements Partitioner {
       return true;
     }
 
-    protected void allocate() {
-      for (VectorWrapper<?> v : vectorContainer) {
-        v.getValueVector().allocateNew();
-      }
-    }
-
     public void updateStats(FragmentWritableBatch writableBatch) {
       stats.addLongStat(Metric.BYTES_SENT, writableBatch.getByteCount());
       stats.addLongStat(Metric.BATCHES_SENT, 1);
@@ -416,15 +406,15 @@ public abstract class PartitionerTemplate implements Partitioner {
     /**
      * Initialize the OutgoingBatch based on the current schema in incoming RecordBatch
      */
-    public void reinitialize() {
-      clear();
+    public void initialize() {
       for (VectorWrapper<?> v : incoming) {
         // create new vector
-        ValueVector outgoingVector = TypeHelper.getNewVector(v.getField(), allocator);
+        final ValueVector outgoingVector = TypeHelper.getNewVector(v.getField(), allocator);
         outgoingVector.setInitialCapacity(outgoingRecordBatchSize);
+        outgoingVector.allocateNew();
         vectorContainer.add(outgoingVector);
+        vectorContainer.buildSchema(SelectionVectorMode.NONE);
       }
-      allocate();
       doSetup(incoming, vectorContainer);
     }
 
@@ -469,15 +459,58 @@ public abstract class PartitionerTemplate implements Partitioner {
       throw new UnsupportedOperationException();
     }
 
-    public void setContainerCapacity(final int capacity) {
+    public void reinitialize(final int expectedCapacity) {
+      final List<VectorWrapper<?>> wrappers = Lists.newArrayList(vectorContainer);
+      final List<ValueVector> newVectors = Lists.newArrayList();
+      logger.warn("re-initializing with expected capacity of {}; recordCount={}; totalRecords={}",
+          expectedCapacity,
+          recordCount,
+          totalRecords);
+      logger.warn("schema before expansion {}", vectorContainer.getSchema());
+      for (final VectorWrapper wrapper:wrappers) {
+        final ValueVector oldVector = wrapper.getValueVector();
+        final ValueVector newVector = TypeHelper.getNewVector(oldVector.getField(), allocator);
+        newVectors.add(newVector);
+
+        // ensure new vector has capacity for demand
+        newVector.setInitialCapacity(expectedCapacity);
+        newVector.allocateNew();
+
+        oldVector.getMutator().setValueCount(recordCount);
+        newVector.getMutator().setValueCount(expectedCapacity);
+
+        final DrillBuf[] oldBufs = oldVector.getBuffers(false);
+        final DrillBuf[] newBufs = newVector.getBuffers(false);
+
+        logger.warn("old buffers: {} at {}", oldBufs.length, oldVector.getField());
+        Preconditions.checkState(oldBufs.length == newBufs.length, "new & old buffer length must match");
+
+        for (int i=0; i<oldBufs.length;i++) {
+          newBufs[i].setBytes(0, oldBufs[i], 0, oldBufs[i].capacity());
+        }
+      }
+
+      // clear container with old vectors.
+      vectorContainer.clear();
+
+      // re-populate container with new vectors.
+      for (final ValueVector newVector:newVectors) {
+        vectorContainer.add(newVector);
+      }
+      vectorContainer.buildSchema(SelectionVectorMode.NONE);
+      logger.warn("schema after expansion {}", vectorContainer.getSchema());
+
+      doSetup(incoming, vectorContainer);
+    }
+
+    public void setContainerSize(final int capacity) {
       for (final VectorWrapper<?> vector : vectorContainer) {
         vector.getValueVector().getMutator().setValueCount(capacity);
       }
     }
 
     public WritableBatch getWritableBatch() {
-      logger.info("setting record count to {}", recordCount);
-      setContainerCapacity(recordCount);
+      setContainerSize(recordCount);
       return WritableBatch.getBatchNoHVWrap(recordCount, this, false);
     }
 
@@ -491,5 +524,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     public AccountingDataTunnel getTunnel() {
       return tunnel;
     }
+
+
   }
 }

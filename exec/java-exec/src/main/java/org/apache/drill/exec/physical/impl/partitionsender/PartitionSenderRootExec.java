@@ -127,8 +127,6 @@ public class PartitionSenderRootExec extends BaseRootExec<PartitionSenderIterati
     this.remainingReceivers = new AtomicIntegerArray(outGoingBatchCount);
     this.remaingReceiverCount = new AtomicInteger(outGoingBatchCount);
     this.cost = operator.getChild().getCost();
-    partitioner.setup(context, incoming, popConfig, stats, oContext, 0, outGoingBatchCount,
-        getSendAvailabilityNotifier());
     stats.setDoubleStat(Metric.COST, this.cost);
     stats.setLongStat(Metric.N_RECEIVERS, outGoingBatchCount);
   }
