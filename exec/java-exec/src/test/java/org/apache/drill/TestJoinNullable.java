@@ -23,6 +23,7 @@ import org.apache.drill.common.util.TestTools;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("ignored until merge join operator is made async")
 public class TestJoinNullable extends BaseTestQuery{
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestJoinNullable.class);
 
