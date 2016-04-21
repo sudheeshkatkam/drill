@@ -252,7 +252,6 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             rawBatches.add(emptyBatch);
           }
         }
-        providerIndex++;
       }
 
       // allocate the incoming record batch loaders
@@ -333,7 +332,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
       });
 
       populateQueue = true;
-      } else {
+      }
 
       // populate the priority queue with initial values
       for (; populatedBatchIndex < senderCount; ++populatedBatchIndex) {
@@ -363,8 +362,6 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
         }
       }
 
-      }
-
       hasRun = true;
       // finished lazy initialization
     }
@@ -372,13 +369,13 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     while (!pqueue.isEmpty()) {
       // pop next value from pq and copy to outgoing batch
       final Node node = pqueue.peek();
-      final boolean depleted = node.valueIndex == batchLoaders[node.batchId].getRecordCount() - 1;
-      if (!depleted && !copyRecordToOutgoingBatch(node)) {
+      if (!copyRecordToOutgoingBatch(node)) {
         logger.debug("Outgoing vectors space is full; breaking");
         prevBatchWasFull = true;
       }
       pqueue.poll();
 
+      final boolean depleted = node.valueIndex == batchLoaders[node.batchId].getRecordCount() - 1;
       if (depleted) {
         // reached the end of an incoming record batch
         RawFragmentBatch nextBatch;

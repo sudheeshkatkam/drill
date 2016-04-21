@@ -170,11 +170,16 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
     return outputRecords;
   }
 
+  private boolean pulledFromLeft = false;
+
   @Override
   protected boolean buildSchema() throws SchemaChangeException {
-    leftUpstream = next(left);
-    if (leftUpstream == IterOutcome.NOT_YET) {
-      return false;
+    if (!pulledFromLeft) {
+      leftUpstream = next(left);
+      if (leftUpstream == IterOutcome.NOT_YET) {
+        return false;
+      }
+      pulledFromLeft = true;
     }
 
     rightUpstream = next(right);

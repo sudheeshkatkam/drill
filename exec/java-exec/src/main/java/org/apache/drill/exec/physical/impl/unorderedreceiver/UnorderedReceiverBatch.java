@@ -161,13 +161,20 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
         while ((batch = getNextBatch()) != null && batch.getHeader().getDef().getRecordCount() == 0
             && (!first || batch.getHeader().getDef().getFieldCount() == 0)) {
           if (batch.isNone()) {
-            logger.warn("not yet");
+            logger.debug("Received NOT_YET signal");
             return IterOutcome.NOT_YET;
           }
-          logger.debug("Got empty batch from {}:{}",
-              batch.getHeader().getSendingMajorFragmentId(),
-              batch.getHeader().getSendingMinorFragmentId()
-          );
+          if (batch.getHeader().getIsLastBatch()) {
+            logger.debug("Got last batch from {}:{}",
+                batch.getHeader().getSendingMajorFragmentId(),
+                batch.getHeader().getSendingMinorFragmentId()
+            );
+          } else {
+            logger.debug("Got empty batch from {}:{}",
+                batch.getHeader().getSendingMajorFragmentId(),
+                batch.getHeader().getSendingMinorFragmentId()
+            );
+          }
         }
       } finally {
         stats.stopWait();
@@ -195,7 +202,7 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       // TODO:  Clean:  DRILL-2933:  That load(...) no longer throws
       // SchemaChangeException, so check/clean catch clause below.
       stats.addLongStat(Metric.BYTES_RECEIVED, batch.getByteCount());
-      logger.warn("returning batch #{} from {}:{}", ++count,
+      logger.debug("returning batch #{} from {}:{}", ++count,
           batch.getHeader().getSendingMajorFragmentId(),
           batch.getHeader().getSendingMinorFragmentId()
       );

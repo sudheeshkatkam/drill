@@ -103,6 +103,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         }
         // restore previous outcome
         final IterationState pendingState = restorePendingState();
+        clearPendingState();
         out = pendingState.outcome;
         logger.warn("restored pending state outcome {}", out);
       } else if (!done) {

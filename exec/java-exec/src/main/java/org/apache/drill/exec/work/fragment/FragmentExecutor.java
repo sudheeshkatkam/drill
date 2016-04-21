@@ -374,9 +374,9 @@ public class FragmentExecutor implements Runnable {
                   if (isCompleted) {
                     onComplete();
                   }
-                  executor.setName(originalThreadName);
                 }
               } while (!isCompleted && iteration < maxIterations);
+              executor.setName(originalThreadName);
             }
           };
 

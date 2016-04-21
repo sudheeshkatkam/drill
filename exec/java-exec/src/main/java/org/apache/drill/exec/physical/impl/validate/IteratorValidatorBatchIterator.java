@@ -41,7 +41,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
   private static final org.slf4j.Logger logger =
       org.slf4j.LoggerFactory.getLogger(IteratorValidatorBatchIterator.class);
 
-  static final boolean VALIDATE_VECTORS = true;
+  static final boolean VALIDATE_VECTORS = false;
 
   /** For logging/debuggability only. */
   private static volatile int instanceCount;
@@ -157,7 +157,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
 
   @Override
   public int getRecordCount() {
-    validateReadState("getRecordCount()");
+//    validateReadState("getRecordCount()");
     return incoming.getRecordCount();
   }
 
@@ -192,7 +192,7 @@ public class IteratorValidatorBatchIterator implements CloseableRecordBatch {
 
   @Override
   public IterOutcome next() {
-    logger.trace( "[#{}; on {}]: next() called.", instNum, batchTypeName);
+    logger.debug( "[#{}; on {}]: next() called.", instNum, batchTypeName);
     final IterOutcome prevBatchState = batchState;
     try {
 
