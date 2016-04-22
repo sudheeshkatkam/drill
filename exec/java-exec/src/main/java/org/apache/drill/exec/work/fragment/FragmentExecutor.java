@@ -239,11 +239,14 @@ public class FragmentExecutor implements Runnable {
     public int compareTo(final Object o) {
       if (o instanceof FIFOTask) {
         final FIFOTask other = FIFOTask.class.cast(o);
-        final int result = handle.getMajorFragmentId() - other.handle.getMajorFragmentId();
-        // break ties in fifo order
-        if (result == 0) {
-          return rank - other.rank;
+        if (handle.getQueryId().equals(other.handle.getQueryId())) {
+          final int result = handle.getMajorFragmentId() - other.handle.getMajorFragmentId();
+          // break ties in fifo order
+          if (result != 0) {
+            return result;
+          }
         }
+        return rank - other.rank;
       }
       // otherwise arbitrary order
       return 0;
