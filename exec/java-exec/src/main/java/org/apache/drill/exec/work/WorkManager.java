@@ -196,7 +196,7 @@ public class WorkManager implements AutoCloseable {
       queries.put(foreman.getQueryId(), foreman);
 
       // We're relying on the Foreman to clean itself up with retireForeman().
-      bContext.getExecutor().execute(foreman);
+      bContext.getTaskExecutor().execute(foreman);
     }
 
     /**
