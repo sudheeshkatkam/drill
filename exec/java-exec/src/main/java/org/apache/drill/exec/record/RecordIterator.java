@@ -35,7 +35,8 @@ import org.apache.drill.exec.record.selection.SelectionVector4;
  * It allows to mark a position during iteration and reset back.
  * RecordIterator will hold onto multiple record batches in order to support resetting beyond record batch boundary.
  */
-public class RecordIterator implements VectorAccessible {
+public class
+RecordIterator implements VectorAccessible {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RecordIterator.class);
 
   private final RecordBatch incoming;
@@ -234,8 +235,8 @@ public class RecordIterator implements VectorAccessible {
           }
           break;
         case OUT_OF_MEMORY:
-          return lastOutcome;
         case NOT_YET:
+          return lastOutcome;
         default:
           throw new UnsupportedOperationException("Unsupported outcome received " + lastOutcome);
       }
