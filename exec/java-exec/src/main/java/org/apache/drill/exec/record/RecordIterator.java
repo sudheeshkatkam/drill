@@ -165,10 +165,13 @@ RecordIterator implements VectorAccessible {
    * Make sure we have fetched next non-empty batch at the end of the prepare.
    * After prepare position of iterator is at 0.
    */
-  public void prepare() {
+  public boolean prepare() {
     while (!lastBatchRead && outerPosition == -1) {
-      next();
+      if (next() == IterOutcome.NOT_YET) {
+        return false;
+      }
     }
+    return true;
   }
 
   /**
