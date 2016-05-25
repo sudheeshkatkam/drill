@@ -404,9 +404,6 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
 
   @Override
   public void close() {
-    //TODO: we do not want to block here. this is unnecessary with async back pressure.
-    waitForSendComplete();
-
     // close operator context
     for (OperatorContextImpl opContext : contexts) {
       suppressingClose(opContext);
@@ -451,11 +448,8 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     return context.getExecutor();
   }
 
-  /**
-   * Wait for ack that all outgoing batches have been sent
-   */
-  public void waitForSendComplete() {
-    sendingAccountor.waitForSendComplete();
+  public void runWhenSendComplete(SendCompleteListener listener) {
+    sendingAccountor.setSendCompleteListener(listener);
   }
 
   public interface ExecutorState {
@@ -497,5 +491,10 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     blockingProvider = null;
     return buffer;
   }
+
+  public interface SendCompleteListener {
+    void sendComplete();
+  }
+
 
 }
