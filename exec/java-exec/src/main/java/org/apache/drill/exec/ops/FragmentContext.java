@@ -482,10 +482,6 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     this.blockingProvider = Preconditions.checkNotNull(provider, "provider is required");
   }
 
-  public boolean hasBlockingIncomingBatchProvider() {
-    return blockingProvider != null;
-  }
-
   public IncomingBatchProvider getAndResetBlockingIncomingBatchProvider() {
     final IncomingBatchProvider buffer = blockingProvider;
     blockingProvider = null;
