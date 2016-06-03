@@ -29,8 +29,8 @@ import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.compile.sig.RuntimeOverridden;
 import org.apache.drill.exec.expr.TypeHelper;
 import org.apache.drill.exec.memory.BufferAllocator;
-import org.apache.drill.exec.ops.AccountingDataTunnel;
-import org.apache.drill.exec.ops.DelegatingAccountingDataTunnel;
+import org.apache.drill.exec.ops.FragmentDelegatingAccountingDataTunnel;
+import org.apache.drill.exec.ops.FragmentAccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.ops.OperatorStats;
@@ -43,7 +43,6 @@ import org.apache.drill.exec.record.BatchSchema;
 import org.apache.drill.exec.record.BatchSchema.SelectionVectorMode;
 import org.apache.drill.exec.record.FragmentWritableBatch;
 import org.apache.drill.exec.record.RecordBatch;
-import org.apache.drill.exec.record.SimpleVectorWrapper;
 import org.apache.drill.exec.record.TransferPair;
 import org.apache.drill.exec.record.TypedFieldId;
 import org.apache.drill.exec.record.VectorAccessible;
@@ -111,7 +110,8 @@ public abstract class PartitionerTemplate implements Partitioner {
     for (MinorFragmentEndpoint destination : popConfig.getDestinations()) {
       // create outgoingBatches only for subset of Destination Points
       if ( fieldId >= start && fieldId < end ) {
-        final AccountingDataTunnel tunnel = DelegatingAccountingDataTunnel.of(context.getDataTunnel(destination), sendAvailabilityNotifier);
+        final FragmentAccountingDataTunnel tunnel =
+            FragmentDelegatingAccountingDataTunnel.of(context.getDataTunnel(destination), sendAvailabilityNotifier);
         outgoingBatches.add(new OutgoingRecordBatch(stats, popConfig, tunnel, context, oContext.getAllocator()));
       }
       fieldId++;
@@ -277,7 +277,7 @@ public abstract class PartitionerTemplate implements Partitioner {
 
   public class OutgoingRecordBatch implements PartitionOutgoingBatch, VectorAccessible {
 
-    private final AccountingDataTunnel tunnel;
+    private final FragmentAccountingDataTunnel tunnel;
     private final HashPartitionSender operator;
     private final FragmentContext context;
     private final BufferAllocator allocator;
@@ -288,7 +288,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     private int recordCount;
     private int totalRecords;
 
-    public OutgoingRecordBatch(OperatorStats stats, HashPartitionSender operator, AccountingDataTunnel tunnel,
+    public OutgoingRecordBatch(OperatorStats stats, HashPartitionSender operator, FragmentAccountingDataTunnel tunnel,
                                FragmentContext context, BufferAllocator allocator) {
       this.context = context;
       this.allocator = allocator;
@@ -532,7 +532,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     }
 
     @Override
-    public AccountingDataTunnel getTunnel() {
+    public FragmentAccountingDataTunnel getTunnel() {
       return tunnel;
     }
 
