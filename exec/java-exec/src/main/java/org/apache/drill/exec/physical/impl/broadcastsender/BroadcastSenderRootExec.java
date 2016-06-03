@@ -17,12 +17,12 @@
  ******************************************************************************/
 package org.apache.drill.exec.physical.impl.broadcastsender;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.collect.ArrayListMultimap;
 import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.AccountingDataTunnel;
-import org.apache.drill.exec.ops.DrillbitAccountingDataTunnel;
 import org.apache.drill.exec.ops.DrillbitDelegatingAccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
@@ -45,7 +45,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BroadcastSenderRootExec.class);
   private final BroadcastSender config;
   private final int[][] receivingMinorFragments;
-  private final AccountingDataTunnel[] tunnels;
+  private final List<AccountingDataTunnel> tunnels;
   private final ExecProtos.FragmentHandle handle;
   private final RecordBatch incoming;
 
@@ -73,7 +73,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
     final int destCount = dests.keySet().size();
     int i = 0;
 
-    this.tunnels = new DrillbitAccountingDataTunnel[destCount];
+    this.tunnels = new ArrayList<>();
     this.receivingMinorFragments = new int[destCount][];
     for(final DrillbitEndpoint ep : dests.keySet()){
       List<Integer> minorsList = dests.get(ep);
@@ -83,10 +83,11 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
         minorsArray[x++] = m;
       }
       receivingMinorFragments[i] = minorsArray;
-      tunnels[i] = DrillbitDelegatingAccountingDataTunnel.of(context.getDataTunnel(ep),
-          getSendAvailabilityNotifier());
+      tunnels.add(DrillbitDelegatingAccountingDataTunnel.of(context.getDataTunnel(ep),
+          getSendAvailabilityNotifier()));
       i++;
     }
+    assert tunnels.size() == i;
   }
 
   @Override
@@ -120,8 +121,8 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
         throw new OutOfMemoryException();
       case STOP:
       case NONE:
-        for (int i = state.tunnelIndex; i < tunnels.length; ++i) {
-          if (!tunnels[i].isSendingBufferAvailable()) {
+        for (int i = state.tunnelIndex; i < tunnels.size(); ++i) {
+          if (!tunnels.get(i).isSendingBufferAvailable()) {
             savePendingState(new BroadcastSenderIterationState(out, i, null));
             return IterationResult.SENDING_BUFFER_FULL;
           }
@@ -133,7 +134,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
               receivingMinorFragments[i]);
           stats.startWait();
           try {
-            tunnels[i].sendRecordBatch(b2);
+            tunnels.get(i).sendRecordBatch(b2);
           } finally {
             stats.stopWait();
           }
@@ -147,12 +148,12 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
           writableBatch = state.batch;
         } else {
           writableBatch = incoming.getWritableBatch().transfer(oContext.getAllocator());
-          if (tunnels.length > 1) {
-            writableBatch.retainBuffers(tunnels.length - 1);
+          if (tunnels.size() > 1) {
+            writableBatch.retainBuffers(tunnels.size() - 1);
           }
         }
-        for (int i = state.tunnelIndex; i < tunnels.length; ++i) {
-          if (!tunnels[i].isSendingBufferAvailable()) {
+        for (int i = state.tunnelIndex; i < tunnels.size(); ++i) {
+          if (!tunnels.get(i).isSendingBufferAvailable()) {
             savePendingState(new BroadcastSenderIterationState(out, i, writableBatch));
             return IterationResult.SENDING_BUFFER_FULL;
           }
@@ -166,7 +167,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
               writableBatch);
           stats.startWait();
           try {
-            tunnels[i].sendRecordBatch(batch);
+            tunnels.get(i).sendRecordBatch(batch);
             updateStats(batch);
           } finally {
             stats.stopWait();
@@ -179,7 +180,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
   }
 
   public void updateStats(FragmentWritableBatch writableBatch) {
-    stats.setLongStat(Metric.N_RECEIVERS, tunnels.length);
+    stats.setLongStat(Metric.N_RECEIVERS, tunnels.size());
     stats.addLongStat(Metric.BYTES_SENT, writableBatch.getByteCount());
   }
 }
