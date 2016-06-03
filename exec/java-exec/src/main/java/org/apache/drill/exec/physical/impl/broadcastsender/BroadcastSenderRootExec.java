@@ -23,6 +23,7 @@ import com.google.common.collect.ArrayListMultimap;
 import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.AccountingDataTunnel;
 import org.apache.drill.exec.ops.DrillbitAccountingDataTunnel;
+import org.apache.drill.exec.ops.DrillbitDelegatingAccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
 import org.apache.drill.exec.physical.MinorFragmentEndpoint;
@@ -44,7 +45,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BroadcastSenderRootExec.class);
   private final BroadcastSender config;
   private final int[][] receivingMinorFragments;
-  private final DrillbitAccountingDataTunnel[] tunnels;
+  private final AccountingDataTunnel[] tunnels;
   private final ExecProtos.FragmentHandle handle;
   private final RecordBatch incoming;
 
@@ -82,7 +83,8 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
         minorsArray[x++] = m;
       }
       receivingMinorFragments[i] = minorsArray;
-      tunnels[i] = context.getDataTunnel(ep);
+      tunnels[i] = DrillbitDelegatingAccountingDataTunnel.of(context.getDataTunnel(ep),
+          getSendAvailabilityNotifier());
       i++;
     }
   }
