@@ -84,6 +84,8 @@ public class FragmentExecutor implements Runnable {
   private final ClusterCoordinator clusterCoordinator;
 
   private final AtomicBoolean cleaned = new AtomicBoolean();
+  private volatile boolean pendingCompletion; // true if last call to tryComplete was going to block
+
   /**
    * Create a FragmentExecutor where we need to parse and materialize the root operator.
    *
@@ -301,6 +303,15 @@ public class FragmentExecutor implements Runnable {
               int iteration = 0;
               int maxIterations = Integer.MAX_VALUE;
 
+              if (pendingCompletion) {
+                pendingCompletion = false;
+                logger.debug("resuming pending completion");
+                boolean completed = tryComplete(); // finish cleaning up
+                Preconditions.checkState(completed,
+                  "tryComplete() shouldn't return false when resuming a pending completion");
+                return;
+              }
+
               try {
                 do {
                   isCompleted = false;
@@ -354,8 +365,20 @@ public class FragmentExecutor implements Runnable {
                     fail(ex);
                     isCompleted = true;
                   } finally {
-                    if (isCompleted) {
-                      tryComplete();
+                    if (isCompleted && !tryComplete()) {
+                      pendingCompletion = true;
+                      final Runnable completingTask = this;
+                      fragmentContext.runWhenSendComplete(new FragmentContext.SendCompleteListener() {
+                        @Override
+                        public void sendComplete() {
+                          if (cleaned.compareAndSet(false, true)) { // make sure this is only run once
+                            queue.offer(FIFOTask.of(completingTask, fragmentHandle));
+                            logger.debug("send completed, ready to resume completion of fragment {}",
+                              QueryIdHelper.getQueryIdentifier(fragmentHandle));
+                          }
+                        }
+                      });
+                      logger.debug("waiting for send to complete. backing off...");
                     }
                   }
                 } while (!isCompleted && iteration < maxIterations);
@@ -383,24 +406,24 @@ public class FragmentExecutor implements Runnable {
       fail(e);
     } finally {
       if (!success) {
-        tryComplete();
+        boolean completed = tryComplete();
+        Preconditions.checkState(completed, "tryComplete shouldn't return false if the fragment failed starting");
       }
     }
   }
 
-  private void tryComplete() {
+  private boolean tryComplete() {
     // We need to sure we countDown at least once. We'll do it here to guarantee that.
     acceptExternalEvents.countDown();
 
-    fragmentContext.runWhenSendComplete(new FragmentContext.SendCompleteListener() {
-      @Override
-      public void sendComplete() {
-        if (cleaned.compareAndSet(false, true)) { // make sure this is only run once
-          // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
-          cleanup(FragmentState.FINISHED);
-        }
-      }
-    });
+    if (!fragmentContext.isSendComplete()) {
+      return false;
+    }
+
+    // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
+    cleanup(FragmentState.FINISHED);
+
+    return true;
   }
 
   /**

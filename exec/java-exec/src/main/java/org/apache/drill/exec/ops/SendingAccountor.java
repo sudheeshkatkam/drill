@@ -57,7 +57,7 @@ class SendingAccountor {
    * Adds a {@link SendCompleteListener} that will be called when we received ack for all outgoing batches
    * @param sendCompleteListener send complete listener
    */
-  public void setSendCompleteListener(SendCompleteListener sendCompleteListener) {
+  void setSendCompleteListener(SendCompleteListener sendCompleteListener) {
     this.sendCompleteListener = sendCompleteListener;
     if (isSendComplete()) {
       sendCompleteListener.sendComplete();
@@ -67,7 +67,7 @@ class SendingAccountor {
   /**
    * @return true, if we received ack for all outgoing batches
    */
-  private boolean isSendComplete() {
+  boolean isSendComplete() {
     return wait.availablePermits() == batchesSent.get();
   }
 }
