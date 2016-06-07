@@ -27,6 +27,7 @@ import java.util.concurrent.Executor;
  * execute against it to be serialized.
  */
 public abstract class SerializedExecutor implements Executor {
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SerializedExecutor.class);
 
   private boolean isProcessing = false;
   private final LinkedList<Runnable> queuedRunnables = new LinkedList<>();
@@ -69,6 +70,8 @@ public abstract class SerializedExecutor implements Executor {
    */
   protected abstract void runException(Runnable command, Throwable t);
 
+  private int threshold = 20;
+
   private class RunnableProcessor implements Runnable {
 
     private Runnable command;
@@ -101,6 +104,10 @@ public abstract class SerializedExecutor implements Executor {
             }
 
             command = queuedRunnables.removeFirst();
+            if (queuedRunnables.size() > threshold) {
+              logger.warn("Too many events in queue: " + queuedRunnables.size() + " threshold: " + threshold);
+              threshold += 20;
+            }
           }
         }
       } finally {
@@ -118,6 +125,7 @@ public abstract class SerializedExecutor implements Executor {
       }
 
       isProcessing = true;
+      threshold = 20;
     }
 
     underlyingExecutor.execute(new RunnableProcessor(command));

@@ -251,7 +251,8 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       super();
       Preconditions.checkNotNull(connection);
       this.connection = connection;
-      final Executor underlyingExecutor = ENABLE_SEPARATE_THREADS ? rpcConfig.getExecutor() : new SameExecutor();
+      // ENABLE_SEPARATE_THREADS ? rpcConfig.getExecutor() : new SameExecutor();
+      final Executor underlyingExecutor = rpcConfig.getExecutor();
       this.exec = new RpcEventHandler(underlyingExecutor);
     }
 
@@ -300,7 +301,6 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
         }
       } finally {
         long time = watch.elapsed(TimeUnit.MILLISECONDS);
-        long delayThreshold = Integer.parseInt(System.getProperty("drill.exec.rpcDelayWarning", "500"));
         if (time > delayThreshold) {
           logger.warn(String.format(
               "Message of mode %s of rpc type %d took longer than %dms.  Actual duration was %dms.",
@@ -333,12 +333,15 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
   }
 
+  private static long delayThreshold = Integer.parseInt(System.getProperty("drill.exec.rpcDelayWarning", "500"));
+
   private class RequestEvent implements Runnable {
     private final ResponseSenderImpl sender;
     private final C connection;
     private final int rpcType;
     private final ByteBuf pBody;
     private final ByteBuf dBody;
+    private final Stopwatch watch = Stopwatch.createStarted();
 
     RequestEvent(int coordinationId, C connection, int rpcType, ByteBuf pBody, ByteBuf dBody) {
       sender = new ResponseSenderImpl();
@@ -359,6 +362,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
     @Override
     public void run() {
+      long startTime = watch.elapsed(TimeUnit.MILLISECONDS);
       try {
         handle(connection, rpcType, pBody, dBody, sender);
       } catch (UserRpcException e) {
@@ -366,6 +370,15 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       } catch (Exception e) {
         logger.error("Failure while handling message.", e);
       }finally{
+        long endTime = watch.elapsed(TimeUnit.MILLISECONDS);
+        if (startTime > delayThreshold) {
+          logger.warn(String.format("Request message of rpc type %d took longer than %dms to start.   Actual duration was %dms.",
+              rpcType, delayThreshold, startTime));
+        }
+        if ((endTime - startTime) > delayThreshold) {
+          logger.warn(String.format("Request message of rpc type %d took longer than %dms to process. Actual duration was %dms.",
+              rpcType, delayThreshold, (endTime - startTime)));
+        }
         if(pBody != null){
           pBody.release();
         }

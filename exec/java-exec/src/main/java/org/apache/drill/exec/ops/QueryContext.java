@@ -62,7 +62,6 @@ public class QueryContext implements AutoCloseable, OptimizerRulesContext {
   private final UserSession session;
   private final OptionManager queryOptions;
   private final PlannerSettings plannerSettings;
-  private final DrillOperatorTable table;
   private final ExecutionControls executionControls;
 
   private final BufferAllocator allocator;
@@ -86,7 +85,6 @@ public class QueryContext implements AutoCloseable, OptimizerRulesContext {
     executionControls = new ExecutionControls(queryOptions, drillbitContext.getEndpoint());
     plannerSettings = new PlannerSettings(queryOptions, getFunctionRegistry());
     plannerSettings.setNumEndPoints(drillbitContext.getBits().size());
-    table = new DrillOperatorTable(getFunctionRegistry(), drillbitContext.getOptionManager());
 
     queryContextInfo = Utilities.createQueryContextInfo(session.getDefaultSchemaName());
     contextInformation = new ContextInformation(session.getCredentials(), queryContextInfo);
@@ -224,7 +222,7 @@ public class QueryContext implements AutoCloseable, OptimizerRulesContext {
   }
 
   public DrillOperatorTable getDrillOperatorTable() {
-    return table;
+    return drillbitContext.getTable();
   }
 
   public QueryContextInformation getQueryContextInfo() {

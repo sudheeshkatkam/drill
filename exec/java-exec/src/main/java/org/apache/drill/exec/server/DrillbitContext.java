@@ -33,6 +33,7 @@ import org.apache.drill.exec.expr.fn.FunctionImplementationRegistry;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.physical.impl.OperatorCreatorRegistry;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
+import org.apache.drill.exec.planner.sql.DrillOperatorTable;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.rpc.control.Controller;
 import org.apache.drill.exec.rpc.control.WorkEventBus;
@@ -62,7 +63,7 @@ public class DrillbitContext implements AutoCloseable {
   private final CodeCompiler compiler;
   private final ScanResult classpathScan;
   private final LogicalPlanPersistence lpPersistence;
-
+  private DrillOperatorTable table;
 
   public DrillbitContext(
       DrillbitEndpoint endpoint,
@@ -185,6 +186,13 @@ public class DrillbitContext implements AutoCloseable {
     return classpathScan;
   }
 
+  public DrillOperatorTable getTable() {
+    if (table == null) {
+      // system options should be initialized by now
+      table = new DrillOperatorTable(functionRegistry, systemOptions);
+    }
+    return table;
+  }
   @Override
   public void close() throws Exception {
     getOptionManager().close();

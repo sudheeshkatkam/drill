@@ -98,9 +98,9 @@ public abstract class BasicClient<T extends EnumLite, R extends RemoteConnection
             pipe.addLast("protocol-encoder", new RpcEncoder("c-" + rpcConfig.getName()));
             pipe.addLast("handshake-handler", new ClientHandshakeHandler(connection));
 
-            if(pingHandler != null){
-              pipe.addLast("idle-state-handler", pingHandler);
-            }
+//            if(pingHandler != null){
+//              pipe.addLast("idle-state-handler", pingHandler);
+//            }
 
             pipe.addLast("message-handler", new InboundHandler(connection));
             pipe.addLast("exception-handler", new RpcExceptionHandler<R>(connection));
