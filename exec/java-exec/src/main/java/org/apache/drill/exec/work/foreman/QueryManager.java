@@ -104,11 +104,14 @@ public class QueryManager implements AutoCloseable {
   // How many fragments have finished their execution.
   private final AtomicInteger finishedFragments = new AtomicInteger(0);
 
+  private final DrillbitContext drillbitContext;
+
   public QueryManager(final QueryId queryId, final RunQuery runQuery, final PersistentStoreProvider storeProvider,
-      final ClusterCoordinator coordinator, final Foreman foreman) {
+      final ClusterCoordinator coordinator, final Foreman foreman, final DrillbitContext drillbitContext) {
     this.queryId =  queryId;
     this.runQuery = runQuery;
     this.foreman = foreman;
+    this.drillbitContext = drillbitContext;
 
     stringQueryId = QueryIdHelper.getQueryId(queryId);
     try {
@@ -466,8 +469,13 @@ public class QueryManager implements AutoCloseable {
     Preconditions.checkArgument(finishedNodes <= totalNodes, "The finished node count exceeds the total node count");
     final int remaining = totalNodes - finishedNodes;
     if (remaining == 0) {
-      // this target state may be adjusted in moveToState() based on current FAILURE/CANCELLATION_REQUESTED status
-      foreman.addToEventQueue(QueryState.COMPLETED, null);
+      drillbitContext.getExecutor().submit(new Runnable() {
+        @Override
+        public void run() {
+          // this target state may be adjusted in moveToState() based on current FAILURE/CANCELLATION_REQUESTED status
+          foreman.addToEventQueue(QueryState.COMPLETED, null);
+        }
+      });
     } else {
       logger.debug("Foreman is still waiting for completion message from {} nodes containing {} fragments", remaining,
           this.fragmentDataSet.size() - finishedFragments.get());
