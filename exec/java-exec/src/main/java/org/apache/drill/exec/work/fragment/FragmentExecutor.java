@@ -350,7 +350,7 @@ public class FragmentExecutor implements Runnable {
                         isCompleted = !shouldContinue();
                         final boolean lastIteration = iteration == maxIterations;
                         final boolean shouldDefer = !isCompleted && lastIteration;
-                        logger.warn("executor state -> iterations: {} isCompleted? {} shouldDefer? {}", count++,
+                        logger.trace("executor state -> iterations: {} isCompleted? {} shouldDefer? {}", count++,
                           isCompleted, shouldDefer);
                         if (shouldDefer) {
                           queue.offer(this);

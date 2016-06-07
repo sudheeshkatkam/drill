@@ -104,14 +104,14 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         final IterationState pendingState = restorePendingState();
         clearPendingState();
         out = pendingState.outcome;
-        logger.warn("restored pending state outcome {}", out);
+        logger.trace("restored pending state outcome {}", out);
       } else if (!done) {
         out = next(incoming);
         // if we got a state where we need to send a batch but buffer is not available. save the state and back off.
-        logger.warn("got new outcome {}", out);
+        logger.trace("got new outcome {}", out);
         if (RootExecHelper.isInSendingState(out) && !canSend()) {
           savePendingState(IterationState.of(out));
-          logger.warn("cannot send. saving state of {}", out);
+          logger.trace("cannot send. saving state of {}", out);
           return IterationResult.SENDING_BUFFER_FULL;
         }
       } else {

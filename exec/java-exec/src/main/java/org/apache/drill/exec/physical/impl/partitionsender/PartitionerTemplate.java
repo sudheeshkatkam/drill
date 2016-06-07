@@ -465,11 +465,11 @@ public abstract class PartitionerTemplate implements Partitioner {
     public void reinitialize(final int expectedCapacity) {
       final List<VectorWrapper<?>> wrappers = Lists.newArrayList(vectorContainer);
       final List<ValueVector> newVectors = Lists.newArrayList();
-      logger.warn("re-initializing with expected capacity of {}; recordCount={}; totalRecords={}",
+      logger.trace("re-initializing with expected capacity of {}; recordCount={}; totalRecords={}",
           expectedCapacity,
           recordCount,
           totalRecords);
-      logger.warn("schema before expansion {}", vectorContainer.getSchema());
+      logger.trace("schema before expansion {}", vectorContainer.getSchema());
       for (final VectorWrapper wrapper:wrappers) {
         final ValueVector oldVector = wrapper.getValueVector();
 
@@ -493,7 +493,7 @@ public abstract class PartitionerTemplate implements Partitioner {
         final DrillBuf[] oldBufs = oldVector.getBuffers(false);
         final DrillBuf[] newBufs = newVector.getBuffers(false);
 
-        logger.warn("old buffers: {} at {}", oldBufs.length, oldVector.getField());
+        logger.trace("old buffers: {} at {}", oldBufs.length, oldVector.getField());
         Preconditions.checkState(oldBufs.length == newBufs.length, "new & old buffer length must match");
 
         for (int i=0; i<oldBufs.length;i++) {
@@ -509,7 +509,7 @@ public abstract class PartitionerTemplate implements Partitioner {
         vectorContainer.add(newVector);
       }
       vectorContainer.buildSchema(SelectionVectorMode.NONE);
-      logger.warn("schema after expansion {}", vectorContainer.getSchema());
+      logger.trace("schema after expansion {}", vectorContainer.getSchema());
 
       doSetup(incoming, vectorContainer);
     }
