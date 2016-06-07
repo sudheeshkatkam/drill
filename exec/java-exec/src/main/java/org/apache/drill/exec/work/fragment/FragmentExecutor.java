@@ -305,7 +305,7 @@ public class FragmentExecutor implements Runnable {
 
               if (pendingCompletion) {
                 pendingCompletion = false;
-                logger.debug("resuming pending completion");
+                logger.trace("resuming pending completion");
                 boolean completed = tryComplete(); // finish cleaning up
                 Preconditions.checkState(completed,
                   "tryComplete() shouldn't return false when resuming a pending completion");
@@ -318,7 +318,7 @@ public class FragmentExecutor implements Runnable {
                   iteration++;
                   try {
                     final IterationResult result = root.next();
-                    logger.info("this iteration resulted with {}", result);
+                    logger.trace("this iteration resulted with {}", result);
                     switch (result) {
                       case SENDING_BUFFER_FULL:
                         final Runnable sendingTask = this;
@@ -326,10 +326,10 @@ public class FragmentExecutor implements Runnable {
                           @Override
                           public void onSendAvailable(final RootExec exec) {
                             queue.offer(FIFOTask.of(sendingTask, fragmentHandle));
-                            logger.debug("sending provider is now available");
+                            logger.trace("sending provider is now available");
                           }
                         });
-                        logger.debug("sending provider is full. backing off...");
+                        logger.trace("sending provider is full. backing off...");
                         return;
                       case NOT_YET:
                         final IncomingBatchProvider blockingProvider = Preconditions.checkNotNull(
@@ -341,10 +341,10 @@ public class FragmentExecutor implements Runnable {
                           @Override
                           public void onReadAvailable(final IncomingBatchProvider provider) {
                             queue.offer(FIFOTask.of(receivingTask, fragmentHandle));
-                            logger.debug("reading provider is now available");
+                            logger.trace("reading provider is now available");
                           }
                         });
-                        logger.debug("reading provider is empty. backing off...");
+                        logger.trace("reading provider is empty. backing off...");
                         return;
                       case CONTINUE:
                         isCompleted = !shouldContinue();
@@ -373,12 +373,12 @@ public class FragmentExecutor implements Runnable {
                         public void sendComplete() {
                           if (cleaned.compareAndSet(false, true)) { // make sure this is only run once
                             queue.offer(FIFOTask.of(completingTask, fragmentHandle));
-                            logger.debug("send completed, ready to resume completion of fragment {}",
+                            logger.trace("send completed, ready to resume completion of fragment {}",
                               QueryIdHelper.getQueryIdentifier(fragmentHandle));
                           }
                         }
                       });
-                      logger.debug("waiting for send to complete. backing off...");
+                      logger.trace("waiting for send to complete. backing off...");
                     }
                   }
                 } while (!isCompleted && iteration < maxIterations);
