@@ -17,11 +17,13 @@
  */
 package org.apache.drill.exec.work.foreman;
 
+import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.drill.common.exceptions.DrillRuntimeException;
@@ -114,12 +116,20 @@ public class QueryManager implements AutoCloseable {
     this.drillbitContext = drillbitContext;
 
     stringQueryId = QueryIdHelper.getQueryId(queryId);
+    Stopwatch stopwatch = Stopwatch.createStarted();
     try {
-      profileStore = storeProvider.getOrCreateStore(QUERY_PROFILE);
-    } catch (final Exception e) {
-      throw new DrillRuntimeException(e);
+      try {
+        profileStore = storeProvider.getOrCreateStore(QUERY_PROFILE);
+      } catch (final Exception e) {
+        throw new DrillRuntimeException(e);
+      }
+      transientProfiles = coordinator.getOrCreateTransientStore(RUNNING_QUERY_INFO);
+    } finally {
+      final long time = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+      if (time > 1000) {
+        logger.warn("Took too long to instantiate profile objects: " + time);
+      }
     }
-    transientProfiles = coordinator.getOrCreateTransientStore(RUNNING_QUERY_INFO);
   }
 
   private static boolean isTerminal(final FragmentState state) {

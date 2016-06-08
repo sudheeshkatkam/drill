@@ -253,7 +253,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       this.connection = connection;
       // ENABLE_SEPARATE_THREADS ? rpcConfig.getExecutor() : new SameExecutor();
       final Executor underlyingExecutor = rpcConfig.getExecutor();
-      this.exec = new RpcEventHandler(underlyingExecutor);
+      this.exec = new RpcEventHandler(underlyingExecutor, connection.getName());
     }
 
     @Override
@@ -322,8 +322,8 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
   class RpcEventHandler extends SerializedExecutor {
 
-    public RpcEventHandler(Executor underlyingExecutor) {
-      super(rpcConfig.getName() + "-rpc-event-queue", underlyingExecutor);
+    public RpcEventHandler(Executor underlyingExecutor, String connectionName) {
+      super(rpcConfig.getName() + "-" + connectionName, underlyingExecutor);
     }
 
     @Override

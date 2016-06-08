@@ -41,6 +41,8 @@ public class Utilities {
     return fileName;
   }
 
+  private static final int timeZone = DateUtility.getIndex(System.getProperty("user.timezone"));
+
   /**
    * Create QueryContextInformation with given <i>defaultSchemaName</i>. Rest of the members of the
    * QueryContextInformation is derived from the current state of the process.
@@ -50,7 +52,6 @@ public class Utilities {
    */
   public static QueryContextInformation createQueryContextInfo(final String defaultSchemaName) {
     final long queryStartTime = System.currentTimeMillis();
-    final int timeZone = DateUtility.getIndex(System.getProperty("user.timezone"));
     return QueryContextInformation.newBuilder()
         .setDefaultSchemaName(defaultSchemaName)
         .setQueryStartTime(queryStartTime)
