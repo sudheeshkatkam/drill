@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.drill.common.SelfCleaningRunnable;
 import org.apache.drill.common.concurrent.ExtendedLatch;
 import org.apache.drill.exec.coord.ClusterCoordinator;
 import org.apache.drill.exec.proto.BitControl.FragmentStatus;
@@ -237,16 +236,16 @@ public class WorkManager implements AutoCloseable {
      */
     public void addFragmentRunner(final FragmentExecutor fragmentExecutor) {
       final FragmentHandle fragmentHandle = fragmentExecutor.getContext().getHandle();
-      runningFragments.put(fragmentHandle, fragmentExecutor);
-      bContext.getTaskExecutor().execute(new SelfCleaningRunnable(fragmentExecutor) {
+      fragmentExecutor.runAtCleanup(new Runnable() {
         @Override
-        protected void cleanup() {
-          if (fragmentExecutor.isCompleted()) {
-            runningFragments.remove(fragmentHandle);
-            indicateIfSafeToExit();
-          }
+        public void run() {
+          runningFragments.remove(fragmentHandle);
+          indicateIfSafeToExit();
         }
       });
+
+      runningFragments.put(fragmentHandle, fragmentExecutor);
+      bContext.getTaskExecutor().execute(fragmentExecutor);
     }
 
     /**
@@ -255,23 +254,24 @@ public class WorkManager implements AutoCloseable {
      * @param fragmentManager the manager for the fragment
      */
     public void startFragmentPendingRemote(final FragmentManager fragmentManager) {
-      final FragmentHandle fragmentHandle = fragmentManager.getHandle();
       final FragmentExecutor fragmentExecutor = fragmentManager.getRunnable();
       if (fragmentExecutor == null) {
         // the fragment was most likely cancelled
         return;
       }
-      runningFragments.put(fragmentHandle, fragmentExecutor);
-      bContext.getTaskExecutor().execute(new SelfCleaningRunnable(fragmentExecutor) {
+
+      final FragmentHandle fragmentHandle = fragmentManager.getHandle();
+      fragmentExecutor.runAtCleanup(new Runnable() {
         @Override
-        protected void cleanup() {
-          if (fragmentExecutor.isCompleted()) {
-            runningFragments.remove(fragmentHandle);
-            workBus.removeFragmentManager(fragmentHandle);
-            indicateIfSafeToExit();
-          }
+        public void run() {
+          runningFragments.remove(fragmentHandle);
+          workBus.removeFragmentManager(fragmentHandle);
+          indicateIfSafeToExit();
         }
       });
+
+      runningFragments.put(fragmentHandle, fragmentExecutor);
+      bContext.getTaskExecutor().execute(fragmentExecutor);
     }
 
     public FragmentExecutor getFragmentRunner(final FragmentHandle handle) {

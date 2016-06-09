@@ -188,6 +188,16 @@ public class FragmentExecutor implements Runnable {
     if (drillbitStatusListener != null) {
       clusterCoordinator.removeDrillbitStatusListener(drillbitStatusListener);
     }
+
+    if (cleanup != null) {
+      cleanup.run();
+    }
+  }
+
+  private Runnable cleanup;
+
+  public void runAtCleanup(Runnable cleanup) {
+    this.cleanup = cleanup;
   }
 
   /**
