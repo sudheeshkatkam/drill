@@ -956,7 +956,7 @@ public class Foreman implements Runnable {
       throws ExecutionSetupException {
     @SuppressWarnings("resource")
     final FragmentContext rootContext = new FragmentContext(drillbitContext, rootFragment, queryContext,
-        initiatingClient, drillbitContext.getFunctionImplementationRegistry());
+        initiatingClient, drillbitContext.getFunctionImplementationRegistry(), bee);
     @SuppressWarnings("resource")
     final IncomingBuffers buffers = new IncomingBuffers(rootFragment, rootContext);
     rootContext.setBuffers(buffers);

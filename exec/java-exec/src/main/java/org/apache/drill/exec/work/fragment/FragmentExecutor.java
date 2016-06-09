@@ -188,6 +188,10 @@ public class FragmentExecutor implements Runnable {
     if (drillbitStatusListener != null) {
       clusterCoordinator.removeDrillbitStatusListener(drillbitStatusListener);
     }
+    if (fragmentContext.getBee() != null) {
+      // NOTE(SUDHEESH): Not a good way to work around unit tests
+      fragmentContext.getBee().retireFragment(this);
+    }
   }
 
   /**

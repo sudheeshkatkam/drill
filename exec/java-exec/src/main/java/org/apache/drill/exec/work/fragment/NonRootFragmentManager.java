@@ -29,6 +29,7 @@ import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
 import org.apache.drill.exec.rpc.RemoteConnection;
 import org.apache.drill.exec.rpc.data.IncomingDataBatch;
 import org.apache.drill.exec.server.DrillbitContext;
+import org.apache.drill.exec.work.WorkManager;
 import org.apache.drill.exec.work.batch.IncomingBuffers;
 import org.apache.drill.exec.work.foreman.ForemanException;
 
@@ -49,11 +50,11 @@ public class NonRootFragmentManager implements FragmentManager {
   private final List<RemoteConnection> connections = new CopyOnWriteArrayList<>();
   private volatile boolean runnerRetrieved = false;
 
-  public NonRootFragmentManager(final PlanFragment fragment, final DrillbitContext context)
+  public NonRootFragmentManager(final PlanFragment fragment, final DrillbitContext context, WorkManager.WorkerBee bee)
       throws ExecutionSetupException {
     try {
       this.handle = fragment.getHandle();
-      this.context = new FragmentContext(context, fragment, context.getFunctionImplementationRegistry());
+      this.context = new FragmentContext(context, fragment, context.getFunctionImplementationRegistry(), bee);
       this.buffers = new IncomingBuffers(fragment, this.context);
       final FragmentStatusReporter reporter = new FragmentStatusReporter(this.context,
           context.getController().getTunnel(fragment.getForeman()));

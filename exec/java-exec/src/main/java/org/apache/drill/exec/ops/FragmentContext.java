@@ -55,6 +55,7 @@ import org.apache.drill.exec.store.PartitionExplorer;
 import org.apache.drill.exec.store.SchemaConfig;
 import org.apache.drill.exec.testing.ExecutionControls;
 import org.apache.drill.exec.util.ImpersonationUtil;
+import org.apache.drill.exec.work.WorkManager;
 import org.apache.drill.exec.work.batch.IncomingBatchProvider;
 import org.apache.drill.exec.work.batch.IncomingBuffers;
 
@@ -107,6 +108,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
 
   private final RpcOutcomeListener<Ack> statusHandler = new StatusHandler(exceptionConsumer, sendingAccountor);
   private final AccountingUserConnection accountingUserConnection;
+  private final WorkManager.WorkerBee bee;
 
   private IncomingBatchProvider blockingProvider;
 
@@ -119,8 +121,9 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
    * @throws ExecutionSetupException
    */
   public FragmentContext(final DrillbitContext dbContext, final PlanFragment fragment,
-      final FunctionImplementationRegistry funcRegistry) throws ExecutionSetupException {
-    this(dbContext, fragment, null, null, funcRegistry);
+                         final FunctionImplementationRegistry funcRegistry, final WorkManager.WorkerBee bee)
+      throws ExecutionSetupException {
+    this(dbContext, fragment, null, null, funcRegistry, bee);
   }
 
   /**
@@ -134,14 +137,15 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
    * @throws ExecutionSetupException
    */
   public FragmentContext(final DrillbitContext dbContext, final PlanFragment fragment, final QueryContext queryContext,
-      final UserClientConnection connection, final FunctionImplementationRegistry funcRegistry)
-    throws ExecutionSetupException {
+                         final UserClientConnection connection, final FunctionImplementationRegistry funcRegistry,
+                         final WorkManager.WorkerBee bee) throws ExecutionSetupException {
     this.context = dbContext;
     this.queryContext = queryContext;
     this.connection = connection;
     this.accountingUserConnection = new DefaultAccountingUserConnection(connection, sendingAccountor, statusHandler);
     this.fragment = fragment;
     this.funcRegistry = funcRegistry;
+    this.bee = bee;
     contextInformation = new ContextInformation(fragment.getCredentials(), fragment.getContext());
 
     logger.debug("Getting initial memory allocation of {}", fragment.getMemInitial());
@@ -187,11 +191,15 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
    */
   public FragmentContext(DrillbitContext dbContext, PlanFragment fragment, UserClientConnection connection,
       FunctionImplementationRegistry funcRegistry) throws ExecutionSetupException {
-    this(dbContext, fragment, null, connection, funcRegistry);
+    this(dbContext, fragment, null, connection, funcRegistry, null);
   }
 
   public OptionManager getOptions() {
     return fragmentOptions;
+  }
+
+  public WorkManager.WorkerBee getBee() {
+    return bee;
   }
 
   public void setBuffers(final IncomingBuffers buffers) {

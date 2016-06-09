@@ -274,6 +274,13 @@ public class WorkManager implements AutoCloseable {
       });
     }
 
+    public void retireFragment(final FragmentExecutor fragmentExecutor) {
+      final FragmentHandle handle = fragmentExecutor.getContext().getHandle();
+      runningFragments.remove(handle);
+      workBus.removeFragmentManager(handle); // NOTE(SUDHEESH): Fix multiple or root fragment removal (warning)
+      indicateIfSafeToExit();
+    }
+
     public FragmentExecutor getFragmentRunner(final FragmentHandle handle) {
       return runningFragments.get(handle);
     }

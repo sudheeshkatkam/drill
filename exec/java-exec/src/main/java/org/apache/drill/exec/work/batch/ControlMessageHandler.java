@@ -137,14 +137,14 @@ public class ControlMessageHandler {
       // we either need to start the fragment if it is a leaf fragment, or set up a fragment manager if it is non leaf.
       if (fragment.getLeafFragment()) {
         final FragmentContext context = new FragmentContext(drillbitContext, fragment,
-            drillbitContext.getFunctionImplementationRegistry());
+            drillbitContext.getFunctionImplementationRegistry(), bee);
         final ControlTunnel tunnel = drillbitContext.getController().getTunnel(fragment.getForeman());
         final FragmentStatusReporter statusReporter = new FragmentStatusReporter(context, tunnel);
         final FragmentExecutor fr = new FragmentExecutor(context, fragment, statusReporter);
         bee.addFragmentRunner(fr);
       } else {
         // isIntermediate, store for incoming data.
-        final NonRootFragmentManager manager = new NonRootFragmentManager(fragment, drillbitContext);
+        final NonRootFragmentManager manager = new NonRootFragmentManager(fragment, drillbitContext, bee);
         drillbitContext.getWorkBus().addFragmentManager(manager);
       }
 
