@@ -98,6 +98,7 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
   @Override
   public boolean buildSchema() throws SchemaChangeException {
     IterOutcome outcome = next(incoming);
+    logger.info("Streaming Aggregate buildSchema outcome: {}", outcome);
     switch (outcome) {
       case NOT_YET:
         return false;

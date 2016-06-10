@@ -158,8 +158,9 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
         stats.startWait();
 
         // skip over empty batches. we do this since these are basically control messages.
-        while ((batch = getNextBatch()) != null && batch.getHeader().getDef().getRecordCount() == 0
-            && (!first || batch.getHeader().getDef().getFieldCount() == 0)) {
+        while ((batch = getNextBatch()) != null &&
+            batch.getHeader().getDef().getRecordCount() == 0 &&
+            (!first || batch.getHeader().getDef().getFieldCount() == 0)) {
           if (batch.isNone()) {
             logger.trace("Received NOT_YET signal");
             return IterOutcome.NOT_YET;
@@ -170,7 +171,7 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
                 batch.getHeader().getSendingMinorFragmentId()
             );
           } else {
-            logger.trace("Got empty batch from {}:{}",
+            logger.info("Got empty batch from {}:{}",
                 batch.getHeader().getSendingMajorFragmentId(),
                 batch.getHeader().getSendingMinorFragmentId()
             );
