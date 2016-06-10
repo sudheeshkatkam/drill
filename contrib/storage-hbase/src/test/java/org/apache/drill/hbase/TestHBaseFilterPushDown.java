@@ -18,6 +18,7 @@
 package org.apache.drill.hbase;
 
 import org.apache.drill.PlanTestBase;
+import org.apache.drill.common.util.RepeatTestRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -211,6 +212,19 @@ public class TestHBaseFilterPushDown extends BaseHBaseTest {
         + " CONVERT_FROM(BYTE_SUBSTR(row_key, 1, 4), 'uint4_be') >= cast(300 as int) AND"
         + " CONVERT_FROM(BYTE_SUBSTR(row_key, 1, 4), 'uint4_be') < cast(900 as int)"
         , 1);
+  }
+
+  @Test
+  @RepeatTestRule.Repeat(count = 100)
+  public void testFilterPushDownCompositeIntRowKy2() throws Exception {
+    try {
+      runSQL("set `planner.slice_target` = 1");
+      printResult(runHBaseSQLlWithResults("SELECT"
+          + " stddev(cast(CONVERT_FROM(BYTE_SUBSTR(row_key, 5, 8), 'bigint_be') as integer)) i\n"
+          + " FROM hbase.`TestTableCompositeInt` tableName"));
+    } finally {
+      runSQL("reset `planner.slice_target`");
+    }
   }
 
   @Test

@@ -85,7 +85,7 @@ public class ScreenCreator implements RootCreator<Screen> {
     @Override
     public IterationResult innerNext() {
       IterOutcome outcome = next(incoming);
-      logger.trace("Screen Outcome {}", outcome);
+      logger.info("Screen Outcome {}", outcome);
       switch (outcome) {
       case NOT_YET:
         return IterationResult.NOT_YET;

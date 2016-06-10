@@ -139,10 +139,12 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
       } else {
         outcome = next(incoming);
       }
+      logger.info("Streaming Aggregate Outcome: {}", outcome);
       switch (outcome) {
       case NONE:
         if (first && popConfig.getKeys().size() == 0) {
           // if we have a straight aggregate and empty input batch, we need to handle it in a different way
+          logger.info("Constructing special batch.");
           constructSpecialBatch();
           first = false;
           // set state to indicate the fact that we have sent a special batch and input is empty
