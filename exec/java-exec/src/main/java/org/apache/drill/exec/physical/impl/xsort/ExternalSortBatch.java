@@ -118,7 +118,10 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   private final String fileName;
   private int firstSpillBatchCount = 0;
   private int peakNumBatches = -1;
+
   private boolean phaseOneDone = false;
+  private int totalCount = 0;
+  private int totalBatches = 0; // total number of batches received so far
 
   /**
    * The copier uses the COPIER_BATCH_MEM_LIMIT to estimate the target
@@ -288,9 +291,6 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
         }
       }
     }
-
-    int totalCount = 0;
-    int totalBatches = 0; // total number of batches received so far
 
     try{
       container.clear();
