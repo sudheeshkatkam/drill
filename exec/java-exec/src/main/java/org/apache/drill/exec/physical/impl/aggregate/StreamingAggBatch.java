@@ -157,8 +157,9 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
         if (!createAggregator()) {
           done = true;
           return IterOutcome.STOP;
+        } else {
+          return IterOutcome.OK_NEW_SCHEMA;
         }
-        break;
       case OK:
         break;
       default:
