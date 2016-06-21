@@ -44,6 +44,7 @@ import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.physical.config.StreamingAggregate;
 import org.apache.drill.exec.physical.impl.aggregate.StreamingAggregator.AggOutcome;
 import org.apache.drill.exec.record.AbstractRecordBatch;
+import org.apache.drill.exec.record.BatchSchema;
 import org.apache.drill.exec.record.BatchSchema.SelectionVectorMode;
 import org.apache.drill.exec.record.MaterializedField;
 import org.apache.drill.exec.record.RecordBatch;
@@ -95,6 +96,8 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
     return recordCount;
   }
 
+  private BatchSchema incomingSchema;
+
   @Override
   public boolean buildSchema() throws SchemaChangeException {
     IterOutcome outcome = next(incoming);
@@ -115,6 +118,8 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
 
     if (!createAggregator()) {
       state = BatchState.DONE;
+    } else {
+      incomingSchema = incoming.getSchema();
     }
     for (final VectorWrapper<?> w : container) {
       w.getValueVector().allocateNew();
@@ -154,12 +159,14 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
       case STOP:
         return outcome;
       case OK_NEW_SCHEMA:
-        if (!createAggregator()) {
-          done = true;
-          return IterOutcome.STOP;
-        } else {
-          return IterOutcome.OK_NEW_SCHEMA;
+        if (incomingSchema == null || !incomingSchema.equals(incoming.getSchema())) {
+          if (!createAggregator()) {
+            done = true;
+            return IterOutcome.STOP;
+          }
+          incomingSchema = incoming.getSchema();
         }
+        break;
       case OK:
         break;
       default:
