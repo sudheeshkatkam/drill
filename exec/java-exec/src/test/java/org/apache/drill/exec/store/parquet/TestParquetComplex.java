@@ -18,6 +18,7 @@
 package org.apache.drill.exec.store.parquet;
 
 import org.apache.drill.BaseTestQuery;
+import org.apache.drill.exec.planner.physical.PlannerSettings;
 import org.apache.drill.exec.proto.UserBitShared;
 import org.junit.Test;
 
@@ -137,6 +138,13 @@ public class TestParquetComplex extends BaseTestQuery {
             .baselineColumns(columns)
             .build()
             .run();
+  }
+
+  @Test
+  public void complexRegression() throws Exception {
+      test("select t.id, t.soa from cp.`store/parquet/complex/0_0_0.parquet` t order by t.id limit 10");
+//    test("select t.id, t.soa from cp.`store/parquet/complex/0_0_0.parquet` t order by t.id");
+//    test("select t.id, t.soa from cp.`store/parquet/complex/0_0_0.parquet` t limit 10");
   }
 
   @Test

@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 public class TestTools {
   // private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestTools.class);
 
-  static final boolean IS_DEBUG = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments()
+  public static final boolean IS_DEBUG = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments()
       .toString().indexOf("-agentlib:jdwp") > 0;
   static final String WORKING_PATH = Paths.get("").toAbsolutePath().toString();
 

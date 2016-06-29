@@ -220,6 +220,9 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
       return IterOutcome.STOP;
     } finally {
       stats.stopProcessing();
+      if (context.getHandle().getMajorFragmentId() == 2) {
+        logger.debug("AFTER RECEIVING: \n" + batchLoader.getContainer().detailedString(false));
+      }
     }
   }
 

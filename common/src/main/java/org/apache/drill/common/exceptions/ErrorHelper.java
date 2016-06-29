@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 /**
  * Utility class that handles error message generation from protobuf error objects.
  */
-class ErrorHelper {
+public class ErrorHelper {
 
   private final static Pattern IGNORE= Pattern.compile("^(sun|com\\.sun|java).*");
 
@@ -56,7 +56,7 @@ class ErrorHelper {
   }
 
 
-  static String buildCausesMessage(final Throwable t) {
+  public static String buildCausesMessage(final Throwable t) {
 
     StringBuilder sb = new StringBuilder();
     Throwable ex = t;

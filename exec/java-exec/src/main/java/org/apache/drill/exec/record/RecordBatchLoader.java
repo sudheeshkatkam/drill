@@ -48,6 +48,11 @@ public class RecordBatchLoader implements VectorAccessible, Iterable<VectorWrapp
   private final static Logger logger = LoggerFactory.getLogger(RecordBatchLoader.class);
 
   private final BufferAllocator allocator;
+
+  public VectorContainer getContainer() {
+    return container;
+  }
+
   private VectorContainer container = new VectorContainer();
   private int valueCount;
   private BatchSchema schema;

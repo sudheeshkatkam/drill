@@ -246,6 +246,8 @@ public abstract class PartitionerTemplate implements Partitioner {
     final OutgoingRecordBatch outgoingBatch = outgoingBatches.get(index - start);
     outgoingBatch.copy(svIndex);
     if (outgoingBatch.recordCount == outgoingRecordBatchSize) {
+      logger.debug("outgoing count: " + outgoingRecordBatchSize + " incoming count: " + incomingRecordCount
+      + " svIndex: " + svIndex);
       outgoingBatch.reinitialize(outgoingBatch.recordCount + incomingRecordCount - svIndex);
     }
   }
@@ -469,7 +471,9 @@ public abstract class PartitionerTemplate implements Partitioner {
           expectedCapacity,
           recordCount,
           totalRecords);
-      logger.trace("schema before expansion {}", vectorContainer.getSchema());
+      BatchSchema oldSchema = vectorContainer.getSchema();
+      logger.trace("schema before expansion {}", oldSchema);
+      logger.debug("BEFORE REINITIALIZING: \n" + vectorContainer.detailedString(false));
       for (final VectorWrapper wrapper:wrappers) {
         final ValueVector oldVector = wrapper.getValueVector();
 
@@ -509,8 +513,10 @@ public abstract class PartitionerTemplate implements Partitioner {
         vectorContainer.add(newVector);
       }
       vectorContainer.buildSchema(SelectionVectorMode.NONE);
-      logger.trace("schema after expansion {}", vectorContainer.getSchema());
-
+      BatchSchema newSchema = vectorContainer.getSchema();
+      logger.trace("schema after expansion {}", newSchema);
+      Preconditions.checkState(oldSchema.equals(newSchema), "old and new schema much match");
+      logger.debug("AFTER REINITIALIZING: \n" + vectorContainer.detailedString(false));
       doSetup(incoming, vectorContainer);
     }
 
@@ -522,6 +528,8 @@ public abstract class PartitionerTemplate implements Partitioner {
 
     public WritableBatch getWritableBatch() {
       setContainerSize(recordCount);
+      logger.debug("IN GET WRITABLE BATCH: \n" + vectorContainer.detailedString(false));
+
       return WritableBatch.getBatchNoHVWrap(recordCount, this, false);
     }
 

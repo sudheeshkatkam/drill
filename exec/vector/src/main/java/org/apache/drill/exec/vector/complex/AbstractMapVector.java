@@ -41,7 +41,7 @@ public abstract class AbstractMapVector extends AbstractContainerVector {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AbstractContainerVector.class);
 
   // Maintains a map with key as field name and value is the vector itself
-  private final MapWithOrdinal<String, ValueVector> vectors =  new MapWithOrdinal<>();
+  public final MapWithOrdinal<String, ValueVector> vectors =  new MapWithOrdinal<>();
 
   protected AbstractMapVector(MaterializedField field, BufferAllocator allocator, CallBack callBack) {
     super(field.clone(), allocator, callBack);

@@ -19,16 +19,17 @@ package org.apache.drill.exec.record;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.drill.common.exceptions.ErrorHelper;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.common.types.TypeProtos.MajorType;
 import org.apache.drill.exec.expr.TypeHelper;
-import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.record.BatchSchema.SelectionVectorMode;
 import org.apache.drill.exec.record.selection.SelectionVector2;
@@ -40,7 +41,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class VectorContainer implements Iterable<VectorWrapper<?>>, VectorAccessible {
+public class VectorContainer implements VectorAccessible {
   //private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(VectorContainer.class);
 
   protected final List<VectorWrapper<?>> wrappers = Lists.newArrayList();
@@ -65,6 +66,66 @@ public class VectorContainer implements Iterable<VectorWrapper<?>>, VectorAccess
         + ", schema = " + schema
         + ", wrappers = " + wrappers
         + ", ...]";
+  }
+
+  public String detailedString(final boolean includeValues) {
+    final StringBuilder builder = new StringBuilder();
+    try {
+      builder.append("container metadata: ")
+          .append(toString())
+          .append("\nvectors:");
+      for (final VectorWrapper<?> wrapper : this) {
+        builder.append("\n");
+        if (wrapper.isHyper()) {
+          builder.append("[hyper :");
+          for (final ValueVector vector : wrapper.getValueVectors()) {
+            final ValueVector.Accessor accessor = vector.getAccessor();
+            final int valueCount = accessor.getValueCount();
+            builder.append("\n\t[simple: bufSize:")
+                .append(vector.getBufferSize())
+                .append(", valCount:")
+                .append(valueCount);
+            if (includeValues) {
+              addValuesToBuilder(valueCount, accessor, builder);
+            }
+            builder.append("]");
+          }
+          builder.append("\n]");
+        } else {
+          final ValueVector vector = wrapper.getValueVector();
+          final ValueVector.Accessor accessor = vector.getAccessor();
+          final int valueCount = accessor.getValueCount();
+          builder.append("[simple: bufSize:")
+              .append(vector.getBufferSize())
+              .append(", valCount:")
+              .append(valueCount);
+          if (includeValues) {
+            addValuesToBuilder(valueCount, accessor, builder);
+          }
+          builder.append("]");
+        }
+      }
+    } catch (Exception | AssertionError e) {
+      builder.append("\n Could not print the entire container: ")
+          .append(e)
+          .append("\n")
+          .append(ErrorHelper.buildCausesMessage(e));
+    }
+    return builder.toString();
+  }
+
+  private static void addValuesToBuilder(final int valueCount,
+                                         final ValueVector.Accessor accessor,
+                                         final StringBuilder builder) {
+    builder.append(", values:");
+    for (int i = 0; i < valueCount; i++) {
+      i = i;
+      builder.append(" ")
+          .append(i)
+          .append(":")
+          .append(accessor.getObject(i));
+    }
+    builder.setLength(builder.length() - 1);
   }
 
   /**
