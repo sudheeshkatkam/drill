@@ -29,7 +29,7 @@ public final class UserProtos {
    * Protobuf enum {@code exec.user.RpcType}
    *
    * <pre>
-   *&#47;/// UserToBit RPC ///////
+   *&#47;/// User &lt;-&gt; Bit RPC ///////
    * </pre>
    */
   public enum RpcType
@@ -47,13 +47,21 @@ public final class UserProtos {
      */
     GOODBYE(2, 2),
     /**
+     * <code>SASL_MESSAGE = 24;</code>
+     *
+     * <pre>
+     * user to bit and bit to user
+     * </pre>
+     */
+    SASL_MESSAGE(3, 24),
+    /**
      * <code>RUN_QUERY = 3;</code>
      *
      * <pre>
      * user to bit
      * </pre>
      */
-    RUN_QUERY(3, 3),
+    RUN_QUERY(4, 3),
     /**
      * <code>CANCEL_QUERY = 4;</code>
      *
@@ -61,11 +69,11 @@ public final class UserProtos {
      * user is sending a query cancellation request to the drillbit
      * </pre>
      */
-    CANCEL_QUERY(4, 4),
+    CANCEL_QUERY(5, 4),
     /**
      * <code>REQUEST_RESULTS = 5;</code>
      */
-    REQUEST_RESULTS(5, 5),
+    REQUEST_RESULTS(6, 5),
     /**
      * <code>RESUME_PAUSED_QUERY = 11;</code>
      *
@@ -73,7 +81,7 @@ public final class UserProtos {
      * user is sending a query resume request to the drillbit
      * </pre>
      */
-    RESUME_PAUSED_QUERY(6, 11),
+    RESUME_PAUSED_QUERY(7, 11),
     /**
      * <code>GET_QUERY_PLAN_FRAGMENTS = 12;</code>
      *
@@ -81,7 +89,7 @@ public final class UserProtos {
      * to get plan fragments from query
      * </pre>
      */
-    GET_QUERY_PLAN_FRAGMENTS(7, 12),
+    GET_QUERY_PLAN_FRAGMENTS(8, 12),
     /**
      * <code>GET_CATALOGS = 14;</code>
      *
@@ -89,7 +97,7 @@ public final class UserProtos {
      * user is requesting metadata of catalog(s).
      * </pre>
      */
-    GET_CATALOGS(8, 14),
+    GET_CATALOGS(9, 14),
     /**
      * <code>GET_SCHEMAS = 15;</code>
      *
@@ -97,7 +105,7 @@ public final class UserProtos {
      * user is requesting metadata of schema(s)
      * </pre>
      */
-    GET_SCHEMAS(9, 15),
+    GET_SCHEMAS(10, 15),
     /**
      * <code>GET_TABLES = 16;</code>
      *
@@ -105,7 +113,7 @@ public final class UserProtos {
      * user is requesting metadata of table(s)
      * </pre>
      */
-    GET_TABLES(10, 16),
+    GET_TABLES(11, 16),
     /**
      * <code>GET_COLUMNS = 17;</code>
      *
@@ -113,7 +121,7 @@ public final class UserProtos {
      * user is requesting metadata of column(s)
      * </pre>
      */
-    GET_COLUMNS(11, 17),
+    GET_COLUMNS(12, 17),
     /**
      * <code>CREATE_PREPARED_STATEMENT = 22;</code>
      *
@@ -121,7 +129,7 @@ public final class UserProtos {
      * user is sending a request to create prepared statement
      * </pre>
      */
-    CREATE_PREPARED_STATEMENT(12, 22),
+    CREATE_PREPARED_STATEMENT(13, 22),
     /**
      * <code>QUERY_DATA = 6;</code>
      *
@@ -129,11 +137,11 @@ public final class UserProtos {
      * bit to user
      * </pre>
      */
-    QUERY_DATA(13, 6),
+    QUERY_DATA(14, 6),
     /**
      * <code>QUERY_HANDLE = 7;</code>
      */
-    QUERY_HANDLE(14, 7),
+    QUERY_HANDLE(15, 7),
     /**
      * <code>QUERY_PLAN_FRAGMENTS = 13;</code>
      *
@@ -141,7 +149,7 @@ public final class UserProtos {
      * return plan fragments
      * </pre>
      */
-    QUERY_PLAN_FRAGMENTS(15, 13),
+    QUERY_PLAN_FRAGMENTS(16, 13),
     /**
      * <code>CATALOGS = 18;</code>
      *
@@ -149,7 +157,7 @@ public final class UserProtos {
      * return catalogs metadata in response to GET_CATALOGS
      * </pre>
      */
-    CATALOGS(16, 18),
+    CATALOGS(17, 18),
     /**
      * <code>SCHEMAS = 19;</code>
      *
@@ -157,7 +165,7 @@ public final class UserProtos {
      * return schema metadata in response to GET_SCHEMAS
      * </pre>
      */
-    SCHEMAS(17, 19),
+    SCHEMAS(18, 19),
     /**
      * <code>TABLES = 20;</code>
      *
@@ -165,7 +173,7 @@ public final class UserProtos {
      * return table metadata in response to GET_TABLES
      * </pre>
      */
-    TABLES(18, 20),
+    TABLES(19, 20),
     /**
      * <code>COLUMNS = 21;</code>
      *
@@ -173,7 +181,7 @@ public final class UserProtos {
      * return column metadata in response to GET_COLUMNS
      * </pre>
      */
-    COLUMNS(19, 21),
+    COLUMNS(20, 21),
     /**
      * <code>PREPARED_STATEMENT = 23;</code>
      *
@@ -181,15 +189,15 @@ public final class UserProtos {
      * return preparated statement in response to CREATE_PREPARED_STATEMENT
      * </pre>
      */
-    PREPARED_STATEMENT(20, 23),
+    PREPARED_STATEMENT(21, 23),
     /**
      * <code>REQ_META_FUNCTIONS = 8;</code>
      */
-    REQ_META_FUNCTIONS(21, 8),
+    REQ_META_FUNCTIONS(22, 8),
     /**
      * <code>RESP_FUNCTION_LIST = 9;</code>
      */
-    RESP_FUNCTION_LIST(22, 9),
+    RESP_FUNCTION_LIST(23, 9),
     /**
      * <code>QUERY_RESULT = 10;</code>
      *
@@ -197,7 +205,7 @@ public final class UserProtos {
      * drillbit is reporting a query status change, most likely a terminal message, to the user
      * </pre>
      */
-    QUERY_RESULT(23, 10),
+    QUERY_RESULT(24, 10),
     ;
 
     /**
@@ -212,6 +220,14 @@ public final class UserProtos {
      * <code>GOODBYE = 2;</code>
      */
     public static final int GOODBYE_VALUE = 2;
+    /**
+     * <code>SASL_MESSAGE = 24;</code>
+     *
+     * <pre>
+     * user to bit and bit to user
+     * </pre>
+     */
+    public static final int SASL_MESSAGE_VALUE = 24;
     /**
      * <code>RUN_QUERY = 3;</code>
      *
@@ -373,6 +389,7 @@ public final class UserProtos {
         case 0: return HANDSHAKE;
         case 1: return ACK;
         case 2: return GOODBYE;
+        case 24: return SASL_MESSAGE;
         case 3: return RUN_QUERY;
         case 4: return CANCEL_QUERY;
         case 5: return REQUEST_RESULTS;
@@ -563,6 +580,14 @@ public final class UserProtos {
      * </pre>
      */
     UNKNOWN_FAILURE(3, 4),
+    /**
+     * <code>AUTH_REQUIRED = 5;</code>
+     *
+     * <pre>
+     * User authentication required
+     * </pre>
+     */
+    AUTH_REQUIRED(4, 5),
     ;
 
     /**
@@ -597,6 +622,14 @@ public final class UserProtos {
      * </pre>
      */
     public static final int UNKNOWN_FAILURE_VALUE = 4;
+    /**
+     * <code>AUTH_REQUIRED = 5;</code>
+     *
+     * <pre>
+     * User authentication required
+     * </pre>
+     */
+    public static final int AUTH_REQUIRED_VALUE = 5;
 
 
     public final int getNumber() { return value; }
@@ -607,6 +640,7 @@ public final class UserProtos {
         case 2: return RPC_VERSION_MISMATCH;
         case 3: return AUTH_FAILED;
         case 4: return UNKNOWN_FAILURE;
+        case 5: return AUTH_REQUIRED;
         default: return null;
       }
     }
@@ -656,6 +690,115 @@ public final class UserProtos {
     }
 
     // @@protoc_insertion_point(enum_scope:exec.user.HandshakeStatus)
+  }
+
+  /**
+   * Protobuf enum {@code exec.user.SaslStatus}
+   */
+  public enum SaslStatus
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>SASL_UNKNOWN = 0;</code>
+     */
+    SASL_UNKNOWN(0, 0),
+    /**
+     * <code>SASL_START = 1;</code>
+     */
+    SASL_START(1, 1),
+    /**
+     * <code>SASL_AUTH_IN_PROGRESS = 2;</code>
+     */
+    SASL_AUTH_IN_PROGRESS(2, 2),
+    /**
+     * <code>SASL_AUTH_SUCCESS = 3;</code>
+     */
+    SASL_AUTH_SUCCESS(3, 3),
+    /**
+     * <code>SASL_AUTH_FAILED = 4;</code>
+     */
+    SASL_AUTH_FAILED(4, 4),
+    ;
+
+    /**
+     * <code>SASL_UNKNOWN = 0;</code>
+     */
+    public static final int SASL_UNKNOWN_VALUE = 0;
+    /**
+     * <code>SASL_START = 1;</code>
+     */
+    public static final int SASL_START_VALUE = 1;
+    /**
+     * <code>SASL_AUTH_IN_PROGRESS = 2;</code>
+     */
+    public static final int SASL_AUTH_IN_PROGRESS_VALUE = 2;
+    /**
+     * <code>SASL_AUTH_SUCCESS = 3;</code>
+     */
+    public static final int SASL_AUTH_SUCCESS_VALUE = 3;
+    /**
+     * <code>SASL_AUTH_FAILED = 4;</code>
+     */
+    public static final int SASL_AUTH_FAILED_VALUE = 4;
+
+
+    public final int getNumber() { return value; }
+
+    public static SaslStatus valueOf(int value) {
+      switch (value) {
+        case 0: return SASL_UNKNOWN;
+        case 1: return SASL_START;
+        case 2: return SASL_AUTH_IN_PROGRESS;
+        case 3: return SASL_AUTH_SUCCESS;
+        case 4: return SASL_AUTH_FAILED;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<SaslStatus>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static com.google.protobuf.Internal.EnumLiteMap<SaslStatus>
+        internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<SaslStatus>() {
+            public SaslStatus findValueByNumber(int number) {
+              return SaslStatus.valueOf(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(index);
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return org.apache.drill.exec.proto.UserProtos.getDescriptor().getEnumTypes().get(3);
+    }
+
+    private static final SaslStatus[] VALUES = values();
+
+    public static SaslStatus valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int index;
+    private final int value;
+
+    private SaslStatus(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:exec.user.SaslStatus)
   }
 
   /**
@@ -748,7 +891,7 @@ public final class UserProtos {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return org.apache.drill.exec.proto.UserProtos.getDescriptor().getEnumTypes().get(3);
+      return org.apache.drill.exec.proto.UserProtos.getDescriptor().getEnumTypes().get(4);
     }
 
     private static final RequestStatus[] VALUES = values();
@@ -894,7 +1037,7 @@ public final class UserProtos {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return org.apache.drill.exec.proto.UserProtos.getDescriptor().getEnumTypes().get(4);
+      return org.apache.drill.exec.proto.UserProtos.getDescriptor().getEnumTypes().get(5);
     }
 
     private static final ColumnSearchability[] VALUES = values();
@@ -990,7 +1133,7 @@ public final class UserProtos {
     }
     public static final com.google.protobuf.Descriptors.EnumDescriptor
         getDescriptor() {
-      return org.apache.drill.exec.proto.UserProtos.getDescriptor().getEnumTypes().get(5);
+      return org.apache.drill.exec.proto.UserProtos.getDescriptor().getEnumTypes().get(6);
     }
 
     private static final ColumnUpdatability[] VALUES = values();
@@ -5918,6 +6061,26 @@ public final class UserProtos {
      */
     com.google.protobuf.ByteString
         getErrorMessageBytes();
+
+    // repeated string authenticationMechanisms = 6;
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    java.util.List<java.lang.String>
+    getAuthenticationMechanismsList();
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    int getAuthenticationMechanismsCount();
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    java.lang.String getAuthenticationMechanisms(int index);
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    com.google.protobuf.ByteString
+        getAuthenticationMechanismsBytes(int index);
   }
   /**
    * Protobuf type {@code exec.user.BitToUserHandshake}
@@ -5996,6 +6159,14 @@ public final class UserProtos {
               errorMessage_ = input.readBytes();
               break;
             }
+            case 50: {
+              if (!((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
+                authenticationMechanisms_ = new com.google.protobuf.LazyStringArrayList();
+                mutable_bitField0_ |= 0x00000010;
+              }
+              authenticationMechanisms_.add(input.readBytes());
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -6004,6 +6175,9 @@ public final class UserProtos {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
+        if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
+          authenticationMechanisms_ = new com.google.protobuf.UnmodifiableLazyStringList(authenticationMechanisms_);
+        }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
@@ -6154,11 +6328,42 @@ public final class UserProtos {
       }
     }
 
+    // repeated string authenticationMechanisms = 6;
+    public static final int AUTHENTICATIONMECHANISMS_FIELD_NUMBER = 6;
+    private com.google.protobuf.LazyStringList authenticationMechanisms_;
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    public java.util.List<java.lang.String>
+        getAuthenticationMechanismsList() {
+      return authenticationMechanisms_;
+    }
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    public int getAuthenticationMechanismsCount() {
+      return authenticationMechanisms_.size();
+    }
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    public java.lang.String getAuthenticationMechanisms(int index) {
+      return authenticationMechanisms_.get(index);
+    }
+    /**
+     * <code>repeated string authenticationMechanisms = 6;</code>
+     */
+    public com.google.protobuf.ByteString
+        getAuthenticationMechanismsBytes(int index) {
+      return authenticationMechanisms_.getByteString(index);
+    }
+
     private void initFields() {
       rpcVersion_ = 0;
       status_ = org.apache.drill.exec.proto.UserProtos.HandshakeStatus.SUCCESS;
       errorId_ = "";
       errorMessage_ = "";
+      authenticationMechanisms_ = com.google.protobuf.LazyStringArrayList.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -6184,6 +6389,9 @@ public final class UserProtos {
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         output.writeBytes(5, getErrorMessageBytes());
       }
+      for (int i = 0; i < authenticationMechanisms_.size(); i++) {
+        output.writeBytes(6, authenticationMechanisms_.getByteString(i));
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -6208,6 +6416,15 @@ public final class UserProtos {
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(5, getErrorMessageBytes());
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < authenticationMechanisms_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeBytesSizeNoTag(authenticationMechanisms_.getByteString(i));
+        }
+        size += dataSize;
+        size += 1 * getAuthenticationMechanismsList().size();
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -6333,6 +6550,8 @@ public final class UserProtos {
         bitField0_ = (bitField0_ & ~0x00000004);
         errorMessage_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
+        authenticationMechanisms_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000010);
         return this;
       }
 
@@ -6377,6 +6596,12 @@ public final class UserProtos {
           to_bitField0_ |= 0x00000008;
         }
         result.errorMessage_ = errorMessage_;
+        if (((bitField0_ & 0x00000010) == 0x00000010)) {
+          authenticationMechanisms_ = new com.google.protobuf.UnmodifiableLazyStringList(
+              authenticationMechanisms_);
+          bitField0_ = (bitField0_ & ~0x00000010);
+        }
+        result.authenticationMechanisms_ = authenticationMechanisms_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -6407,6 +6632,16 @@ public final class UserProtos {
         if (other.hasErrorMessage()) {
           bitField0_ |= 0x00000008;
           errorMessage_ = other.errorMessage_;
+          onChanged();
+        }
+        if (!other.authenticationMechanisms_.isEmpty()) {
+          if (authenticationMechanisms_.isEmpty()) {
+            authenticationMechanisms_ = other.authenticationMechanisms_;
+            bitField0_ = (bitField0_ & ~0x00000010);
+          } else {
+            ensureAuthenticationMechanismsIsMutable();
+            authenticationMechanisms_.addAll(other.authenticationMechanisms_);
+          }
           onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
@@ -6653,6 +6888,99 @@ public final class UserProtos {
         return this;
       }
 
+      // repeated string authenticationMechanisms = 6;
+      private com.google.protobuf.LazyStringList authenticationMechanisms_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureAuthenticationMechanismsIsMutable() {
+        if (!((bitField0_ & 0x00000010) == 0x00000010)) {
+          authenticationMechanisms_ = new com.google.protobuf.LazyStringArrayList(authenticationMechanisms_);
+          bitField0_ |= 0x00000010;
+         }
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public java.util.List<java.lang.String>
+          getAuthenticationMechanismsList() {
+        return java.util.Collections.unmodifiableList(authenticationMechanisms_);
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public int getAuthenticationMechanismsCount() {
+        return authenticationMechanisms_.size();
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public java.lang.String getAuthenticationMechanisms(int index) {
+        return authenticationMechanisms_.get(index);
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public com.google.protobuf.ByteString
+          getAuthenticationMechanismsBytes(int index) {
+        return authenticationMechanisms_.getByteString(index);
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public Builder setAuthenticationMechanisms(
+          int index, java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAuthenticationMechanismsIsMutable();
+        authenticationMechanisms_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public Builder addAuthenticationMechanisms(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAuthenticationMechanismsIsMutable();
+        authenticationMechanisms_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public Builder addAllAuthenticationMechanisms(
+          java.lang.Iterable<java.lang.String> values) {
+        ensureAuthenticationMechanismsIsMutable();
+        super.addAll(values, authenticationMechanisms_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public Builder clearAuthenticationMechanisms() {
+        authenticationMechanisms_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000010);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string authenticationMechanisms = 6;</code>
+       */
+      public Builder addAuthenticationMechanismsBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAuthenticationMechanismsIsMutable();
+        authenticationMechanisms_.add(value);
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:exec.user.BitToUserHandshake)
     }
 
@@ -6662,6 +6990,651 @@ public final class UserProtos {
     }
 
     // @@protoc_insertion_point(class_scope:exec.user.BitToUserHandshake)
+  }
+
+  public interface SaslMessageOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // optional string mechanism = 1;
+    /**
+     * <code>optional string mechanism = 1;</code>
+     */
+    boolean hasMechanism();
+    /**
+     * <code>optional string mechanism = 1;</code>
+     */
+    java.lang.String getMechanism();
+    /**
+     * <code>optional string mechanism = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getMechanismBytes();
+
+    // optional bytes data = 2;
+    /**
+     * <code>optional bytes data = 2;</code>
+     */
+    boolean hasData();
+    /**
+     * <code>optional bytes data = 2;</code>
+     */
+    com.google.protobuf.ByteString getData();
+
+    // optional .exec.user.SaslStatus status = 3;
+    /**
+     * <code>optional .exec.user.SaslStatus status = 3;</code>
+     */
+    boolean hasStatus();
+    /**
+     * <code>optional .exec.user.SaslStatus status = 3;</code>
+     */
+    org.apache.drill.exec.proto.UserProtos.SaslStatus getStatus();
+  }
+  /**
+   * Protobuf type {@code exec.user.SaslMessage}
+   */
+  public static final class SaslMessage extends
+      com.google.protobuf.GeneratedMessage
+      implements SaslMessageOrBuilder {
+    // Use SaslMessage.newBuilder() to construct.
+    private SaslMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private SaslMessage(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final SaslMessage defaultInstance;
+    public static SaslMessage getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public SaslMessage getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private SaslMessage(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              mechanism_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              data_ = input.readBytes();
+              break;
+            }
+            case 24: {
+              int rawValue = input.readEnum();
+              org.apache.drill.exec.proto.UserProtos.SaslStatus value = org.apache.drill.exec.proto.UserProtos.SaslStatus.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(3, rawValue);
+              } else {
+                bitField0_ |= 0x00000004;
+                status_ = value;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.drill.exec.proto.UserProtos.internal_static_exec_user_SaslMessage_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.drill.exec.proto.UserProtos.internal_static_exec_user_SaslMessage_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.drill.exec.proto.UserProtos.SaslMessage.class, org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<SaslMessage> PARSER =
+        new com.google.protobuf.AbstractParser<SaslMessage>() {
+      public SaslMessage parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new SaslMessage(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<SaslMessage> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // optional string mechanism = 1;
+    public static final int MECHANISM_FIELD_NUMBER = 1;
+    private java.lang.Object mechanism_;
+    /**
+     * <code>optional string mechanism = 1;</code>
+     */
+    public boolean hasMechanism() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional string mechanism = 1;</code>
+     */
+    public java.lang.String getMechanism() {
+      java.lang.Object ref = mechanism_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          mechanism_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string mechanism = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getMechanismBytes() {
+      java.lang.Object ref = mechanism_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        mechanism_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional bytes data = 2;
+    public static final int DATA_FIELD_NUMBER = 2;
+    private com.google.protobuf.ByteString data_;
+    /**
+     * <code>optional bytes data = 2;</code>
+     */
+    public boolean hasData() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional bytes data = 2;</code>
+     */
+    public com.google.protobuf.ByteString getData() {
+      return data_;
+    }
+
+    // optional .exec.user.SaslStatus status = 3;
+    public static final int STATUS_FIELD_NUMBER = 3;
+    private org.apache.drill.exec.proto.UserProtos.SaslStatus status_;
+    /**
+     * <code>optional .exec.user.SaslStatus status = 3;</code>
+     */
+    public boolean hasStatus() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional .exec.user.SaslStatus status = 3;</code>
+     */
+    public org.apache.drill.exec.proto.UserProtos.SaslStatus getStatus() {
+      return status_;
+    }
+
+    private void initFields() {
+      mechanism_ = "";
+      data_ = com.google.protobuf.ByteString.EMPTY;
+      status_ = org.apache.drill.exec.proto.UserProtos.SaslStatus.SASL_UNKNOWN;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getMechanismBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, data_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeEnum(3, status_.getNumber());
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getMechanismBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, data_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(3, status_.getNumber());
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.apache.drill.exec.proto.UserProtos.SaslMessage parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.apache.drill.exec.proto.UserProtos.SaslMessage prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code exec.user.SaslMessage}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements org.apache.drill.exec.proto.UserProtos.SaslMessageOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.drill.exec.proto.UserProtos.internal_static_exec_user_SaslMessage_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.drill.exec.proto.UserProtos.internal_static_exec_user_SaslMessage_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.drill.exec.proto.UserProtos.SaslMessage.class, org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder.class);
+      }
+
+      // Construct using org.apache.drill.exec.proto.UserProtos.SaslMessage.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        mechanism_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        data_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        status_ = org.apache.drill.exec.proto.UserProtos.SaslStatus.SASL_UNKNOWN;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.drill.exec.proto.UserProtos.internal_static_exec_user_SaslMessage_descriptor;
+      }
+
+      public org.apache.drill.exec.proto.UserProtos.SaslMessage getDefaultInstanceForType() {
+        return org.apache.drill.exec.proto.UserProtos.SaslMessage.getDefaultInstance();
+      }
+
+      public org.apache.drill.exec.proto.UserProtos.SaslMessage build() {
+        org.apache.drill.exec.proto.UserProtos.SaslMessage result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.apache.drill.exec.proto.UserProtos.SaslMessage buildPartial() {
+        org.apache.drill.exec.proto.UserProtos.SaslMessage result = new org.apache.drill.exec.proto.UserProtos.SaslMessage(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.mechanism_ = mechanism_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.data_ = data_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.status_ = status_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.drill.exec.proto.UserProtos.SaslMessage) {
+          return mergeFrom((org.apache.drill.exec.proto.UserProtos.SaslMessage)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.apache.drill.exec.proto.UserProtos.SaslMessage other) {
+        if (other == org.apache.drill.exec.proto.UserProtos.SaslMessage.getDefaultInstance()) return this;
+        if (other.hasMechanism()) {
+          bitField0_ |= 0x00000001;
+          mechanism_ = other.mechanism_;
+          onChanged();
+        }
+        if (other.hasData()) {
+          setData(other.getData());
+        }
+        if (other.hasStatus()) {
+          setStatus(other.getStatus());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.apache.drill.exec.proto.UserProtos.SaslMessage parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.drill.exec.proto.UserProtos.SaslMessage) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // optional string mechanism = 1;
+      private java.lang.Object mechanism_ = "";
+      /**
+       * <code>optional string mechanism = 1;</code>
+       */
+      public boolean hasMechanism() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional string mechanism = 1;</code>
+       */
+      public java.lang.String getMechanism() {
+        java.lang.Object ref = mechanism_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          mechanism_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string mechanism = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getMechanismBytes() {
+        java.lang.Object ref = mechanism_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          mechanism_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string mechanism = 1;</code>
+       */
+      public Builder setMechanism(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        mechanism_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string mechanism = 1;</code>
+       */
+      public Builder clearMechanism() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        mechanism_ = getDefaultInstance().getMechanism();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string mechanism = 1;</code>
+       */
+      public Builder setMechanismBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        mechanism_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional bytes data = 2;
+      private com.google.protobuf.ByteString data_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes data = 2;</code>
+       */
+      public boolean hasData() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional bytes data = 2;</code>
+       */
+      public com.google.protobuf.ByteString getData() {
+        return data_;
+      }
+      /**
+       * <code>optional bytes data = 2;</code>
+       */
+      public Builder setData(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        data_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes data = 2;</code>
+       */
+      public Builder clearData() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        data_ = getDefaultInstance().getData();
+        onChanged();
+        return this;
+      }
+
+      // optional .exec.user.SaslStatus status = 3;
+      private org.apache.drill.exec.proto.UserProtos.SaslStatus status_ = org.apache.drill.exec.proto.UserProtos.SaslStatus.SASL_UNKNOWN;
+      /**
+       * <code>optional .exec.user.SaslStatus status = 3;</code>
+       */
+      public boolean hasStatus() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional .exec.user.SaslStatus status = 3;</code>
+       */
+      public org.apache.drill.exec.proto.UserProtos.SaslStatus getStatus() {
+        return status_;
+      }
+      /**
+       * <code>optional .exec.user.SaslStatus status = 3;</code>
+       */
+      public Builder setStatus(org.apache.drill.exec.proto.UserProtos.SaslStatus value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000004;
+        status_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .exec.user.SaslStatus status = 3;</code>
+       */
+      public Builder clearStatus() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        status_ = org.apache.drill.exec.proto.UserProtos.SaslStatus.SASL_UNKNOWN;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:exec.user.SaslMessage)
+    }
+
+    static {
+      defaultInstance = new SaslMessage(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:exec.user.SaslMessage)
   }
 
   public interface LikeFilterOrBuilder
@@ -27158,6 +28131,11 @@ public final class UserProtos {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_exec_user_BitToUserHandshake_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_exec_user_SaslMessage_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_exec_user_SaslMessage_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_exec_user_LikeFilter_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -27283,107 +28261,114 @@ public final class UserProtos {
       "ueryState\022&\n\010query_id\030\002 \001(\0132\024.exec.share",
       "d.QueryId\0221\n\tfragments\030\003 \003(\0132\036.exec.bit." +
       "control.PlanFragment\022(\n\005error\030\004 \001(\0132\031.ex" +
-      "ec.shared.DrillPBError\"|\n\022BitToUserHands" +
-      "hake\022\023\n\013rpc_version\030\002 \001(\005\022*\n\006status\030\003 \001(" +
-      "\0162\032.exec.user.HandshakeStatus\022\017\n\007errorId" +
-      "\030\004 \001(\t\022\024\n\014errorMessage\030\005 \001(\t\"+\n\nLikeFilt" +
-      "er\022\r\n\005regex\030\001 \001(\t\022\016\n\006escape\030\002 \001(\t\"D\n\016Get" +
-      "CatalogsReq\0222\n\023catalog_name_filter\030\001 \001(\013" +
-      "2\025.exec.user.LikeFilter\"M\n\017CatalogMetada" +
-      "ta\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013description\030",
-      "\002 \001(\t\022\017\n\007connect\030\003 \001(\t\"\223\001\n\017GetCatalogsRe" +
-      "sp\022(\n\006status\030\001 \001(\0162\030.exec.user.RequestSt" +
-      "atus\022,\n\010catalogs\030\002 \003(\0132\032.exec.user.Catal" +
-      "ogMetadata\022(\n\005error\030\003 \001(\0132\031.exec.shared." +
-      "DrillPBError\"v\n\rGetSchemasReq\0222\n\023catalog" +
-      "_name_filter\030\001 \001(\0132\025.exec.user.LikeFilte" +
-      "r\0221\n\022schame_name_filter\030\002 \001(\0132\025.exec.use" +
-      "r.LikeFilter\"i\n\016SchemaMetadata\022\024\n\014catalo" +
-      "g_name\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t\022\r\n\005own" +
-      "er\030\003 \001(\t\022\014\n\004type\030\004 \001(\t\022\017\n\007mutable\030\005 \001(\t\"",
-      "\220\001\n\016GetSchemasResp\022(\n\006status\030\001 \001(\0162\030.exe" +
-      "c.user.RequestStatus\022*\n\007schemas\030\002 \003(\0132\031." +
-      "exec.user.SchemaMetadata\022(\n\005error\030\003 \001(\0132" +
-      "\031.exec.shared.DrillPBError\"\247\001\n\014GetTables" +
-      "Req\0222\n\023catalog_name_filter\030\001 \001(\0132\025.exec." +
-      "user.LikeFilter\0221\n\022schame_name_filter\030\002 " +
-      "\001(\0132\025.exec.user.LikeFilter\0220\n\021table_name" +
-      "_filter\030\003 \001(\0132\025.exec.user.LikeFilter\"\\\n\r" +
-      "TableMetadata\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013s" +
-      "chema_name\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t\022\014\n\004",
-      "type\030\004 \001(\t\"\215\001\n\rGetTablesResp\022(\n\006status\030\001" +
-      " \001(\0162\030.exec.user.RequestStatus\022(\n\006tables" +
-      "\030\002 \003(\0132\030.exec.user.TableMetadata\022(\n\005erro" +
-      "r\030\003 \001(\0132\031.exec.shared.DrillPBError\"\333\001\n\rG" +
-      "etColumnsReq\0222\n\023catalog_name_filter\030\001 \001(" +
-      "\0132\025.exec.user.LikeFilter\0221\n\022schame_name_" +
-      "filter\030\002 \001(\0132\025.exec.user.LikeFilter\0220\n\021t" +
-      "able_name_filter\030\003 \001(\0132\025.exec.user.LikeF" +
-      "ilter\0221\n\022column_name_filter\030\004 \001(\0132\025.exec" +
-      ".user.LikeFilter\"\224\003\n\016ColumnMetadata\022\024\n\014c",
-      "atalog_name\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t\022\022" +
-      "\n\ntable_name\030\003 \001(\t\022\023\n\013column_name\030\004 \001(\t\022" +
-      "\030\n\020ordinal_position\030\005 \001(\005\022\025\n\rdefault_val" +
-      "ue\030\006 \001(\t\022\023\n\013is_nullable\030\007 \001(\010\022\021\n\tdata_ty" +
-      "pe\030\010 \001(\t\022\027\n\017char_max_length\030\t \001(\005\022\031\n\021cha" +
-      "r_octet_length\030\n \001(\005\022\031\n\021numeric_precisio" +
-      "n\030\013 \001(\005\022\037\n\027numeric_precision_radix\030\014 \001(\005" +
-      "\022\025\n\rnumeric_scale\030\r \001(\005\022\033\n\023date_time_pre" +
-      "cision\030\016 \001(\005\022\025\n\rinterval_type\030\017 \001(\t\022\032\n\022i" +
-      "nterval_precision\030\020 \001(\005\"\220\001\n\016GetColumnsRe",
-      "sp\022(\n\006status\030\001 \001(\0162\030.exec.user.RequestSt" +
-      "atus\022*\n\007columns\030\002 \003(\0132\031.exec.user.Column" +
-      "Metadata\022(\n\005error\030\003 \001(\0132\031.exec.shared.Dr" +
-      "illPBError\"/\n\032CreatePreparedStatementReq" +
-      "\022\021\n\tsql_query\030\001 \001(\t\"\326\003\n\024ResultColumnMeta" +
-      "data\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013schema_nam" +
-      "e\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t\022\023\n\013column_na" +
-      "me\030\004 \001(\t\022\r\n\005label\030\005 \001(\t\022\021\n\tdata_type\030\006 \001" +
-      "(\t\022\023\n\013is_nullable\030\007 \001(\010\022\021\n\tprecision\030\010 \001" +
-      "(\005\022\r\n\005scale\030\t \001(\005\022\016\n\006signed\030\n \001(\010\022\024\n\014dis",
-      "play_size\030\013 \001(\005\022\022\n\nis_aliased\030\014 \001(\010\0225\n\rs" +
-      "earchability\030\r \001(\0162\036.exec.user.ColumnSea" +
-      "rchability\0223\n\014updatability\030\016 \001(\0162\035.exec." +
-      "user.ColumnUpdatability\022\026\n\016auto_incremen" +
-      "t\030\017 \001(\010\022\030\n\020case_sensitivity\030\020 \001(\010\022\020\n\010sor" +
-      "table\030\021 \001(\010\022\022\n\nclass_name\030\022 \001(\t\022\023\n\013is_cu" +
-      "rrency\030\024 \001(\010\".\n\027PreparedStatementHandle\022" +
-      "\023\n\013server_info\030\001 \001(\014\"\200\001\n\021PreparedStateme" +
-      "nt\0220\n\007columns\030\001 \003(\0132\037.exec.user.ResultCo" +
-      "lumnMetadata\0229\n\rserver_handle\030\002 \001(\0132\".ex",
-      "ec.user.PreparedStatementHandle\"\253\001\n\033Crea" +
-      "tePreparedStatementResp\022(\n\006status\030\001 \001(\0162" +
-      "\030.exec.user.RequestStatus\0228\n\022prepared_st" +
-      "atement\030\002 \001(\0132\034.exec.user.PreparedStatem" +
-      "ent\022(\n\005error\030\003 \001(\0132\031.exec.shared.DrillPB" +
-      "Error\"\353\001\n\010RunQuery\0221\n\014results_mode\030\001 \001(\016" +
-      "2\033.exec.user.QueryResultsMode\022$\n\004type\030\002 " +
-      "\001(\0162\026.exec.shared.QueryType\022\014\n\004plan\030\003 \001(" +
-      "\t\0221\n\tfragments\030\004 \003(\0132\036.exec.bit.control." +
-      "PlanFragment\022E\n\031prepared_statement_handl",
-      "e\030\005 \001(\0132\".exec.user.PreparedStatementHan" +
-      "dle*\310\003\n\007RpcType\022\r\n\tHANDSHAKE\020\000\022\007\n\003ACK\020\001\022" +
-      "\013\n\007GOODBYE\020\002\022\r\n\tRUN_QUERY\020\003\022\020\n\014CANCEL_QU" +
-      "ERY\020\004\022\023\n\017REQUEST_RESULTS\020\005\022\027\n\023RESUME_PAU" +
-      "SED_QUERY\020\013\022\034\n\030GET_QUERY_PLAN_FRAGMENTS\020" +
-      "\014\022\020\n\014GET_CATALOGS\020\016\022\017\n\013GET_SCHEMAS\020\017\022\016\n\n" +
-      "GET_TABLES\020\020\022\017\n\013GET_COLUMNS\020\021\022\035\n\031CREATE_" +
-      "PREPARED_STATEMENT\020\026\022\016\n\nQUERY_DATA\020\006\022\020\n\014" +
-      "QUERY_HANDLE\020\007\022\030\n\024QUERY_PLAN_FRAGMENTS\020\r" +
-      "\022\014\n\010CATALOGS\020\022\022\013\n\007SCHEMAS\020\023\022\n\n\006TABLES\020\024\022",
-      "\013\n\007COLUMNS\020\025\022\026\n\022PREPARED_STATEMENT\020\027\022\026\n\022" +
-      "REQ_META_FUNCTIONS\020\010\022\026\n\022RESP_FUNCTION_LI" +
-      "ST\020\t\022\020\n\014QUERY_RESULT\020\n*#\n\020QueryResultsMo" +
-      "de\022\017\n\013STREAM_FULL\020\001*^\n\017HandshakeStatus\022\013" +
-      "\n\007SUCCESS\020\001\022\030\n\024RPC_VERSION_MISMATCH\020\002\022\017\n" +
-      "\013AUTH_FAILED\020\003\022\023\n\017UNKNOWN_FAILURE\020\004*D\n\rR" +
-      "equestStatus\022\022\n\016UNKNOWN_STATUS\020\000\022\006\n\002OK\020\001" +
-      "\022\n\n\006FAILED\020\002\022\013\n\007TIMEOUT\020\003*Y\n\023ColumnSearc" +
-      "hability\022\031\n\025UNKNOWN_SEARCHABILITY\020\000\022\010\n\004N" +
-      "ONE\020\001\022\010\n\004CHAR\020\002\022\n\n\006NUMBER\020\003\022\007\n\003ALL\020\004*K\n\022",
-      "ColumnUpdatability\022\030\n\024UNKNOWN_UPDATABILI" +
-      "TY\020\000\022\r\n\tREAD_ONLY\020\001\022\014\n\010WRITABLE\020\002B+\n\033org" +
-      ".apache.drill.exec.protoB\nUserProtosH\001"
+      "ec.shared.DrillPBError\"\236\001\n\022BitToUserHand" +
+      "shake\022\023\n\013rpc_version\030\002 \001(\005\022*\n\006status\030\003 \001" +
+      "(\0162\032.exec.user.HandshakeStatus\022\017\n\007errorI" +
+      "d\030\004 \001(\t\022\024\n\014errorMessage\030\005 \001(\t\022 \n\030authent" +
+      "icationMechanisms\030\006 \003(\t\"U\n\013SaslMessage\022\021" +
+      "\n\tmechanism\030\001 \001(\t\022\014\n\004data\030\002 \001(\014\022%\n\006statu" +
+      "s\030\003 \001(\0162\025.exec.user.SaslStatus\"+\n\nLikeFi" +
+      "lter\022\r\n\005regex\030\001 \001(\t\022\016\n\006escape\030\002 \001(\t\"D\n\016G",
+      "etCatalogsReq\0222\n\023catalog_name_filter\030\001 \001" +
+      "(\0132\025.exec.user.LikeFilter\"M\n\017CatalogMeta" +
+      "data\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013descriptio" +
+      "n\030\002 \001(\t\022\017\n\007connect\030\003 \001(\t\"\223\001\n\017GetCatalogs" +
+      "Resp\022(\n\006status\030\001 \001(\0162\030.exec.user.Request" +
+      "Status\022,\n\010catalogs\030\002 \003(\0132\032.exec.user.Cat" +
+      "alogMetadata\022(\n\005error\030\003 \001(\0132\031.exec.share" +
+      "d.DrillPBError\"v\n\rGetSchemasReq\0222\n\023catal" +
+      "og_name_filter\030\001 \001(\0132\025.exec.user.LikeFil" +
+      "ter\0221\n\022schame_name_filter\030\002 \001(\0132\025.exec.u",
+      "ser.LikeFilter\"i\n\016SchemaMetadata\022\024\n\014cata" +
+      "log_name\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t\022\r\n\005o" +
+      "wner\030\003 \001(\t\022\014\n\004type\030\004 \001(\t\022\017\n\007mutable\030\005 \001(" +
+      "\t\"\220\001\n\016GetSchemasResp\022(\n\006status\030\001 \001(\0162\030.e" +
+      "xec.user.RequestStatus\022*\n\007schemas\030\002 \003(\0132" +
+      "\031.exec.user.SchemaMetadata\022(\n\005error\030\003 \001(" +
+      "\0132\031.exec.shared.DrillPBError\"\247\001\n\014GetTabl" +
+      "esReq\0222\n\023catalog_name_filter\030\001 \001(\0132\025.exe" +
+      "c.user.LikeFilter\0221\n\022schame_name_filter\030" +
+      "\002 \001(\0132\025.exec.user.LikeFilter\0220\n\021table_na",
+      "me_filter\030\003 \001(\0132\025.exec.user.LikeFilter\"\\" +
+      "\n\rTableMetadata\022\024\n\014catalog_name\030\001 \001(\t\022\023\n" +
+      "\013schema_name\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t\022\014" +
+      "\n\004type\030\004 \001(\t\"\215\001\n\rGetTablesResp\022(\n\006status" +
+      "\030\001 \001(\0162\030.exec.user.RequestStatus\022(\n\006tabl" +
+      "es\030\002 \003(\0132\030.exec.user.TableMetadata\022(\n\005er" +
+      "ror\030\003 \001(\0132\031.exec.shared.DrillPBError\"\333\001\n" +
+      "\rGetColumnsReq\0222\n\023catalog_name_filter\030\001 " +
+      "\001(\0132\025.exec.user.LikeFilter\0221\n\022schame_nam" +
+      "e_filter\030\002 \001(\0132\025.exec.user.LikeFilter\0220\n",
+      "\021table_name_filter\030\003 \001(\0132\025.exec.user.Lik" +
+      "eFilter\0221\n\022column_name_filter\030\004 \001(\0132\025.ex" +
+      "ec.user.LikeFilter\"\224\003\n\016ColumnMetadata\022\024\n" +
+      "\014catalog_name\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t" +
+      "\022\022\n\ntable_name\030\003 \001(\t\022\023\n\013column_name\030\004 \001(" +
+      "\t\022\030\n\020ordinal_position\030\005 \001(\005\022\025\n\rdefault_v" +
+      "alue\030\006 \001(\t\022\023\n\013is_nullable\030\007 \001(\010\022\021\n\tdata_" +
+      "type\030\010 \001(\t\022\027\n\017char_max_length\030\t \001(\005\022\031\n\021c" +
+      "har_octet_length\030\n \001(\005\022\031\n\021numeric_precis" +
+      "ion\030\013 \001(\005\022\037\n\027numeric_precision_radix\030\014 \001",
+      "(\005\022\025\n\rnumeric_scale\030\r \001(\005\022\033\n\023date_time_p" +
+      "recision\030\016 \001(\005\022\025\n\rinterval_type\030\017 \001(\t\022\032\n" +
+      "\022interval_precision\030\020 \001(\005\"\220\001\n\016GetColumns" +
+      "Resp\022(\n\006status\030\001 \001(\0162\030.exec.user.Request" +
+      "Status\022*\n\007columns\030\002 \003(\0132\031.exec.user.Colu" +
+      "mnMetadata\022(\n\005error\030\003 \001(\0132\031.exec.shared." +
+      "DrillPBError\"/\n\032CreatePreparedStatementR" +
+      "eq\022\021\n\tsql_query\030\001 \001(\t\"\326\003\n\024ResultColumnMe" +
+      "tadata\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013schema_n" +
+      "ame\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t\022\023\n\013column_",
+      "name\030\004 \001(\t\022\r\n\005label\030\005 \001(\t\022\021\n\tdata_type\030\006" +
+      " \001(\t\022\023\n\013is_nullable\030\007 \001(\010\022\021\n\tprecision\030\010" +
+      " \001(\005\022\r\n\005scale\030\t \001(\005\022\016\n\006signed\030\n \001(\010\022\024\n\014d" +
+      "isplay_size\030\013 \001(\005\022\022\n\nis_aliased\030\014 \001(\010\0225\n" +
+      "\rsearchability\030\r \001(\0162\036.exec.user.ColumnS" +
+      "earchability\0223\n\014updatability\030\016 \001(\0162\035.exe" +
+      "c.user.ColumnUpdatability\022\026\n\016auto_increm" +
+      "ent\030\017 \001(\010\022\030\n\020case_sensitivity\030\020 \001(\010\022\020\n\010s" +
+      "ortable\030\021 \001(\010\022\022\n\nclass_name\030\022 \001(\t\022\023\n\013is_" +
+      "currency\030\024 \001(\010\".\n\027PreparedStatementHandl",
+      "e\022\023\n\013server_info\030\001 \001(\014\"\200\001\n\021PreparedState" +
+      "ment\0220\n\007columns\030\001 \003(\0132\037.exec.user.Result" +
+      "ColumnMetadata\0229\n\rserver_handle\030\002 \001(\0132\"." +
+      "exec.user.PreparedStatementHandle\"\253\001\n\033Cr" +
+      "eatePreparedStatementResp\022(\n\006status\030\001 \001(" +
+      "\0162\030.exec.user.RequestStatus\0228\n\022prepared_" +
+      "statement\030\002 \001(\0132\034.exec.user.PreparedStat" +
+      "ement\022(\n\005error\030\003 \001(\0132\031.exec.shared.Drill" +
+      "PBError\"\353\001\n\010RunQuery\0221\n\014results_mode\030\001 \001" +
+      "(\0162\033.exec.user.QueryResultsMode\022$\n\004type\030",
+      "\002 \001(\0162\026.exec.shared.QueryType\022\014\n\004plan\030\003 " +
+      "\001(\t\0221\n\tfragments\030\004 \003(\0132\036.exec.bit.contro" +
+      "l.PlanFragment\022E\n\031prepared_statement_han" +
+      "dle\030\005 \001(\0132\".exec.user.PreparedStatementH" +
+      "andle*\332\003\n\007RpcType\022\r\n\tHANDSHAKE\020\000\022\007\n\003ACK\020" +
+      "\001\022\013\n\007GOODBYE\020\002\022\020\n\014SASL_MESSAGE\020\030\022\r\n\tRUN_" +
+      "QUERY\020\003\022\020\n\014CANCEL_QUERY\020\004\022\023\n\017REQUEST_RES" +
+      "ULTS\020\005\022\027\n\023RESUME_PAUSED_QUERY\020\013\022\034\n\030GET_Q" +
+      "UERY_PLAN_FRAGMENTS\020\014\022\020\n\014GET_CATALOGS\020\016\022" +
+      "\017\n\013GET_SCHEMAS\020\017\022\016\n\nGET_TABLES\020\020\022\017\n\013GET_",
+      "COLUMNS\020\021\022\035\n\031CREATE_PREPARED_STATEMENT\020\026" +
+      "\022\016\n\nQUERY_DATA\020\006\022\020\n\014QUERY_HANDLE\020\007\022\030\n\024QU" +
+      "ERY_PLAN_FRAGMENTS\020\r\022\014\n\010CATALOGS\020\022\022\013\n\007SC" +
+      "HEMAS\020\023\022\n\n\006TABLES\020\024\022\013\n\007COLUMNS\020\025\022\026\n\022PREP" +
+      "ARED_STATEMENT\020\027\022\026\n\022REQ_META_FUNCTIONS\020\010" +
+      "\022\026\n\022RESP_FUNCTION_LIST\020\t\022\020\n\014QUERY_RESULT" +
+      "\020\n*#\n\020QueryResultsMode\022\017\n\013STREAM_FULL\020\001*" +
+      "q\n\017HandshakeStatus\022\013\n\007SUCCESS\020\001\022\030\n\024RPC_V" +
+      "ERSION_MISMATCH\020\002\022\017\n\013AUTH_FAILED\020\003\022\023\n\017UN" +
+      "KNOWN_FAILURE\020\004\022\021\n\rAUTH_REQUIRED\020\005*v\n\nSa",
+      "slStatus\022\020\n\014SASL_UNKNOWN\020\000\022\016\n\nSASL_START" +
+      "\020\001\022\031\n\025SASL_AUTH_IN_PROGRESS\020\002\022\025\n\021SASL_AU" +
+      "TH_SUCCESS\020\003\022\024\n\020SASL_AUTH_FAILED\020\004*D\n\rRe" +
+      "questStatus\022\022\n\016UNKNOWN_STATUS\020\000\022\006\n\002OK\020\001\022" +
+      "\n\n\006FAILED\020\002\022\013\n\007TIMEOUT\020\003*Y\n\023ColumnSearch" +
+      "ability\022\031\n\025UNKNOWN_SEARCHABILITY\020\000\022\010\n\004NO" +
+      "NE\020\001\022\010\n\004CHAR\020\002\022\n\n\006NUMBER\020\003\022\007\n\003ALL\020\004*K\n\022C" +
+      "olumnUpdatability\022\030\n\024UNKNOWN_UPDATABILIT" +
+      "Y\020\000\022\r\n\tREAD_ONLY\020\001\022\014\n\010WRITABLE\020\002B+\n\033org." +
+      "apache.drill.exec.protoB\nUserProtosH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -27431,117 +28416,123 @@ public final class UserProtos {
           internal_static_exec_user_BitToUserHandshake_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_BitToUserHandshake_descriptor,
-              new java.lang.String[] { "RpcVersion", "Status", "ErrorId", "ErrorMessage", });
-          internal_static_exec_user_LikeFilter_descriptor =
+              new java.lang.String[] { "RpcVersion", "Status", "ErrorId", "ErrorMessage", "AuthenticationMechanisms", });
+          internal_static_exec_user_SaslMessage_descriptor =
             getDescriptor().getMessageTypes().get(7);
+          internal_static_exec_user_SaslMessage_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_exec_user_SaslMessage_descriptor,
+              new java.lang.String[] { "Mechanism", "Data", "Status", });
+          internal_static_exec_user_LikeFilter_descriptor =
+            getDescriptor().getMessageTypes().get(8);
           internal_static_exec_user_LikeFilter_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_LikeFilter_descriptor,
               new java.lang.String[] { "Regex", "Escape", });
           internal_static_exec_user_GetCatalogsReq_descriptor =
-            getDescriptor().getMessageTypes().get(8);
+            getDescriptor().getMessageTypes().get(9);
           internal_static_exec_user_GetCatalogsReq_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetCatalogsReq_descriptor,
               new java.lang.String[] { "CatalogNameFilter", });
           internal_static_exec_user_CatalogMetadata_descriptor =
-            getDescriptor().getMessageTypes().get(9);
+            getDescriptor().getMessageTypes().get(10);
           internal_static_exec_user_CatalogMetadata_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_CatalogMetadata_descriptor,
               new java.lang.String[] { "CatalogName", "Description", "Connect", });
           internal_static_exec_user_GetCatalogsResp_descriptor =
-            getDescriptor().getMessageTypes().get(10);
+            getDescriptor().getMessageTypes().get(11);
           internal_static_exec_user_GetCatalogsResp_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetCatalogsResp_descriptor,
               new java.lang.String[] { "Status", "Catalogs", "Error", });
           internal_static_exec_user_GetSchemasReq_descriptor =
-            getDescriptor().getMessageTypes().get(11);
+            getDescriptor().getMessageTypes().get(12);
           internal_static_exec_user_GetSchemasReq_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetSchemasReq_descriptor,
               new java.lang.String[] { "CatalogNameFilter", "SchameNameFilter", });
           internal_static_exec_user_SchemaMetadata_descriptor =
-            getDescriptor().getMessageTypes().get(12);
+            getDescriptor().getMessageTypes().get(13);
           internal_static_exec_user_SchemaMetadata_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_SchemaMetadata_descriptor,
               new java.lang.String[] { "CatalogName", "SchemaName", "Owner", "Type", "Mutable", });
           internal_static_exec_user_GetSchemasResp_descriptor =
-            getDescriptor().getMessageTypes().get(13);
+            getDescriptor().getMessageTypes().get(14);
           internal_static_exec_user_GetSchemasResp_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetSchemasResp_descriptor,
               new java.lang.String[] { "Status", "Schemas", "Error", });
           internal_static_exec_user_GetTablesReq_descriptor =
-            getDescriptor().getMessageTypes().get(14);
+            getDescriptor().getMessageTypes().get(15);
           internal_static_exec_user_GetTablesReq_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetTablesReq_descriptor,
               new java.lang.String[] { "CatalogNameFilter", "SchameNameFilter", "TableNameFilter", });
           internal_static_exec_user_TableMetadata_descriptor =
-            getDescriptor().getMessageTypes().get(15);
+            getDescriptor().getMessageTypes().get(16);
           internal_static_exec_user_TableMetadata_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_TableMetadata_descriptor,
               new java.lang.String[] { "CatalogName", "SchemaName", "TableName", "Type", });
           internal_static_exec_user_GetTablesResp_descriptor =
-            getDescriptor().getMessageTypes().get(16);
+            getDescriptor().getMessageTypes().get(17);
           internal_static_exec_user_GetTablesResp_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetTablesResp_descriptor,
               new java.lang.String[] { "Status", "Tables", "Error", });
           internal_static_exec_user_GetColumnsReq_descriptor =
-            getDescriptor().getMessageTypes().get(17);
+            getDescriptor().getMessageTypes().get(18);
           internal_static_exec_user_GetColumnsReq_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetColumnsReq_descriptor,
               new java.lang.String[] { "CatalogNameFilter", "SchameNameFilter", "TableNameFilter", "ColumnNameFilter", });
           internal_static_exec_user_ColumnMetadata_descriptor =
-            getDescriptor().getMessageTypes().get(18);
+            getDescriptor().getMessageTypes().get(19);
           internal_static_exec_user_ColumnMetadata_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_ColumnMetadata_descriptor,
               new java.lang.String[] { "CatalogName", "SchemaName", "TableName", "ColumnName", "OrdinalPosition", "DefaultValue", "IsNullable", "DataType", "CharMaxLength", "CharOctetLength", "NumericPrecision", "NumericPrecisionRadix", "NumericScale", "DateTimePrecision", "IntervalType", "IntervalPrecision", });
           internal_static_exec_user_GetColumnsResp_descriptor =
-            getDescriptor().getMessageTypes().get(19);
+            getDescriptor().getMessageTypes().get(20);
           internal_static_exec_user_GetColumnsResp_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_GetColumnsResp_descriptor,
               new java.lang.String[] { "Status", "Columns", "Error", });
           internal_static_exec_user_CreatePreparedStatementReq_descriptor =
-            getDescriptor().getMessageTypes().get(20);
+            getDescriptor().getMessageTypes().get(21);
           internal_static_exec_user_CreatePreparedStatementReq_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_CreatePreparedStatementReq_descriptor,
               new java.lang.String[] { "SqlQuery", });
           internal_static_exec_user_ResultColumnMetadata_descriptor =
-            getDescriptor().getMessageTypes().get(21);
+            getDescriptor().getMessageTypes().get(22);
           internal_static_exec_user_ResultColumnMetadata_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_ResultColumnMetadata_descriptor,
               new java.lang.String[] { "CatalogName", "SchemaName", "TableName", "ColumnName", "Label", "DataType", "IsNullable", "Precision", "Scale", "Signed", "DisplaySize", "IsAliased", "Searchability", "Updatability", "AutoIncrement", "CaseSensitivity", "Sortable", "ClassName", "IsCurrency", });
           internal_static_exec_user_PreparedStatementHandle_descriptor =
-            getDescriptor().getMessageTypes().get(22);
+            getDescriptor().getMessageTypes().get(23);
           internal_static_exec_user_PreparedStatementHandle_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_PreparedStatementHandle_descriptor,
               new java.lang.String[] { "ServerInfo", });
           internal_static_exec_user_PreparedStatement_descriptor =
-            getDescriptor().getMessageTypes().get(23);
+            getDescriptor().getMessageTypes().get(24);
           internal_static_exec_user_PreparedStatement_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_PreparedStatement_descriptor,
               new java.lang.String[] { "Columns", "ServerHandle", });
           internal_static_exec_user_CreatePreparedStatementResp_descriptor =
-            getDescriptor().getMessageTypes().get(24);
+            getDescriptor().getMessageTypes().get(25);
           internal_static_exec_user_CreatePreparedStatementResp_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_CreatePreparedStatementResp_descriptor,
               new java.lang.String[] { "Status", "PreparedStatement", "Error", });
           internal_static_exec_user_RunQuery_descriptor =
-            getDescriptor().getMessageTypes().get(25);
+            getDescriptor().getMessageTypes().get(26);
           internal_static_exec_user_RunQuery_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_RunQuery_descriptor,
