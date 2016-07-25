@@ -18,7 +18,6 @@
 package org.apache.drill.exec.rpc.user;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,14 +28,12 @@ import com.google.common.collect.Lists;
 
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.tools.ValidationException;
+import org.apache.drill.common.config.ConnectionParams;
 import org.apache.drill.exec.planner.sql.SchemaUtilites;
 import org.apache.drill.exec.proto.UserBitShared.UserCredentials;
-import org.apache.drill.exec.proto.UserProtos.Property;
 import org.apache.drill.exec.proto.UserProtos.UserProperties;
 import org.apache.drill.exec.server.options.OptionManager;
 import org.apache.drill.exec.server.options.SessionOptionManager;
-
-import com.google.common.collect.Maps;
 
 public class UserSession {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UserSession.class);
@@ -51,7 +48,7 @@ public class UserSession {
 
   private boolean supportComplexTypes = false;
   private UserCredentials credentials;
-  private Map<String, String> properties;
+  private ConnectionParams params;
   private OptionManager sessionOptions;
   private final AtomicInteger queryCount;
 
@@ -82,18 +79,7 @@ public class UserSession {
     }
 
     public Builder withUserProperties(UserProperties properties) {
-      userSession.properties = Maps.newHashMap();
-      if (properties != null) {
-        for (int i = 0; i < properties.getPropertiesCount(); i++) {
-          final Property property = properties.getProperties(i);
-          final String propertyName = property.getKey().toLowerCase();
-          if (knownProperties.contains(propertyName)) {
-            userSession.properties.put(propertyName, property.getValue());
-          } else {
-            logger.warn("Ignoring unknown property: {}", propertyName);
-          }
-        }
-      }
+      userSession.params = ConnectionParams.createParamsFromProperties(properties);
       return this;
     }
 
@@ -144,11 +130,7 @@ public class UserSession {
   }
 
   public String getTargetUserName() {
-    return properties.get(IMPERSONATION_TARGET);
-  }
-
-  public String getDefaultSchemaName() {
-    return getProp(SCHEMA);
+    return params.getParam(ConnectionParams.IMPERSONATION_TARGET);
   }
 
   public void incrementQueryCount(final QueryCountIncrementer incrementer) {
@@ -185,14 +167,14 @@ public class UserSession {
       SchemaUtilites.throwSchemaNotFoundException(currentDefaultSchema, newDefaultSchemaPath);
     }
 
-    setProp(SCHEMA, SchemaUtilites.getSchemaPath(newDefault));
+    params.setParam(ConnectionParams.SCHEMA, SchemaUtilites.getSchemaPath(newDefault));
   }
 
   /**
    * @return Get current default schema path.
    */
   public String getDefaultSchemaPath() {
-    return getProp(SCHEMA);
+    return params.getParam(ConnectionParams.SCHEMA, "");
   }
 
   /**
@@ -201,7 +183,7 @@ public class UserSession {
    * @return A {@link org.apache.calcite.schema.SchemaPlus} object.
    */
   public SchemaPlus getDefaultSchema(SchemaPlus rootSchema) {
-    final String defaultSchemaPath = getProp(SCHEMA);
+    final String defaultSchemaPath = getDefaultSchemaPath();
 
     if (Strings.isNullOrEmpty(defaultSchemaPath)) {
       return null;
@@ -217,15 +199,4 @@ public class UserSession {
     return defaultSchema;
   }
 
-  public boolean setSessionOption(String name, String value) {
-    return true;
-  }
-
-  private String getProp(String key) {
-    return properties.get(key) != null ? properties.get(key) : "";
-  }
-
-  private void setProp(String key, String value) {
-    properties.put(key, value);
-  }
 }

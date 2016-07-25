@@ -17,10 +17,13 @@
  */
 package org.apache.drill.exec.rpc.user.security;
 
+import com.google.common.collect.Lists;
+import com.typesafe.config.ConfigValueFactory;
 import org.apache.drill.BaseTestQuery;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.rpc.RpcException;
+import org.apache.drill.exec.rpc.security.plain.PlainMechanism;
 import org.apache.drill.exec.rpc.user.UserSession;
 import org.apache.drill.exec.rpc.user.security.testing.UserAuthenticatorTestImpl;
 import org.junit.BeforeClass;
@@ -43,11 +46,19 @@ public class TestCustomUserAuthenticator extends BaseTestQuery {
     // Create a new DrillConfig which has user authentication enabled and authenticator set to
     // UserAuthenticatorTestImpl.
     final Properties props = cloneDefaultTestConfigProperties();
-    props.setProperty(ExecConstants.USER_AUTHENTICATION_ENABLED, "true");
-    props.setProperty(ExecConstants.USER_AUTHENTICATOR_IMPL, UserAuthenticatorTestImpl.TYPE);
-    final DrillConfig newConfig = DrillConfig.create(props);
+    final DrillConfig newConfig = new DrillConfig(DrillConfig.create(props)
+            .withValue(ExecConstants.USER_AUTHENTICATION_ENABLED,
+                ConfigValueFactory.fromAnyRef("true"))
+            .withValue(ExecConstants.USER_AUTHENTICATOR_IMPL,
+                ConfigValueFactory.fromAnyRef(UserAuthenticatorTestImpl.TYPE))
+            .withValue("drill.exec.security.user.auth.mechanisms",
+                ConfigValueFactory.fromIterable(Lists.newArrayList(PlainMechanism.SIMPLE_NAME))),
+        false);
 
-    updateTestCluster(3, newConfig);
+    final Properties connectionProps = new Properties();
+    connectionProps.setProperty(UserSession.USER, "anonymous");
+    connectionProps.setProperty(UserSession.PASSWORD, "anything works!");
+    updateTestCluster(3, newConfig, connectionProps);
   }
 
   @Test

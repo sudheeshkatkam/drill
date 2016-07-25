@@ -38,13 +38,10 @@ import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.rpc.TransportCheck;
 import org.apache.drill.exec.rpc.control.Controller;
 import org.apache.drill.exec.rpc.control.ControllerImpl;
-import org.apache.drill.exec.rpc.control.WorkEventBus;
 import org.apache.drill.exec.rpc.data.DataConnectionCreator;
 import org.apache.drill.exec.rpc.user.UserServer;
 import org.apache.drill.exec.server.BootStrapContext;
-import org.apache.drill.exec.work.WorkManager.WorkerBee;
-import org.apache.drill.exec.work.batch.ControlMessageHandler;
-import org.apache.drill.exec.work.user.UserWorker;
+import org.apache.drill.exec.work.WorkManager;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
@@ -65,8 +62,9 @@ public class ServiceEngine implements AutoCloseable {
   private final BufferAllocator dataAllocator;
 
 
-  public ServiceEngine(ControlMessageHandler controlMessageHandler, UserWorker userWorker, BootStrapContext context,
-      WorkEventBus workBus, WorkerBee bee, boolean allowPortHunting, boolean isDistributedMode) throws DrillbitStartupException {
+  public ServiceEngine(final WorkManager manager, final BootStrapContext context,
+                       final boolean allowPortHunting, final boolean isDistributedMode)
+      throws DrillbitStartupException {
     userAllocator = newAllocator(context, "rpc:user", "drill.exec.rpc.user.server.memory.reservation",
         "drill.exec.rpc.user.server.memory.maximum");
     controlAllocator = newAllocator(context, "rpc:bit-control",
@@ -75,15 +73,11 @@ public class ServiceEngine implements AutoCloseable {
         "drill.exec.rpc.bit.server.memory.data.reservation", "drill.exec.rpc.bit.server.memory.data.maximum");
     final EventLoopGroup eventLoopGroup = TransportCheck.createEventLoopGroup(
         context.getConfig().getInt(ExecConstants.USER_SERVER_RPC_THREADS), "UserServer-");
-    this.userServer = new UserServer(
-        context.getConfig(),
-        context.getClasspathScan(),
-        userAllocator,
-        eventLoopGroup,
-        userWorker,
-        context.getExecutor());
-    this.controller = new ControllerImpl(context, controlMessageHandler, controlAllocator, allowPortHunting);
-    this.dataPool = new DataConnectionCreator(context, dataAllocator, workBus, bee, allowPortHunting);
+    userServer = new UserServer(context, userAllocator, eventLoopGroup, manager.getUserWorker());
+    controller = new ControllerImpl(context, controlAllocator, manager.getControlMessageHandler(),
+        allowPortHunting);
+    dataPool = new DataConnectionCreator(context, dataAllocator, manager.getWorkBus(), manager.getBee(),
+        allowPortHunting);
     this.config = context.getConfig();
     this.allowPortHunting = allowPortHunting;
     this.isDistributedMode = isDistributedMode;

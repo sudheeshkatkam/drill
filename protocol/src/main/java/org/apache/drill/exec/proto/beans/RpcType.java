@@ -25,6 +25,7 @@ public enum RpcType implements com.dyuproject.protostuff.EnumLite<RpcType>
     HANDSHAKE(0),
     ACK(1),
     GOODBYE(2),
+    SASL_MESSAGE(24),
     RUN_QUERY(3),
     CANCEL_QUERY(4),
     REQUEST_RESULTS(5),
@@ -87,6 +88,7 @@ public enum RpcType implements com.dyuproject.protostuff.EnumLite<RpcType>
             case 21: return COLUMNS;
             case 22: return CREATE_PREPARED_STATEMENT;
             case 23: return PREPARED_STATEMENT;
+            case 24: return SASL_MESSAGE;
             default: return null;
         }
     }

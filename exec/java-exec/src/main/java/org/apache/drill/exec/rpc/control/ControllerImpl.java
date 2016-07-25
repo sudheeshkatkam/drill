@@ -45,7 +45,7 @@ public class ControllerImpl implements Controller {
   private final boolean allowPortHunting;
   private final CustomHandlerRegistry handlerRegistry;
 
-  public ControllerImpl(BootStrapContext context, ControlMessageHandler handler, BufferAllocator allocator,
+  public ControllerImpl(BootStrapContext context, BufferAllocator allocator, ControlMessageHandler handler,
       boolean allowPortHunting) {
     super();
     this.handler = handler;
