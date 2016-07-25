@@ -28,10 +28,8 @@ import io.netty.channel.socket.SocketChannel;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.UUID;
-import java.util.concurrent.Executor;
 
 import org.apache.drill.common.config.DrillConfig;
-import org.apache.drill.common.scanner.persistence.ScanResult;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.exception.DrillbitStartupException;
 import org.apache.drill.exec.memory.BufferAllocator;
@@ -66,6 +64,7 @@ import org.apache.drill.exec.rpc.user.UserServer.UserClientConnectionImpl;
 import org.apache.drill.exec.rpc.user.security.UserAuthenticationException;
 import org.apache.drill.exec.rpc.user.security.UserAuthenticator;
 import org.apache.drill.exec.rpc.user.security.UserAuthenticatorFactory;
+import org.apache.drill.exec.server.BootStrapContext;
 import org.apache.drill.exec.work.user.UserWorker;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -79,16 +78,17 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
   final UserAuthenticator authenticator;
   final InboundImpersonationManager impersonationManager;
 
-  public UserServer(DrillConfig config, ScanResult classpathScan, BufferAllocator alloc, EventLoopGroup eventLoopGroup,
-      UserWorker worker, Executor executor) throws DrillbitStartupException {
-    super(UserRpcConfig.getMapping(config, executor),
+  public UserServer(BootStrapContext context, BufferAllocator alloc, EventLoopGroup eventLoopGroup,
+                    UserWorker worker) throws DrillbitStartupException {
+    super(UserRpcConfig.getMapping(context.getConfig(), context.getExecutor()),
         alloc.getAsByteBufAllocator(),
         eventLoopGroup);
     this.worker = worker;
     this.alloc = alloc;
     // TODO: move this up
+    final DrillConfig config = context.getConfig();
     if (config.getBoolean(ExecConstants.USER_AUTHENTICATION_ENABLED)) {
-      authenticator = UserAuthenticatorFactory.createAuthenticator(config, classpathScan);
+      authenticator = UserAuthenticatorFactory.createAuthenticator(config, context.getClasspathScan());
     } else {
       authenticator = null;
     }
