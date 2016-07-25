@@ -814,6 +814,8 @@ public final class SchemaUserProtos
                     output.writeString(4, message.getErrorId(), false);
                 if(message.hasErrorMessage())
                     output.writeString(5, message.getErrorMessage(), false);
+                for(String authenticationMechanisms : message.getAuthenticationMechanismsList())
+                    output.writeString(6, authenticationMechanisms, true);
             }
             public boolean isInitialized(org.apache.drill.exec.proto.UserProtos.BitToUserHandshake message)
             {
@@ -865,6 +867,9 @@ public final class SchemaUserProtos
                         case 5:
                             builder.setErrorMessage(input.readString());
                             break;
+                        case 6:
+                            builder.addAuthenticationMechanisms(input.readString());
+                            break;
                         default:
                             input.handleUnknownField(number, this);
                     }
@@ -909,6 +914,7 @@ public final class SchemaUserProtos
                 case 3: return "status";
                 case 4: return "errorId";
                 case 5: return "errorMessage";
+                case 6: return "authenticationMechanisms";
                 default: return null;
             }
         }
@@ -924,6 +930,133 @@ public final class SchemaUserProtos
             fieldMap.put("status", 3);
             fieldMap.put("errorId", 4);
             fieldMap.put("errorMessage", 5);
+            fieldMap.put("authenticationMechanisms", 6);
+        }
+    }
+
+    public static final class SaslMessage
+    {
+        public static final org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.MessageSchema WRITE =
+            new org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.MessageSchema();
+        public static final org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.BuilderSchema MERGE =
+            new org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.BuilderSchema();
+        
+        public static class MessageSchema implements com.dyuproject.protostuff.Schema<org.apache.drill.exec.proto.UserProtos.SaslMessage>
+        {
+            public void writeTo(com.dyuproject.protostuff.Output output, org.apache.drill.exec.proto.UserProtos.SaslMessage message) throws java.io.IOException
+            {
+                if(message.hasMechanism())
+                    output.writeString(1, message.getMechanism(), false);
+                if(message.hasData())
+                    output.writeByteArray(2, message.getData().toByteArray(), false);
+
+                if(message.hasStatus())
+                    output.writeEnum(3, message.getStatus().getNumber(), false);
+            }
+            public boolean isInitialized(org.apache.drill.exec.proto.UserProtos.SaslMessage message)
+            {
+                return message.isInitialized();
+            }
+            public java.lang.String getFieldName(int number)
+            {
+                return org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.getFieldName(number);
+            }
+            public int getFieldNumber(java.lang.String name)
+            {
+                return org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.getFieldNumber(name);
+            }
+            public java.lang.Class<org.apache.drill.exec.proto.UserProtos.SaslMessage> typeClass()
+            {
+                return org.apache.drill.exec.proto.UserProtos.SaslMessage.class;
+            }
+            public java.lang.String messageName()
+            {
+                return org.apache.drill.exec.proto.UserProtos.SaslMessage.class.getSimpleName();
+            }
+            public java.lang.String messageFullName()
+            {
+                return org.apache.drill.exec.proto.UserProtos.SaslMessage.class.getName();
+            }
+            //unused
+            public void mergeFrom(com.dyuproject.protostuff.Input input, org.apache.drill.exec.proto.UserProtos.SaslMessage message) throws java.io.IOException {}
+            public org.apache.drill.exec.proto.UserProtos.SaslMessage newMessage() { return null; }
+        }
+        public static class BuilderSchema implements com.dyuproject.protostuff.Schema<org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder>
+        {
+            public void mergeFrom(com.dyuproject.protostuff.Input input, org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder builder) throws java.io.IOException
+            {
+                for(int number = input.readFieldNumber(this);; number = input.readFieldNumber(this))
+                {
+                    switch(number)
+                    {
+                        case 0:
+                            return;
+                        case 1:
+                            builder.setMechanism(input.readString());
+                            break;
+                        case 2:
+                            builder.setData(com.google.protobuf.ByteString.copyFrom(input.readByteArray()));
+                            break;
+                        case 3:
+                            builder.setStatus(org.apache.drill.exec.proto.UserProtos.SaslStatus.valueOf(input.readEnum()));
+                            break;
+                        default:
+                            input.handleUnknownField(number, this);
+                    }
+                }
+            }
+            public boolean isInitialized(org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder builder)
+            {
+                return builder.isInitialized();
+            }
+            public org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder newMessage()
+            {
+                return org.apache.drill.exec.proto.UserProtos.SaslMessage.newBuilder();
+            }
+            public java.lang.String getFieldName(int number)
+            {
+                return org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.getFieldName(number);
+            }
+            public int getFieldNumber(java.lang.String name)
+            {
+                return org.apache.drill.exec.proto.SchemaUserProtos.SaslMessage.getFieldNumber(name);
+            }
+            public java.lang.Class<org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder> typeClass()
+            {
+                return org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder.class;
+            }
+            public java.lang.String messageName()
+            {
+                return org.apache.drill.exec.proto.UserProtos.SaslMessage.class.getSimpleName();
+            }
+            public java.lang.String messageFullName()
+            {
+                return org.apache.drill.exec.proto.UserProtos.SaslMessage.class.getName();
+            }
+            //unused
+            public void writeTo(com.dyuproject.protostuff.Output output, org.apache.drill.exec.proto.UserProtos.SaslMessage.Builder builder) throws java.io.IOException {}
+        }
+        public static java.lang.String getFieldName(int number)
+        {
+            switch(number)
+            {
+                case 1: return "mechanism";
+                case 2: return "data";
+                case 3: return "status";
+                default: return null;
+            }
+        }
+        public static int getFieldNumber(java.lang.String name)
+        {
+            java.lang.Integer number = fieldMap.get(name);
+            return number == null ? 0 : number.intValue();
+        }
+        private static final java.util.HashMap<java.lang.String,java.lang.Integer> fieldMap = new java.util.HashMap<java.lang.String,java.lang.Integer>();
+        static
+        {
+            fieldMap.put("mechanism", 1);
+            fieldMap.put("data", 2);
+            fieldMap.put("status", 3);
         }
     }
 

@@ -10,12 +10,14 @@ import "BitData.proto";
 import "BitControl.proto";
 import "ExecutionProtos.proto";
 
-
-////// UserToBit RPC ///////
+////// User <-> Bit RPC ///////
 enum RpcType {
   HANDSHAKE = 0;
   ACK = 1;
   GOODBYE = 2;
+
+  // user to bit and bit to user
+  SASL_MESSAGE = 24;
 
   // user to bit
   RUN_QUERY = 3; // user is submitting a new query to the drillbit
@@ -93,6 +95,7 @@ enum HandshakeStatus {
   RPC_VERSION_MISMATCH = 2; // Client and Server RPC versions are different
   AUTH_FAILED = 3; // User authentication failed
   UNKNOWN_FAILURE = 4; // Unknown failure, refer to the error message for more details
+  AUTH_REQUIRED = 5; // User authentication required
 }
 
 message BitToUserHandshake {
@@ -100,6 +103,21 @@ message BitToUserHandshake {
   optional HandshakeStatus status = 3;
   optional string errorId = 4;
   optional string errorMessage = 5;
+  repeated string authenticationMechanisms = 6;
+}
+
+enum SaslStatus {
+  SASL_UNKNOWN = 0;
+  SASL_START = 1;
+  SASL_AUTH_IN_PROGRESS = 2;
+  SASL_AUTH_SUCCESS = 3;
+  SASL_AUTH_FAILED = 4;
+}
+
+message SaslMessage {
+  optional string mechanism = 1;
+  optional bytes data = 2;
+  optional SaslStatus status = 3;
 }
 
 /*

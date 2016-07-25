@@ -24,6 +24,8 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.dyuproject.protostuff.GraphIOUtil;
 import com.dyuproject.protostuff.Input;
@@ -51,6 +53,7 @@ public final class BitToUserHandshake implements Externalizable, Message<BitToUs
     private HandshakeStatus status;
     private String errorId;
     private String errorMessage;
+    private List<String> authenticationMechanisms;
 
     public BitToUserHandshake()
     {
@@ -108,6 +111,19 @@ public final class BitToUserHandshake implements Externalizable, Message<BitToUs
     public BitToUserHandshake setErrorMessage(String errorMessage)
     {
         this.errorMessage = errorMessage;
+        return this;
+    }
+
+    // authenticationMechanisms
+
+    public List<String> getAuthenticationMechanismsList()
+    {
+        return authenticationMechanisms;
+    }
+
+    public BitToUserHandshake setAuthenticationMechanismsList(List<String> authenticationMechanisms)
+    {
+        this.authenticationMechanisms = authenticationMechanisms;
         return this;
     }
 
@@ -177,6 +193,11 @@ public final class BitToUserHandshake implements Externalizable, Message<BitToUs
                 case 5:
                     message.errorMessage = input.readString();
                     break;
+                case 6:
+                    if(message.authenticationMechanisms == null)
+                        message.authenticationMechanisms = new ArrayList<String>();
+                    message.authenticationMechanisms.add(input.readString());
+                    break;
                 default:
                     input.handleUnknownField(number, this);
             }   
@@ -197,6 +218,15 @@ public final class BitToUserHandshake implements Externalizable, Message<BitToUs
 
         if(message.errorMessage != null)
             output.writeString(5, message.errorMessage, false);
+
+        if(message.authenticationMechanisms != null)
+        {
+            for(String authenticationMechanisms : message.authenticationMechanisms)
+            {
+                if(authenticationMechanisms != null)
+                    output.writeString(6, authenticationMechanisms, true);
+            }
+        }
     }
 
     public String getFieldName(int number)
@@ -207,6 +237,7 @@ public final class BitToUserHandshake implements Externalizable, Message<BitToUs
             case 3: return "status";
             case 4: return "errorId";
             case 5: return "errorMessage";
+            case 6: return "authenticationMechanisms";
             default: return null;
         }
     }
@@ -224,6 +255,7 @@ public final class BitToUserHandshake implements Externalizable, Message<BitToUs
         __fieldMap.put("status", 3);
         __fieldMap.put("errorId", 4);
         __fieldMap.put("errorMessage", 5);
+        __fieldMap.put("authenticationMechanisms", 6);
     }
     
 }
