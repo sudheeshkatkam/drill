@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.drill.exec.proto.UserProtos.QueryResultsMode.STREAM_FULL;
 import static org.apache.drill.exec.proto.UserProtos.RunQuery.newBuilder;
-import io.netty.buffer.DrillBuf;
 import io.netty.channel.EventLoopGroup;
 
 import java.io.Closeable;
@@ -72,12 +71,10 @@ import org.apache.drill.exec.proto.UserProtos.RpcType;
 import org.apache.drill.exec.proto.UserProtos.RunQuery;
 import org.apache.drill.exec.proto.UserProtos.UserProperties;
 import org.apache.drill.exec.proto.helper.QueryIdHelper;
-import org.apache.drill.exec.rpc.BasicClientWithConnection.ServerConnection;
 import org.apache.drill.exec.rpc.ChannelClosedException;
 import org.apache.drill.exec.rpc.ConnectionThrottle;
 import org.apache.drill.exec.rpc.DrillRpcFuture;
 import org.apache.drill.exec.rpc.NamedThreadFactory;
-import org.apache.drill.exec.rpc.RpcConnectionHandler;
 import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.TransportCheck;
 import org.apache.drill.exec.rpc.user.QueryDataBatch;
@@ -89,7 +86,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
-import com.google.common.util.concurrent.AbstractCheckedFuture;
+
 import com.google.common.util.concurrent.SettableFuture;
 
 /**
@@ -285,9 +282,7 @@ public class DrillClient implements Closeable, ConnectionThrottle {
   }
 
   private void connect(DrillbitEndpoint endpoint) throws RpcException {
-    final FutureHandler f = new FutureHandler();
-    client.connect(f, endpoint, props, getUserCredentials());
-    f.checkedGet();
+    client.connect(endpoint, props, getUserCredentials()).checkedGet();
   }
 
   public BufferAllocator getAllocator() {
@@ -657,36 +652,6 @@ public class DrillClient implements Closeable, ConnectionThrottle {
       if (logger.isDebugEnabled()) {
         logger.debug("Query ID arrived: {}", QueryIdHelper.getQueryId(queryId));
       }
-    }
-  }
-
-  private class FutureHandler extends AbstractCheckedFuture<Void, RpcException> implements RpcConnectionHandler<ServerConnection>, DrillRpcFuture<Void>{
-    protected FutureHandler() {
-      super( SettableFuture.<Void>create());
-    }
-
-    @Override
-    public void connectionSucceeded(ServerConnection connection) {
-      getInner().set(null);
-    }
-
-    @Override
-    public void connectionFailed(FailureType type, Throwable t) {
-      getInner().setException(new RpcException(String.format("%s : %s", type.name(), t.getMessage()), t));
-    }
-
-    private SettableFuture<Void> getInner() {
-      return (SettableFuture<Void>) delegate();
-    }
-
-    @Override
-    protected RpcException mapException(Exception e) {
-      return RpcException.mapException(e);
-    }
-
-    @Override
-    public DrillBuf getBuffer() {
-      return null;
     }
   }
 }

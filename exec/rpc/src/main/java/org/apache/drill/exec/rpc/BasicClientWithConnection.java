@@ -43,10 +43,11 @@ public abstract class BasicClientWithConnection<T extends EnumLite, HANDSHAKE_SE
 
   @Override
   protected Response handle(ServerConnection connection, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException {
-    return handleReponse( (ConnectionThrottle) connection, rpcType, pBody, dBody);
+    return handleResponse(connection, rpcType, pBody, dBody);
   }
 
-  protected abstract Response handleReponse(ConnectionThrottle throttle, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException ;
+  protected abstract Response handleResponse(ConnectionThrottle throttle, int rpcType, ByteBuf pBody, ByteBuf dBody)
+      throws RpcException;
 
   @Override
   public ServerConnection initRemoteConnection(SocketChannel channel) {
