@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.drill.common.DrillAutoCloseables;
+import org.apache.drill.common.config.ConnectionParams;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.exec.ExecConstants;
@@ -65,13 +66,10 @@ import org.apache.drill.exec.proto.UserProtos.GetTablesReq;
 import org.apache.drill.exec.proto.UserProtos.GetTablesResp;
 import org.apache.drill.exec.proto.UserProtos.LikeFilter;
 import org.apache.drill.exec.proto.UserProtos.PreparedStatementHandle;
-import org.apache.drill.exec.proto.UserProtos.Property;
 import org.apache.drill.exec.proto.UserProtos.QueryPlanFragments;
 import org.apache.drill.exec.proto.UserProtos.RpcType;
 import org.apache.drill.exec.proto.UserProtos.RunQuery;
-import org.apache.drill.exec.proto.UserProtos.UserProperties;
 import org.apache.drill.exec.proto.helper.QueryIdHelper;
-import org.apache.drill.exec.rpc.ChannelClosedException;
 import org.apache.drill.exec.rpc.ConnectionThrottle;
 import org.apache.drill.exec.rpc.DrillRpcFuture;
 import org.apache.drill.exec.rpc.NamedThreadFactory;
@@ -85,9 +83,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
 
 import com.google.common.util.concurrent.SettableFuture;
+
+import javax.security.sasl.SaslException;
 
 /**
  * Thin wrapper around a UserClient that handles connect/close and transforms
@@ -96,10 +95,10 @@ import com.google.common.util.concurrent.SettableFuture;
 public class DrillClient implements Closeable, ConnectionThrottle {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DrillClient.class);
 
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  protected static final ObjectMapper objectMapper = new ObjectMapper();
   private final DrillConfig config;
   private UserClient client;
-  private UserProperties props = null;
+  private ConnectionParams connectionParams;
   private volatile ClusterCoordinator clusterCoordinator;
   private volatile boolean connected = false;
   private final BufferAllocator allocator;
@@ -201,6 +200,7 @@ public class DrillClient implements Closeable, ConnectionThrottle {
     if (connected) {
       return;
     }
+    connectionParams = ConnectionParams.createParamsFromProperties(props);
 
     final DrillbitEndpoint endpoint;
     if (isDirectConnection) {
@@ -225,15 +225,7 @@ public class DrillClient implements Closeable, ConnectionThrottle {
       // shuffle the collection then get the first endpoint
       Collections.shuffle(endpoints);
       endpoint = endpoints.iterator().next();
-    }
-
-    if (props != null) {
-      final UserProperties.Builder upBuilder = UserProperties.newBuilder();
-      for (final String key : props.stringPropertyNames()) {
-        upBuilder.addProperties(Property.newBuilder().setKey(key).setValue(props.getProperty(key)));
-      }
-
-      this.props = upBuilder.build();
+      connectionParams.setParam(ConnectionParams.SERVICE_HOST, endpoint.getAddress());
     }
 
     eventLoopGroup = createEventLoop(config.getInt(ExecConstants.CLIENT_RPC_THREADS), "Client-");
@@ -282,7 +274,14 @@ public class DrillClient implements Closeable, ConnectionThrottle {
   }
 
   private void connect(DrillbitEndpoint endpoint) throws RpcException {
-    client.connect(endpoint, props, getUserCredentials()).checkedGet();
+    client.connect(endpoint, connectionParams, getUserCredentials()).checkedGet();
+    if (client.serverRequiresAuthentication()) {
+      try {
+        client.authenticate(null).checkedGet();
+      } catch (SaslException e) {
+        throw new RpcException(e);
+      }
+    }
   }
 
   public BufferAllocator getAllocator() {
@@ -400,19 +399,9 @@ public class DrillClient implements Closeable, ConnectionThrottle {
    * Helper method to generate the UserCredentials message from the properties.
    */
   private UserBitShared.UserCredentials getUserCredentials() {
-    // If username is not propagated as one of the properties
-    String userName = "anonymous";
-
-    if (props != null) {
-      for (Property property: props.getPropertiesList()) {
-        if (property.getKey().equalsIgnoreCase("user") && !Strings.isNullOrEmpty(property.getValue())) {
-          userName = property.getValue();
-          break;
-        }
-      }
-    }
-
-    return UserBitShared.UserCredentials.newBuilder().setUserName(userName).build();
+    return UserBitShared.UserCredentials.newBuilder()
+        .setUserName(connectionParams.getUserName())
+        .build();
   }
 
   public DrillRpcFuture<Ack> cancelQuery(QueryId id) {
@@ -586,7 +575,7 @@ public class DrillClient implements Closeable, ConnectionThrottle {
     client.submitQuery(resultsListener, newBuilder().setResultsMode(STREAM_FULL).setType(type).setPlan(plan).build());
   }
 
-  private class ListHoldingResultsListener implements UserResultsListener {
+  protected class ListHoldingResultsListener implements UserResultsListener {
     private final Vector<QueryDataBatch> results = new Vector<>();
     private final SettableFuture<List<QueryDataBatch>> future = SettableFuture.create();
     private final UserProtos.RunQuery query ;
@@ -598,30 +587,13 @@ public class DrillClient implements Closeable, ConnectionThrottle {
 
     @Override
     public void submissionFailed(UserException ex) {
-      // or  !client.isActive()
-      if (ex.getCause() instanceof ChannelClosedException) {
-        if (reconnect()) {
-          try {
-            client.submitQuery(this, query);
-          } catch (Exception e) {
-            fail(e);
-          }
-        } else {
-          fail(ex);
-        }
-      } else {
-        fail(ex);
-      }
+      logger.debug("Submission failed.", ex);
+      future.setException(ex);
+      future.set(results);
     }
 
     @Override
     public void queryCompleted(QueryState state) {
-      future.set(results);
-    }
-
-    private void fail(Exception ex) {
-      logger.debug("Submission failed.", ex);
-      future.setException(ex);
       future.set(results);
     }
 

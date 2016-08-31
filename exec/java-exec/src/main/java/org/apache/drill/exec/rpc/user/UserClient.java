@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.rpc.user;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractCheckedFuture;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -25,10 +26,16 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.DrillBuf;
 import io.netty.channel.EventLoopGroup;
 
+import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
+import org.apache.drill.common.config.ConnectionParams;
 import org.apache.drill.common.config.DrillConfig;
+import org.apache.drill.exec.client.AuthenticationUtil;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.proto.GeneralRPCProtos.Ack;
@@ -47,7 +54,6 @@ import org.apache.drill.exec.proto.UserProtos.QueryPlanFragments;
 import org.apache.drill.exec.proto.UserProtos.RpcType;
 import org.apache.drill.exec.proto.UserProtos.RunQuery;
 import org.apache.drill.exec.proto.UserProtos.SaslMessage;
-import org.apache.drill.exec.proto.UserProtos.UserProperties;
 import org.apache.drill.exec.proto.UserProtos.SaslStatus;
 import org.apache.drill.exec.proto.UserProtos.UserToBitHandshake;
 import org.apache.drill.exec.rpc.Acks;
@@ -62,6 +68,7 @@ import org.apache.drill.exec.rpc.RpcException;
 
 import com.google.protobuf.MessageLite;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
+import org.apache.hadoop.security.UserGroupInformation;
 
 import javax.security.sasl.SaslClient;
 import javax.security.sasl.SaslException;
@@ -71,7 +78,11 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
 
   private final QueryResultHandler queryResultHandler = new QueryResultHandler();
   private boolean supportComplexTypes = true;
-  private SaslClient saslClient;
+  private ConnectionParams connectionParams;
+
+  // these are used for authentication
+  private volatile List<String> supportedMechs = null;
+  private SaslClient saslClient = null;
 
   public UserClient(DrillConfig config, boolean supportComplexTypes, BufferAllocator alloc,
                     EventLoopGroup eventLoopGroup, Executor eventExecutor) {
@@ -90,32 +101,67 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
     send(queryResultHandler.getWrappedListener(resultsListener), RpcType.RUN_QUERY, query, QueryId.class);
   }
 
-  public CheckedFuture<Void, RpcException> connect(DrillbitEndpoint endpoint, UserProperties props,
-                                                           UserCredentials credentials) {
+  public CheckedFuture<Void, RpcException> connect(DrillbitEndpoint endpoint, ConnectionParams connectionParams,
+                                                   UserCredentials credentials) {
     final FutureHandler handler = new FutureHandler();
     UserToBitHandshake.Builder hsBuilder = UserToBitHandshake.newBuilder()
         .setRpcVersion(UserRpcConfig.RPC_VERSION)
         .setSupportListening(true)
         .setSupportComplexTypes(supportComplexTypes)
         .setSupportTimeout(true)
-        .setCredentials(credentials);
-
-    if (props != null) {
-      hsBuilder.setProperties(props);
-    }
+        .setCredentials(credentials)
+        .setProperties(connectionParams.serializeForServer());
+    this.connectionParams = connectionParams;
 
     connectAsClient(queryResultHandler.getWrappedConnectionHandler(handler),
         hsBuilder.build(), endpoint.getAddress(), endpoint.getUserPort());
     return handler;
   }
 
-  public CheckedFuture<Void, SaslException> authenticate() {
-    final SettableFuture<Void> settableFuture = SettableFuture.create(); // future used in exchange
+  /**
+   * Check (after {@link #connect connecting}) if server requires authentication.
+   *
+   * @return true if server requires authentication
+   */
+  public boolean serverRequiresAuthentication() {
+    return supportedMechs != null;
+  }
+
+  /**
+   * Returns a list of supported authentication mechanism (after {@link #connect connecting}), or null if
+   * not yet connected, or authentication is not required.
+   *
+   * @return list of supported authentication mechanisms
+   */
+  public List<String> getSupportedAuthenticationMechanisms() {
+    return supportedMechs;
+  }
+
+  /**
+   * Authenticate to the server asynchronously. Returns a future that {@link CheckedFuture#checkedGet results}
+   * in null if authentication succeeds, or throws a {@link SaslException} with relevant message if
+   * authentication fails.
+   *
+   * This method uses parameters provided at {@link #connect connection time} and override them with the
+   * given parameters, if any.
+   *
+   * @param paramOverrides parameter overrides
+   * @return result of authentication request
+   */
+  public CheckedFuture<Void, SaslException> authenticate(final ConnectionParams paramOverrides) {
+    if (paramOverrides != null) {
+      connectionParams.merge(paramOverrides);
+    }
+    assert supportedMechs != null;
+    final SettableFuture<Void> settableFuture = SettableFuture.create(); // future used in SASL exchange
     final CheckedFuture<Void, SaslException> future =
         new AbstractCheckedFuture<Void, SaslException>(settableFuture) {
+
           @Override
           protected SaslException mapException(Exception e) {
-            connection.close(); // to ensure connection is dropped
+            if (connection != null) {
+              connection.close(); // to ensure connection is dropped
+            }
             if (e instanceof ExecutionException) {
               final Throwable cause = e.getCause();
               if (cause instanceof SaslException) {
@@ -126,27 +172,107 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
           }
         };
 
-    if (saslClient == null) {
-      settableFuture.setException(new SaslException("Server does not require authentication, " +
-          "or something went wrong during authentication setup?"));
-    } else {
-      try {
-        send(new SaslClientListener(settableFuture),
-            RpcType.SASL_MESSAGE,
-            SaslMessage.newBuilder()
-                .setMechanism(saslClient.getMechanismName())
-                .setStatus(SaslStatus.SASL_START)
-                .setData(saslClient.hasInitialResponse() ?
-                    ByteString.copyFrom(saslClient.evaluateChallenge(new byte[0])) : ByteString.EMPTY)
-                .build(),
-            SaslMessage.class);
-        logger.trace("Initiated SASL exchange.");
-      } catch (Exception e) {
-        logger.trace("Failed to initiate SASL exchange.");
-        settableFuture.setException(e);
+    final String authMechanismToUse = AuthenticationUtil.getMechanismFromParams(connectionParams);
+    if (authMechanismToUse == null) {
+      settableFuture.setException(new SaslException("Cannot derive mechanism. Insufficient credentials?"));
+      return future;
+    }
+
+    boolean isChosenMechanismSupported = false;
+    for (final String mechanism : supportedMechs) {
+      if (mechanism.equalsIgnoreCase(authMechanismToUse)) {
+        isChosenMechanismSupported = true;
+        break;
       }
     }
+    if (!isChosenMechanismSupported) {
+      settableFuture.setException(new SaslException(
+          String.format("Server does not support authentication using '%s', supported mechanisms: %s",
+              authMechanismToUse, supportedMechs)));
+      return future;
+    }
+    logger.trace("Will try to authenticate using {} mechanism.", authMechanismToUse);
+
+    // TODO: alternatively, properties file that says name and corresponding implementation file!
+    switch (authMechanismToUse.toUpperCase()) {
+
+    case "PLAIN": {
+      final String name = connectionParams.getUserName();
+      final String password = connectionParams.getParam(ConnectionParams.PASSWORD);
+      try {
+        saslClient = AuthenticationUtil.getPlainSaslClient(name, password);
+      } catch (SaslException e) {
+        settableFuture.setException(e);
+        return future;
+      }
+      break;
+    }
+
+    case "KERBEROS": {
+      final String principal = AuthenticationUtil.deriveKerberosName(connectionParams);
+      final String[] names = AuthenticationUtil.splitKerberosName(principal); // ignore names[2]
+      try {
+        saslClient = AuthenticationUtil.getKerberosSaslClient(names[0], names[1], connectionParams);
+      } catch (SaslException e) {
+        settableFuture.setException(e);
+        return future;
+      }
+      break;
+    }
+
+    default: // not possible;
+      settableFuture.setException(new SaslException("Unexpected failure."));
+      return future;
+    }
+
+    if (saslClient == null) {
+      settableFuture.setException(new SaslException("Cannot initiate. Insufficient credentials?"));
+      return future;
+    }
+    logger.trace("Initiating SASL exchange..");
+
+    try {
+      final ByteString responseData;
+      if (saslClient.hasInitialResponse()) {
+        responseData = ByteString.copyFrom(evaluateChallenge(saslClient, new byte[0]));
+      } else {
+        responseData = ByteString.EMPTY;
+      }
+      send(new SaslClientListener(settableFuture),
+          RpcType.SASL_MESSAGE,
+          SaslMessage.newBuilder()
+              .setMechanism(saslClient.getMechanismName())
+              .setStatus(SaslStatus.SASL_START)
+              .setData(responseData)
+              .build(),
+          SaslMessage.class);
+      logger.trace("Initiated SASL exchange.");
+    } catch (SaslException e) {
+      settableFuture.setException(e);
+    }
     return future;
+  }
+
+  private static byte[] evaluateChallenge(final SaslClient saslClient, final byte[] challenge)
+      throws SaslException {
+    try {
+      return UserGroupInformation.getLoginUser().doAs(
+          new PrivilegedExceptionAction<byte[]>() {
+            @Override
+            public byte[] run() throws Exception {
+              return saslClient.evaluateChallenge(challenge);
+            }
+          });
+    } catch (final UndeclaredThrowableException e) {
+      if (e.getCause() instanceof SaslException) {
+        throw (SaslException) e.getCause();
+      } else {
+        throw new SaslException(
+            String.format("Unexpected failure (%s)", saslClient.getMechanismName()), e.getCause());
+      }
+    } catch (final IOException | InterruptedException e) {
+      throw new SaslException(String.format("Unexpected failure (%s)", saslClient.getMechanismName()), e);
+    }
   }
 
   // handles SASL message exchange
@@ -160,19 +286,20 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
 
     @Override
     public void failed(RpcException ex) {
-      future.setException(ex);
+      future.setException(new SaslException("Unexpected failure", ex));
     }
 
     @Override
     public void success(SaslMessage value, ByteBuf buffer) {
-      logger.trace("Server responded with message of type: " + value.getStatus());
+      logger.trace("Server responded with message of type: {}", value.getStatus());
       switch (value.getStatus()) {
       case SASL_AUTH_IN_PROGRESS: {
         try {
           final SaslMessage.Builder response = SaslMessage.newBuilder();
-          final byte[] responseBytes = saslClient.evaluateChallenge(value.getData().toByteArray());
-          logger.trace("Evaluated challenge. Completed? {}. Sending response to server..", saslClient.isComplete());
-          if (saslClient.isComplete()) {
+          final byte[] responseBytes = evaluateChallenge(saslClient, value.getData().toByteArray());
+          final boolean isComplete = saslClient.isComplete();
+          logger.trace("Evaluated challenge. Completed? {}. Sending response to server..", isComplete);
+          if (isComplete) {
             response.setStatus(SaslStatus.SASL_AUTH_SUCCESS);
             if (responseBytes != null) {
               response.setData(ByteString.copyFrom(responseBytes));
@@ -202,7 +329,7 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
             future.set(null); // success
           } else {
             // server completed before client; so try once, fail otherwise
-            saslClient.evaluateChallenge(value.getData().toByteArray()); // discard response
+            evaluateChallenge(saslClient, value.getData().toByteArray()); // discard response
             if (saslClient.isComplete()) {
               logger.trace("Successfully authenticated to server using {}", saslClient.getMechanismName());
               saslClient.dispose();
@@ -219,11 +346,11 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
         break;
       }
       case SASL_AUTH_FAILED: {
-        future.setException(new SaslException("Insufficient or incorrect credentials?"));
+        future.setException(new SaslException("Incorrect credentials?"));
         try {
           saslClient.dispose();
         } catch (final SaslException ignored) {
-          logger.warn("Auth failed; cleanup also failed.", ignored);
+          // ignored
         }
         saslClient = null;
         break;
@@ -289,9 +416,12 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
     switch (inbound.getStatus()) {
     case SUCCESS:
       break;
-    case AUTH_REQUIRED:
-      // need to set sasl server somehow.
-    case AUTH_FAILED:
+    case AUTH_REQUIRED: {
+      logger.trace("Server requires authentication before proceeding.");
+      supportedMechs = ImmutableList.copyOf(inbound.getAuthenticationMechanismsList());
+      break;
+    }
+    case AUTH_FAILED: // no longer a status returned by server
     case RPC_VERSION_MISMATCH:
     case UNKNOWN_FAILURE:
       final String errMsg = String.format("Status: %s, Error Id: %s, Error message: %s",

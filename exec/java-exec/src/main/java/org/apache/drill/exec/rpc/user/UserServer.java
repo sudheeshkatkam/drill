@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.rpc.user;
 
+import com.google.common.collect.ImmutableSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -28,6 +29,7 @@ import java.net.SocketAddress;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.drill.common.config.ConnectionParams;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.exception.DrillbitStartupException;
@@ -53,22 +55,28 @@ import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
 import org.apache.drill.exec.rpc.user.UserServer.UserClientConnectionImpl;
 import org.apache.drill.exec.rpc.RequestHandler;
+import org.apache.drill.exec.rpc.security.AuthenticationMechanismFactory;
+import org.apache.drill.exec.rpc.security.plain.PlainMechanism;
 import org.apache.drill.exec.rpc.user.security.UserAuthenticationException;
-import org.apache.drill.exec.rpc.user.security.UserAuthenticator;
-import org.apache.drill.exec.rpc.user.security.UserAuthenticatorFactory;
 import org.apache.drill.exec.server.BootStrapContext;
 import org.apache.drill.exec.work.user.UserWorker;
 import javax.security.sasl.SaslException;
 import javax.security.sasl.SaslServer;
 
 import com.google.protobuf.MessageLite;
+import org.apache.hadoop.security.UserGroupInformation;
 
 public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UserServer.class);
 
+  private static final ImmutableSet<Integer> SUPPORTED_RPC_VERSIONS = ImmutableSet.of(5, 6);
+
+  // for backward compatibility (<= 1.8) during authentication
+  private static final int NON_SASL_RPC_VERSION_SUPPORTED = 5;
+
   final UserWorker worker;
   final BufferAllocator alloc;
-  final UserAuthenticator authenticator;
+  final AuthenticationMechanismFactory authFactory; // null iff user auth is disabled
   final InboundImpersonationManager impersonationManager;
   final UserServerRequestHandler handler;
 
@@ -81,16 +89,11 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
     this.alloc = alloc;
     // TODO: move this up
     final DrillConfig config = context.getConfig();
-    if (config.getBoolean(ExecConstants.USER_AUTHENTICATION_ENABLED)) {
-      authenticator = UserAuthenticatorFactory.createAuthenticator(config, context.getClasspathScan());
-    } else {
-      authenticator = null;
-    }
-    if (config.getBoolean(ExecConstants.IMPERSONATION_ENABLED)) {
-      impersonationManager = new InboundImpersonationManager();
-    } else {
-      impersonationManager = null;
-    }
+    authFactory = !config.getBoolean(ExecConstants.USER_AUTHENTICATION_ENABLED) ? null :
+        new AuthenticationMechanismFactory(context.getClasspathScan(), config,
+            config.getStringList("drill.exec.security.user.auth.mechanisms"));
+    impersonationManager = !config.getBoolean(ExecConstants.IMPERSONATION_ENABLED) ? null :
+        new InboundImpersonationManager();
     handler = new UserServerRequestHandler(worker);
   }
 
@@ -164,23 +167,28 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
 
     public UserClientConnectionImpl(SocketChannel channel) {
       super(channel, "user client");
-      currentHandler = handler;
+      currentHandler = authFactory == null ? handler : new UserServerAuthenticationHandler(handler);
     }
 
     void disableReadTimeout() {
       getChannel().pipeline().remove(BasicServer.TIMEOUT_HANDLER);
     }
 
-    void setHandshake(final UserToBitHandshake inbound) throws IOException {
+    void setHandshake(final UserToBitHandshake inbound) {
       this.inbound = inbound;
     }
 
     void initSaslServer(final String mechanismName, final Map<String, ?> properties)
-        throws IllegalStateException, SaslException {
+        throws IllegalStateException, IllegalArgumentException, SaslException {
       if (saslServer != null) {
         throw new IllegalStateException("SASL server already initialized.");
       }
-      this.saslServer = null;
+
+      this.saslServer = authFactory.getMechanism(mechanismName)
+          .createSaslServer(properties);
+      if (saslServer == null) {
+        throw new SaslException("Server could not initiate authentication. Insufficient parameters?");
+      }
     }
 
     SaslServer getSaslServer() {
@@ -188,6 +196,12 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
     }
 
     void finalizeSession() {
+      // Since user authentication completed at this point, assume authMethod is SIMPLE
+      // because for now, the authMethod is not needed in the future
+      final String userName = UserGroupInformation
+          .createRemoteUser(saslServer.getAuthorizationID() /**, AuthMethod.SIMPLE */)
+          .getShortUserName();
+      finalizeSession(userName);
     }
 
     void disposeSaslServer() throws SaslException {
@@ -286,7 +300,8 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
         OutboundRpcMessage msg = new OutboundRpcMessage(RpcMode.RESPONSE, this.handshakeType, coordinationId, handshakeResp);
         ctx.writeAndFlush(msg);
 
-        if (handshakeResp.getStatus() != HandshakeStatus.SUCCESS) {
+        if (handshakeResp.getStatus() != HandshakeStatus.SUCCESS &&
+            handshakeResp.getStatus() != HandshakeStatus.AUTH_REQUIRED) {
           // If handling handshake results in an error, throw an exception to terminate the connection.
           throw new RpcException("Handshake request failed: " + handshakeResp.getErrorMessage());
         }
@@ -296,45 +311,73 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
       public BitToUserHandshake getHandshakeResponse(UserToBitHandshake inbound) throws Exception {
         logger.trace("Handling handshake from user to bit. {}", inbound);
 
-
         // if timeout is unsupported or is set to false, disable timeout.
         if (!inbound.hasSupportTimeout() || !inbound.getSupportTimeout()) {
           connection.disableReadTimeout();
           logger.warn("Timeout Disabled as client doesn't support it.", connection.getName());
         }
 
-        BitToUserHandshake.Builder respBuilder = BitToUserHandshake.newBuilder()
+        final BitToUserHandshake.Builder respBuilder = BitToUserHandshake.newBuilder()
             .setRpcVersion(UserRpcConfig.RPC_VERSION);
-        connection.setHandshake(inbound);
 
         try {
-          if (inbound.getRpcVersion() != UserRpcConfig.RPC_VERSION) {
-            final String errMsg = String.format("Invalid rpc version. Expected %d, actual %d.",
-                UserRpcConfig.RPC_VERSION, inbound.getRpcVersion());
+          if (!SUPPORTED_RPC_VERSIONS.contains(inbound.getRpcVersion())) {
+            final String errMsg = String.format("Invalid rpc version. Expected %s, actual %d.",
+                SUPPORTED_RPC_VERSIONS, inbound.getRpcVersion());
 
             return handleFailure(respBuilder, HandshakeStatus.RPC_VERSION_MISMATCH, errMsg, null);
           }
 
-          if (authenticator != null) {
+          connection.setHandshake(inbound);
+
+          if (authFactory == null) { // authentication is disabled
+            connection.finalizeSession(inbound.getCredentials().getUserName());
+            respBuilder.setStatus(HandshakeStatus.SUCCESS);
+            return respBuilder.build();
+          }
+
+          if (inbound.getRpcVersion() == NON_SASL_RPC_VERSION_SUPPORTED) { // for backward compatibility
+            final String userName = inbound.getCredentials().getUserName();
+            if (logger.isTraceEnabled()) {
+              logger.trace("User {} on connection {} is using an older client (Drill version <= 1.8).",
+                  userName, connection.getRemoteAddress());
+            }
             try {
               String password = "";
               final UserProperties props = inbound.getProperties();
               for (int i = 0; i < props.getPropertiesCount(); i++) {
                 Property prop = props.getProperties(i);
-                if (UserSession.PASSWORD.equalsIgnoreCase(prop.getKey())) {
+                if (ConnectionParams.PASSWORD.equalsIgnoreCase(prop.getKey())) {
                   password = prop.getValue();
                   break;
                 }
               }
-              authenticator.authenticate(inbound.getCredentials().getUserName(), password);
+              final PlainMechanism plainMechanism = authFactory.getPlainMechanism();
+              if (plainMechanism == null) {
+                throw new UserAuthenticationException("The server no longer supports username/password" +
+                    " based authentication. Please talk to your system administrator.");
+              }
+              plainMechanism.getAuthenticator()
+                  .authenticate(userName, password);
+              connection.changeHandlerTo(handler);
+              connection.finalizeSession(userName);
+              respBuilder.setStatus(HandshakeStatus.SUCCESS);
+              if (logger.isTraceEnabled()) {
+                logger.trace("Authenticated {} successfully using PLAIN from {}", userName,
+                    connection.getRemoteAddress());
+              }
+              return respBuilder.build();
             } catch (UserAuthenticationException ex) {
               return handleFailure(respBuilder, HandshakeStatus.AUTH_FAILED, ex.getMessage(), ex);
             }
           }
 
-          connection.finalizeSession(inbound.getCredentials().getUserName());
+          // mention server's authentication capabilities
+          respBuilder.addAllAuthenticationMechanisms(authFactory.getSupportedMechanisms());
 
-          return respBuilder.setStatus(HandshakeStatus.SUCCESS).build();
+          respBuilder.setStatus(HandshakeStatus.AUTH_REQUIRED);
+          return respBuilder.build();
+
         } catch (Exception e) {
           return handleFailure(respBuilder, HandshakeStatus.UNKNOWN_FAILURE, e.getMessage(), e);
         }
@@ -376,12 +419,12 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
 
   @Override
   public void close() throws IOException {
-    try {
-      if (authenticator != null) {
-        authenticator.close();
+    if (authFactory != null) {
+      try {
+        authFactory.close();
+      } catch (Exception e) {
+        logger.warn("Failure closing authentication factory.", e);
       }
-    } catch (Exception e) {
-      logger.warn("Failure closing authenticator.", e);
     }
     super.close();
   }
