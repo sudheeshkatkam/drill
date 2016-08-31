@@ -17,7 +17,10 @@
  */
 package org.apache.drill.exec.server;
 
+import com.google.common.collect.Lists;
+import com.typesafe.config.ConfigValueFactory;
 import org.apache.drill.BaseTestQuery;
+import org.apache.drill.common.config.ConnectionParameters;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.rpc.user.security.testing.UserAuthenticatorTestImpl;
@@ -46,13 +49,19 @@ public class TestOptionsAuthEnabled extends BaseTestQuery {
   @BeforeClass
   public static void setupCluster() throws Exception {
     // Create a new DrillConfig which has user authentication enabled and test authenticator set
-    final Properties props = cloneDefaultTestConfigProperties();
-    props.setProperty(ExecConstants.USER_AUTHENTICATION_ENABLED, "true");
-    props.setProperty(ExecConstants.USER_AUTHENTICATOR_IMPL, UserAuthenticatorTestImpl.TYPE);
+    final DrillConfig config = new DrillConfig(DrillConfig.create(cloneDefaultTestConfigProperties())
+        .withValue(ExecConstants.USER_AUTHENTICATION_ENABLED, ConfigValueFactory.fromAnyRef(true))
+        .withValue(ExecConstants.USER_AUTHENTICATOR_IMPL,
+            ConfigValueFactory.fromAnyRef(UserAuthenticatorTestImpl.TYPE))
+        .withValue(ExecConstants.AUTHENTICATION_MECHANISMS,
+            ConfigValueFactory.fromIterable(Lists.newArrayList("plain"))),
+        false);
 
-    updateTestCluster(1, DrillConfig.create(props));
+    final Properties connectionProps = new Properties();
+    connectionProps.setProperty(ConnectionParameters.USER, PROCESS_USER);
+    connectionProps.setProperty(ConnectionParameters.PASSWORD, PROCESS_USER_PASSWORD);
 
-    updateClient(PROCESS_USER, PROCESS_USER_PASSWORD);
+    updateTestCluster(1, config, connectionProps);
 
     // Add user "admin" to admin username list
     test(String.format("ALTER SYSTEM SET `%s`='%s,%s'", ExecConstants.ADMIN_USERS_KEY, ADMIN_USER, PROCESS_USER));
