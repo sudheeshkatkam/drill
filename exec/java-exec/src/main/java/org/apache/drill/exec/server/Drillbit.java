@@ -43,6 +43,9 @@ import org.apache.drill.exec.store.sys.PersistentStoreRegistry;
 import org.apache.drill.exec.store.sys.store.provider.LocalPersistentStoreProvider;
 import org.apache.drill.exec.util.GuavaPatcher;
 import org.apache.drill.exec.work.WorkManager;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.Environment;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -92,6 +95,14 @@ public class Drillbit implements AutoCloseable {
     logger.debug("Construction started.");
     final boolean allowPortHunting = serviceSet != null;
     context = new BootStrapContext(config, classpathScan);
+    if (config.hasPath("drill.exec.security.auth")) {
+      final Configuration conf = new Configuration();
+      conf.set(CommonConfigurationKeys.HADOOP_SECURITY_AUTHENTICATION,
+          UserGroupInformation.AuthenticationMethod.KERBEROS.toString());
+      UserGroupInformation.setConfiguration(conf);
+      UserGroupInformation.loginUserFromKeytab(config.getString("drill.exec.security.auth.principal"),
+          config.getString("drill.exec.security.auth.keytab"));
+    }
     manager = new WorkManager(context);
 
     webServer = new WebServer(config, context.getMetrics(), manager);
