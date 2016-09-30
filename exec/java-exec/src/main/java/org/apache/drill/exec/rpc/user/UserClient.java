@@ -17,16 +17,26 @@
  */
 package org.apache.drill.exec.rpc.user;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.AbstractCheckedFuture;
+import com.google.common.util.concurrent.CheckedFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.DrillBuf;
+
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
+import org.apache.drill.common.config.ConnectionParameters;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.proto.GeneralRPCProtos.Ack;
-import org.apache.drill.exec.proto.UserBitShared;
 import org.apache.drill.exec.proto.UserBitShared.QueryData;
 import org.apache.drill.exec.proto.UserBitShared.QueryId;
 import org.apache.drill.exec.proto.UserBitShared.QueryResult;
+import org.apache.drill.exec.proto.UserBitShared.UserCredentials;
 import org.apache.drill.exec.proto.UserProtos.BitToUserHandshake;
 import org.apache.drill.exec.proto.UserProtos.CreatePreparedStatementResp;
 import org.apache.drill.exec.proto.UserProtos.GetCatalogsResp;
@@ -34,12 +44,11 @@ import org.apache.drill.exec.proto.UserProtos.GetColumnsResp;
 import org.apache.drill.exec.proto.UserProtos.GetQueryPlanFragments;
 import org.apache.drill.exec.proto.UserProtos.GetSchemasResp;
 import org.apache.drill.exec.proto.UserProtos.GetTablesResp;
-import org.apache.drill.exec.proto.UserProtos.HandshakeStatus;
 import org.apache.drill.exec.proto.UserProtos.QueryPlanFragments;
 import org.apache.drill.exec.proto.UserProtos.RpcEndpointInfos;
 import org.apache.drill.exec.proto.UserProtos.RpcType;
 import org.apache.drill.exec.proto.UserProtos.RunQuery;
-import org.apache.drill.exec.proto.UserProtos.UserProperties;
+import org.apache.drill.exec.proto.UserProtos.SaslMessage;
 import org.apache.drill.exec.proto.UserProtos.UserToBitHandshake;
 import org.apache.drill.exec.rpc.Acks;
 import org.apache.drill.exec.rpc.BasicClientWithConnection;
@@ -52,8 +61,13 @@ import org.apache.drill.exec.rpc.RpcConnectionHandler;
 import org.apache.drill.exec.rpc.RpcException;
 
 import com.google.protobuf.MessageLite;
+import org.apache.drill.exec.rpc.RpcOutcomeListener;
+import org.apache.drill.exec.rpc.user.UserAuthenticationUtil.ClientAuthenticationProvider;
+import org.apache.hadoop.security.UserGroupInformation;
 
-import io.netty.buffer.ByteBuf;
+import javax.security.sasl.SaslClient;
+import javax.security.sasl.SaslException;
+
 import io.netty.channel.EventLoopGroup;
 
 public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHandshake, BitToUserHandshake> {
@@ -64,6 +78,11 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
   private RpcEndpointInfos serverInfos = null;
 
   private boolean supportComplexTypes = true;
+  private ConnectionParameters parameters;
+
+  // these are used for authentication
+  private volatile List<String> supportedAuthMechs = null;
+  private SaslClient saslClient = null;
 
   public UserClient(String clientName, DrillConfig config, boolean supportComplexTypes,
       BufferAllocator alloc, EventLoopGroup eventLoopGroup, Executor eventExecutor) {
@@ -87,22 +106,135 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
     send(queryResultHandler.getWrappedListener(resultsListener), RpcType.RUN_QUERY, query, QueryId.class);
   }
 
-  public void connect(RpcConnectionHandler<ServerConnection> handler, DrillbitEndpoint endpoint,
-                      UserProperties props, UserBitShared.UserCredentials credentials) {
+  public CheckedFuture<Void, RpcException> connect(DrillbitEndpoint endpoint, ConnectionParameters parameters,
+                                                   UserCredentials credentials) {
+    final FutureHandler handler = new FutureHandler();
     UserToBitHandshake.Builder hsBuilder = UserToBitHandshake.newBuilder()
         .setRpcVersion(UserRpcConfig.RPC_VERSION)
         .setSupportListening(true)
         .setSupportComplexTypes(supportComplexTypes)
         .setSupportTimeout(true)
         .setCredentials(credentials)
-        .setClientInfos(UserRpcUtils.getRpcEndpointInfos(clientName));
+        .setClientInfos(UserRpcUtils.getRpcEndpointInfos(clientName))
+        .setProperties(parameters.serializeForServer());
+    this.parameters = parameters;
 
-    if (props != null) {
-      hsBuilder.setProperties(props);
+    connectAsClient(queryResultHandler.getWrappedConnectionHandler(handler),
+        hsBuilder.build(), endpoint.getAddress(), endpoint.getUserPort());
+    return handler;
+  }
+
+  /**
+   * Check (after {@link #connect connecting}) if server requires authentication.
+   *
+   * @return true if server requires authentication
+   */
+  public boolean serverRequiresAuthentication() {
+    return supportedAuthMechs != null;
+  }
+
+  /**
+   * Returns a list of supported authentication mechanism. If called before {@link #connect connecting},
+   * returns null. If called after {@link #connect connecting}, returns a list of supported mechanisms
+   * iff authentication is required.
+   *
+   * @return list of supported authentication mechanisms
+   */
+  public List<String> getSupportedAuthenticationMechanisms() {
+    return supportedAuthMechs;
+  }
+
+  /**
+   * Authenticate to the server asynchronously. Returns a future that {@link CheckedFuture#checkedGet results}
+   * in null if authentication succeeds, or throws a {@link SaslException} with relevant message if
+   * authentication fails.
+   *
+   * This method uses parameters provided at {@link #connect connection time} and override them with the
+   * given parameters, if any.
+   *
+   * @param overrides parameter overrides
+   * @return result of authentication request
+   */
+  public CheckedFuture<Void, SaslException> authenticate(final ConnectionParameters overrides) {
+    if (supportedAuthMechs == null) {
+      throw new IllegalStateException("Server does not require authentication.");
+    }
+    parameters.merge(overrides);
+
+    final SettableFuture<Void> settableFuture = SettableFuture.create(); // future used in SASL exchange
+    final CheckedFuture<Void, SaslException> future =
+        new AbstractCheckedFuture<Void, SaslException>(settableFuture) {
+
+          @Override
+          protected SaslException mapException(Exception e) {
+            if (connection != null) {
+              connection.close(); // to ensure connection is dropped
+            }
+            if (e instanceof ExecutionException) {
+              final Throwable cause = e.getCause();
+              if (cause instanceof SaslException) {
+                return new SaslException("Authentication failed: " + cause.getMessage(), cause);
+              }
+            }
+            return new SaslException("Authentication failed unexpectedly.", e);
+          }
+        };
+
+    final ClientAuthenticationProvider authenticationProvider;
+    try {
+      authenticationProvider =
+          UserAuthenticationUtil.getClientAuthenticationProvider(parameters, supportedAuthMechs);
+    } catch (final SaslException e) {
+      settableFuture.setException(e);
+      return future;
     }
 
-    this.connectAsClient(queryResultHandler.getWrappedConnectionHandler(handler),
-        hsBuilder.build(), endpoint.getAddress(), endpoint.getUserPort());
+    final String mechanismName = authenticationProvider.name();
+    logger.trace("Will try to login for {} mechanism.", mechanismName);
+    final UserGroupInformation ugi;
+    try {
+      ugi = authenticationProvider.login(parameters);
+    } catch (final SaslException e) {
+      settableFuture.setException(e);
+      return future;
+    }
+
+    logger.trace("Will try to authenticate to server using {} mechanism.", mechanismName);
+    try {
+      saslClient = authenticationProvider.createSaslClient(ugi, parameters);
+    } catch (final SaslException e) {
+      settableFuture.setException(e);
+      return future;
+    }
+
+    if (saslClient == null) {
+      settableFuture.setException(new SaslException("Cannot initiate authentication. Insufficient credentials?"));
+      return future;
+    }
+
+    logger.trace("Initiating SASL exchange.");
+    new UserClientAuthenticationHandler(this, ugi, settableFuture)
+        .initiate(mechanismName);
+    return future;
+  }
+
+  protected <SEND extends MessageLite, RECEIVE extends MessageLite> void send(RpcOutcomeListener<RECEIVE> listener,
+                                                                           RpcType rpcType, SEND protobufBody,
+                                                                           Class<RECEIVE> clazz,
+                                                                           boolean allowInEventLoop,
+                                                                           ByteBuf... dataBodies) {
+    super.send(listener, connection, rpcType, protobufBody, clazz, allowInEventLoop, dataBodies);
+  }
+
+  protected SaslClient getSaslClient() {
+    return saslClient;
+  }
+
+  protected void disposeSaslClient() throws SaslException {
+    if (saslClient != null) {
+      saslClient.dispose();
+      saslClient = null;
+    }
   }
 
   @Override
@@ -130,12 +262,14 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
       return GetColumnsResp.getDefaultInstance();
     case RpcType.PREPARED_STATEMENT_VALUE:
       return CreatePreparedStatementResp.getDefaultInstance();
+    case RpcType.SASL_MESSAGE_VALUE:
+      return SaslMessage.getDefaultInstance();
     }
     throw new RpcException(String.format("Unable to deal with RpcType of %d", rpcType));
   }
 
   @Override
-  protected Response handleReponse(ConnectionThrottle throttle, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException {
+  protected Response handleResponse(ConnectionThrottle throttle, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException {
     switch (rpcType) {
     case RpcType.QUERY_DATA_VALUE:
       queryResultHandler.batchArrived(throttle, pBody, dBody);
@@ -154,7 +288,17 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
     if (inbound.hasServerInfos()) {
       serverInfos = inbound.getServerInfos();
     }
-    if (inbound.getStatus() != HandshakeStatus.SUCCESS) {
+    switch (inbound.getStatus()) {
+    case SUCCESS:
+      break;
+    case AUTH_REQUIRED: {
+      logger.trace("Server requires authentication before proceeding.");
+      supportedAuthMechs = ImmutableList.copyOf(inbound.getAuthenticationMechanismsList());
+      break;
+    }
+    case AUTH_FAILED: // no longer a status returned by server
+    case RPC_VERSION_MISMATCH:
+    case UNKNOWN_FAILURE:
       final String errMsg = String.format("Status: %s, Error Id: %s, Error message: %s",
           inbound.getStatus(), inbound.getErrorId(), inbound.getErrorMessage());
       logger.error(errMsg);
@@ -179,5 +323,47 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
   public DrillRpcFuture<QueryPlanFragments> planQuery(
       GetQueryPlanFragments req) {
     return send(RpcType.GET_QUERY_PLAN_FRAGMENTS, req, QueryPlanFragments.class);
+  }
+
+  @Override
+  public void close() {
+    try {
+      disposeSaslClient();
+    } catch (final SaslException ignored) {
+      // ignored
+    }
+    super.close();
+  }
+
+  private class FutureHandler extends AbstractCheckedFuture<Void, RpcException>
+      implements RpcConnectionHandler<ServerConnection>, DrillRpcFuture<Void> {
+
+    protected FutureHandler() {
+      super(SettableFuture.<Void>create());
+    }
+
+    @Override
+    public void connectionSucceeded(ServerConnection connection) {
+      getInner().set(null);
+    }
+
+    @Override
+    public void connectionFailed(FailureType type, Throwable t) {
+      getInner().setException(new RpcException(String.format("%s : %s", type.name(), t.getMessage()), t));
+    }
+
+    private SettableFuture<Void> getInner() {
+      return (SettableFuture<Void>) delegate();
+    }
+
+    @Override
+    protected RpcException mapException(Exception e) {
+      return RpcException.mapException(e);
+    }
+
+    @Override
+    public DrillBuf getBuffer() {
+      return null;
+    }
   }
 }
