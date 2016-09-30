@@ -94,7 +94,7 @@ public class Drillbit implements AutoCloseable {
     context = new BootStrapContext(config, classpathScan);
     manager = new WorkManager(context);
 
-    webServer = new WebServer(config, context.getMetrics(), manager);
+    webServer = new WebServer(context, manager);
     boolean isDistributedMode = false;
     if (serviceSet != null) {
       coord = serviceSet.getCoordinator();
