@@ -25,20 +25,26 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.drill.common.DrillAutoCloseables;
+import org.apache.drill.common.AutoCloseables;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.common.scanner.persistence.ScanResult;
 import org.apache.drill.exec.ExecConstants;
+import org.apache.drill.exec.exception.DrillbitStartupException;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.memory.RootAllocatorFactory;
 import org.apache.drill.exec.metrics.DrillMetrics;
 import org.apache.drill.exec.rpc.NamedThreadFactory;
 import org.apache.drill.exec.rpc.TransportCheck;
+import org.apache.drill.exec.rpc.security.AuthenticationMechanismFactory;
+import org.apache.drill.exec.security.LoginManager;
+import org.apache.drill.exec.security.LoginManagerImpl;
 
 public class BootStrapContext implements AutoCloseable {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BootStrapContext.class);
 
   private final DrillConfig config;
+  private final LoginManager loginManager;
+  private final AuthenticationMechanismFactory authFactory;
   private final EventLoopGroup loop;
   private final EventLoopGroup loop2;
   private final MetricRegistry metrics;
@@ -46,9 +52,11 @@ public class BootStrapContext implements AutoCloseable {
   private final ScanResult classpathScan;
   private final ExecutorService executor;
 
-  public BootStrapContext(DrillConfig config, ScanResult classpathScan) {
+  public BootStrapContext(DrillConfig config, ScanResult classpathScan) throws DrillbitStartupException {
     this.config = config;
     this.classpathScan = classpathScan;
+    this.loginManager = new LoginManagerImpl(config);
+    this.authFactory = new AuthenticationMechanismFactory(config, classpathScan, loginManager);
     this.loop = TransportCheck.createEventLoopGroup(config.getInt(ExecConstants.BIT_SERVER_RPC_THREADS), "BitServer-");
     this.loop2 = TransportCheck.createEventLoopGroup(config.getInt(ExecConstants.BIT_SERVER_RPC_THREADS), "BitClient-");
     // Note that metrics are stored in a static instance
@@ -95,6 +103,14 @@ public class BootStrapContext implements AutoCloseable {
     return classpathScan;
   }
 
+  public AuthenticationMechanismFactory getAuthFactory() {
+    return authFactory;
+  }
+
+  public LoginManager getLoginManager() {
+    return loginManager;
+  }
+
   @Override
   public void close() {
     try {
@@ -124,6 +140,10 @@ public class BootStrapContext implements AutoCloseable {
       }
     }
 
-    DrillAutoCloseables.closeNoChecked(allocator);
+    try {
+      AutoCloseables.close(allocator, loginManager, authFactory);
+    } catch (final Exception e) {
+      logger.error("Error while closing", e);
+    }
   }
 }
