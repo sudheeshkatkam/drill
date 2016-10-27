@@ -170,7 +170,7 @@ public class ImpersonationUtil {
    * @return Drillbit process user.
    */
   public static String getProcessUserName() {
-    return getProcessUserUGI().getUserName();
+    return getProcessUserUGI().getShortUserName();
   }
 
   /**
