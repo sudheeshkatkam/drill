@@ -35,6 +35,7 @@ set (CLIENTLIB_SRC_FILES
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include )
 include_directories(${PROTOBUF_INCLUDE_DIR})
 include_directories(${Zookeeper_INCLUDE_DIRS})
+include_directories(${SASL_INCLUDE_DIRS})
 
 link_directories(/usr/local/lib)
 
@@ -49,4 +50,4 @@ if(MSVC)
 endif()
 
 add_library(drillClient SHARED ${CLIENTLIB_SRC_FILES} )
-target_link_libraries(drillClient ${Boost_LIBRARIES} ${PROTOBUF_LIBRARY} ${Zookeeper_LIBRARIES} protomsgs y2038)
+target_link_libraries(drillClient ${Boost_LIBRARIES} ${PROTOBUF_LIBRARY} ${Zookeeper_LIBRARIES} ${SASL_LIBRARIES} protomsgs y2038)

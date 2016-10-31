@@ -51,6 +51,9 @@
 #include "User.pb.h"
 #include "UserBitShared.pb.h"
 
+#include "sasl/sasl.h"
+#include "sasl/saslplug.h"
+
 namespace Drill {
 
 class DrillClientImpl;
@@ -73,7 +76,7 @@ class DrillClientImplBase{
 
         //Connect via Zookeeper or directly.
         //Makes an initial connection to a drillbit. successful connect adds the first drillbit to the pool.
-        virtual connectionStatus_t connect(const char* connStr)=0;
+        virtual connectionStatus_t connect(const char* connStr, DrillUserProperties* props)=0;
 
         // Test whether the client is active. Returns true if any one of the underlying connections is active
         virtual bool Active()=0;
@@ -415,7 +418,7 @@ class DrillClientImpl : public DrillClientImplBase{
         };
 
         //Connect via Zookeeper or directly
-        connectionStatus_t connect(const char* connStr);
+        connectionStatus_t connect(const char* connStr, DrillUserProperties* props);
         // test whether the client is active
         bool Active();
         void Close() ;
@@ -462,6 +465,8 @@ class DrillClientImpl : public DrillClientImplBase{
         connectionStatus_t sendSync(rpc::OutBoundRpcMessage& msg);
         // handshake
         connectionStatus_t recvHandshake();
+        void readMessageHandler(const boost::system::error_code& err, size_t bytes_transferred, InBoundRpcMessage& msg);
+        void readMessage(InBoundRpcMessage &msg);
         void handleHandshake(ByteBuf_t b, const boost::system::error_code& err, std::size_t bytes_transferred );
         void handleHShakeReadTimeout(const boost::system::error_code & err);
         // starts the listener thread that receives responses/messages from the server
@@ -520,6 +525,7 @@ class DrillClientImpl : public DrillClientImplBase{
         std::string m_handshakeErrorId;
         std::string m_handshakeErrorMsg;
         exec::user::RpcEndpointInfos m_serverInfos;
+        std::vector<std::string> m_mechanisms;
         bool m_bIsConnected;
 
         std::string m_connectStr; 
@@ -606,7 +612,7 @@ class PooledDrillClientImpl : public DrillClientImplBase{
 
         //Connect via Zookeeper or directly.
         //Makes an initial connection to a drillbit. successful connect adds the first drillbit to the pool.
-        connectionStatus_t connect(const char* connStr);
+        connectionStatus_t connect(const char* connStr, DrillUserProperties* props);
 
         // Test whether the client is active. Returns true if any one of the underlying connections is active
         bool Active();
@@ -669,6 +675,33 @@ class PooledDrillClientImpl : public DrillClientImplBase{
         std::vector<std::string> m_drillbits;
 
         boost::shared_ptr<DrillUserProperties> m_pUserProperties;//Keep a copy of user properties
+};
+
+class SaslAuthenticatorImpl {
+
+    public:
+
+        static const std::map<std::string, std::string> MECHANISM_MAPPING;
+
+        SaslAuthenticatorImpl(const DrillUserProperties* const properties);
+
+        ~SaslAuthenticatorImpl();
+
+        int init(const std::vector<std::string> mechanisms, std::string &chosenMech,
+                 const char **out, unsigned *outlen);
+
+        int step(const char* const in, const unsigned inlen, const char **out, unsigned *outlen) const;
+
+        static int passwordCallback(sasl_conn_t *conn, void *context, int id, sasl_secret_t **psecret);
+
+        static int userNameCallback(void *context, int id, const char **result, unsigned int *len);
+
+    private:
+        const DrillUserProperties* const m_properties;
+        sasl_conn_t* m_pConnection;
+        std::string m_username;
+        std::string m_password;
+        sasl_secret_t* m_secret;
 };
 
 } // namespace Drill

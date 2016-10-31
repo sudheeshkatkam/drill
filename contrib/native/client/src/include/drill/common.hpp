@@ -52,7 +52,7 @@
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
-#define DRILL_RPC_VERSION 5
+#define DRILL_RPC_VERSION 6
 
 #define LENGTH_PREFIX_MAX_LENGTH 5
 #define LEN_PREFIX_BUFLEN LENGTH_PREFIX_MAX_LENGTH
@@ -166,6 +166,9 @@ typedef enum{
 #define USERPROP_FILEPATH "pemLocation"   // Not implemented yet
 #define USERPROP_FILENAME "pemFile"       // Not implemented yet
 #define USERPROP_IMPERSONATION_TARGET "impersonation_target"
+#define USERPROP_AUTH_MECHANISM "auth"
+#define USERPROP_SERVICE_NAME "serviceName"
+#define USERPROP_SERVICE_HOST "serviceHost"
 
 // Bitflags to describe user properties
 // Used in DrillUserProperties::USER_PROPERTIES

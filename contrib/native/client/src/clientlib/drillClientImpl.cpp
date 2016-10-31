@@ -20,6 +20,7 @@
 #include "drill/common.hpp"
 #include <queue>
 #include <string>
+#include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
 #include <boost/assign.hpp>
 #include <boost/bind.hpp>
@@ -58,7 +59,22 @@ static std::string debugPrintQid(const exec::shared::QueryId& qid){
     return std::string("[")+boost::lexical_cast<std::string>(qid.part1()) +std::string(":") + boost::lexical_cast<std::string>(qid.part2())+std::string("] ");
 }
 
-connectionStatus_t DrillClientImpl::connect(const char* connStr){
+void setSocketTimeout(boost::asio::ip::tcp::socket& socket, int32_t timeout){
+#if defined _WIN32
+    int32_t timeoutMsecs=timeout*1000;
+    setsockopt(socket.native(), SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeoutMsecs, sizeof(timeoutMsecs));
+    setsockopt(socket.native(), SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeoutMsecs, sizeof(timeoutMsecs));
+#else
+    struct timeval tv;
+    tv.tv_sec  = timeout;
+    tv.tv_usec = 0;
+    int e=0;
+    e=setsockopt(socket.native(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    e=setsockopt(socket.native(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+#endif
+}
+
+connectionStatus_t DrillClientImpl::connect(const char* connStr, DrillUserProperties* props){
     std::string pathToDrill, protocol, hostPortStr;
     std::string host;
     std::string port;
@@ -103,6 +119,15 @@ connectionStatus_t DrillClientImpl::connect(const char* connStr){
         return handleConnError(CONN_INVALID_INPUT, getMessage(ERR_CONN_UNKPROTO, protocol.c_str()));
     }
     DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Connecting to endpoint: " << host << ":" << port << std::endl;)
+    std::string serviceHost;
+    for (size_t i = 0; i < props->size(); i++) {
+        if (props->keyAt(i) == USERPROP_SERVICE_HOST) {
+            serviceHost = props->valueAt(i);
+        }
+    }
+    if (serviceHost.empty()) {
+        props->setProperty(USERPROP_SERVICE_HOST, host);
+    }
     connectionStatus_t ret = this->connect(host.c_str(), port.c_str());
     return ret;
 }
@@ -311,6 +336,9 @@ void DrillClientImpl::handleHandshake(ByteBuf_t _buf,
         this->m_handshakeErrorId=b2u.errorid();
         this->m_handshakeErrorMsg=b2u.errormessage();
         this->m_serverInfos = b2u.server_infos();
+        for (int i=0; i<b2u.authenticationmechanisms_size(); i++) {
+            this->m_mechanisms.push_back(b2u.authenticationmechanisms(i));
+        }
 
     }else{
         // boost error
@@ -340,6 +368,68 @@ void DrillClientImpl::handleHShakeReadTimeout(const boost::system::error_code & 
         }
     }
     return;
+}
+
+void DrillClientImpl::readMessageHandler(const boost::system::error_code& err,
+                                  size_t bytes_transferred,
+                                  InBoundRpcMessage& msg) {
+    boost::system::error_code error=err;
+    if (!err) {
+        uint32_t length = 0;
+        int bytes_read = DrillClientImpl::s_decoder.LengthDecode(m_rbuf, &length);
+        if (length > 0) {
+            const size_t leftover = LEN_PREFIX_BUFLEN - bytes_read;
+            ByteBuf_t b = m_rbuf + LEN_PREFIX_BUFLEN;
+            size_t bytesToRead = length - leftover;
+            while (1) {
+                const size_t dataBytesRead = m_socket.read_some(
+                        boost::asio::buffer(b, bytesToRead),
+                        error);
+                if(err) break;
+                DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Message: actual bytes read = " << dataBytesRead << std::endl;)
+                if(dataBytesRead == bytesToRead) break;
+                bytesToRead -= dataBytesRead;
+                b += dataBytesRead;
+            }
+            DrillClientImpl::s_decoder.Decode(m_rbuf + bytes_read, length, msg);
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Finished decoding: pbody size: " << msg.m_pbody.size() << std::endl;)
+        } else {
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "DrillClientImpl::readMessage: ERR_CONN_RDFAIL. No reply.\n";)
+            handleConnError(CONN_FAILURE, getMessage(ERR_CONN_RDFAIL, "No reply from server."));
+        }
+    } else {
+        // boost error
+        if (err == boost::asio::error::eof) { // Server broke off the connection
+            handleConnError(CONN_HANDSHAKE_FAILED, getMessage(ERR_CONN_NOHSHAKE, DRILL_RPC_VERSION));
+        } else {
+            handleConnError(CONN_FAILURE, getMessage(ERR_CONN_RDFAIL, err.message().c_str()));
+        }
+    }
+}
+
+void DrillClientImpl::readMessage(InBoundRpcMessage &msg) {
+    if (m_rbuf == NULL) {
+        m_rbuf = Utils::allocateBuffer(MAX_SOCK_RD_BUFSIZE);
+    }
+    m_io_service.reset();
+    async_read(
+            this->m_socket,
+            boost::asio::buffer(m_rbuf, LEN_PREFIX_BUFLEN),
+            boost::bind(
+                    &DrillClientImpl::readMessageHandler,
+                    this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred,
+                    boost::ref(msg))
+    );
+    DRILL_MT_LOG(DRILL_LOG(LOG_DEBUG) << "DrillClientImpl::readMessage: async read waiting for server response.\n";)
+    m_io_service.run(); // _one(); // blocking call
+    DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "DrillClientImpl::readMessage: server responded: pbody size: "
+                                      << msg.m_pbody.size() << std::endl;)
+    if (m_rbuf != NULL) {
+        Utils::freeBuffer(m_rbuf, MAX_SOCK_RD_BUFSIZE);
+        m_rbuf = NULL;
+    }
 }
 
 connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* properties){
@@ -425,6 +515,128 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
                         getMessage(ERR_CONN_AUTHFAIL,
                             this->m_handshakeErrorId.c_str(),
                             this->m_handshakeErrorMsg.c_str()));
+            case exec::user::AUTH_REQUIRED: {
+                DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Server requires SASL authentication." << std::endl;)
+
+                SaslAuthenticatorImpl saslAuthenticator(properties);
+                int saslResult = 0;
+                std::string chosenMech;
+                const char *out;
+                unsigned outlen;
+
+                // initiate SASL exchange
+                saslResult = saslAuthenticator.init(m_mechanisms, chosenMech, &out, &outlen);
+                if (saslResult != SASL_OK) {
+                    DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Authenticator init failed. Code: "
+                                                      << saslResult << std::endl;)
+                    return handleConnError(CONN_AUTH_FAILED,
+                                           "Server requires authentication. Insufficient credentials?");
+                }
+                if (NULL == out) {
+                    out = (&::google::protobuf::internal::kEmptyString)->c_str();
+                }
+                {
+                    exec::user::SaslMessage response;
+                    response.set_data(out, outlen);
+                    response.set_mechanism(chosenMech);
+                    response.set_status(exec::user::SaslStatus::SASL_START);
+                    {
+                        boost::lock_guard<boost::mutex> lock(this->m_dcMutex);
+                        const int32_t coordId = this->getNextCoordinationId();
+
+                        OutBoundRpcMessage out_msg(exec::rpc::REQUEST, exec::user::SASL_MESSAGE, coordId, &response);
+                        sendSync(out_msg);
+                        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Sent SASL init response, id: " << coordId
+                                                          << " result: " << saslResult << std::endl;)
+                    }
+                }
+
+                bool done = false;
+                while (saslResult == SASL_OK || saslResult == SASL_CONTINUE) {
+                    if (done) {
+                        break;
+                    }
+
+                    // receive and parse challenge
+                    InBoundRpcMessage inboundMessage;
+                    readMessage(inboundMessage);
+                    if (m_pError) {
+                        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Something failed." << std::endl;)
+                        return handleConnError(CONN_AUTH_FAILED, "Authentication failed.");
+                    }
+                    exec::user::SaslMessage challenge;
+                    challenge.ParseFromArray(inboundMessage.m_pbody.data(), inboundMessage.m_pbody.size());
+                    DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Received SASL challenge: (" << challenge.DebugString() <<
+                            ")" << std::endl;)
+
+                    switch (challenge.status()) {
+
+                        case exec::user::SASL_AUTH_IN_PROGRESS: {
+                            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Continuing SASL: received challenge." << std::endl;)
+                            const char *in = challenge.data().c_str();
+                            const unsigned inlen = challenge.data().length();
+
+                            // evaluate challenge, and produce response
+                            saslResult = saslAuthenticator.step(in, inlen, &out, &outlen);
+
+                            // prepare response
+                            exec::user::SaslStatus responseStatus;
+                            switch (saslResult) {
+                                case SASL_CONTINUE:
+                                    responseStatus = exec::user::SaslStatus::SASL_AUTH_IN_PROGRESS;
+                                    break;
+                                case SASL_OK:
+                                    // Server succeeds first
+                                    responseStatus = exec::user::SaslStatus::SASL_AUTH_IN_PROGRESS;
+                                    break;
+                                default:
+                                    responseStatus = exec::user::SaslStatus::SASL_AUTH_FAILED;
+                                    break;
+                            }
+                            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Continuing SASL: preparing response with status: "
+                                                              << responseStatus << std::endl;)
+                            exec::user::SaslMessage response;
+                            response.set_data(out, outlen);
+                            response.set_status(responseStatus);
+
+                            // send response
+                            {
+                                boost::lock_guard<boost::mutex> lock(this->m_dcMutex);
+                                int32_t coordId = this->getNextCoordinationId();
+
+                                OutBoundRpcMessage out_msg(exec::rpc::REQUEST, exec::user::SASL_MESSAGE, coordId,
+                                                           &response);
+                                sendSync(out_msg);
+                                DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Sent SASL response, id: " << coordId << "\n";)
+                            }
+                            break;
+                        }
+                        case exec::user::SASL_AUTH_SUCCESS: {
+                            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "SASL succeeded on server." << std::endl;)
+                            if (saslResult == SASL_CONTINUE) { // client may need to evaluate once more
+                                const char *in = challenge.data().c_str();
+                                const unsigned inlen = challenge.data().length();
+                                saslResult = saslAuthenticator.step(in, inlen, &out, &outlen);
+                            }
+                            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "SASL succeeded on client? " << saslResult << std::endl;)
+                            done = true;
+                            break;
+                        }
+                        default:
+                            // server failed auth; connection will be dropped
+                            saslResult = SASL_FAIL;
+                            done = true;
+                            break;
+                    }
+                }
+                if (saslResult != SASL_OK) {
+                    return handleConnError(CONN_AUTH_FAILED, "User authentication failed.");
+                } else {
+                    DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Successfully authenticated!" << "\n";)
+                    // in future, negotiated security layers are accessed here..
+                }
+                break;
+            }
             case exec::user::UNKNOWN_FAILURE:
                 DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Unknown error during handshake." << std::endl;)
                 return handleConnError(CONN_HANDSHAKE_FAILED,
@@ -1873,7 +2085,7 @@ void DrillClientPrepareHandle::clearAndDestroy(){
     }
 }
 
-connectionStatus_t PooledDrillClientImpl::connect(const char* connStr){
+connectionStatus_t PooledDrillClientImpl::connect(const char* connStr, DrillUserProperties* props){
     connectionStatus_t stat = CONN_SUCCESS;
     std::string pathToDrill, protocol, hostPortStr;
     std::string host;
@@ -2091,7 +2303,7 @@ DrillClientImpl* PooledDrillClientImpl::getOneConnection(){
             int tries=0;
             connectionStatus_t ret=CONN_SUCCESS;
             while(pDrillClientImpl==NULL && tries++ < 3){
-                if((ret=connect(m_connectStr.c_str()))==CONN_SUCCESS){
+                if((ret=connect(m_connectStr.c_str(), m_pUserProperties))==CONN_SUCCESS){
                     boost::lock_guard<boost::mutex> lock(m_poolMutex);
                     pDrillClientImpl=m_clientConnections.back();
                     ret=pDrillClientImpl->validateHandshake(m_pUserProperties.get());
@@ -2114,4 +2326,167 @@ DrillClientImpl* PooledDrillClientImpl::getOneConnection(){
     return pDrillClientImpl;
 }
 
+typedef int (*sasl_callback_proc_t)(void); // see sasl_callback_ft
+
+int SaslAuthenticatorImpl::userNameCallback(void *context, int id, const char **result, unsigned *len) {
+    const std::string* const username = (const std::string* const) context;
+
+    if ((SASL_CB_USER == id || SASL_CB_AUTHNAME == id)
+        && username != NULL) {
+        *result = username->c_str();
+        // *len = (unsigned int) username->length();
+    }
+    return SASL_OK;
+}
+
+int SaslAuthenticatorImpl::passwordCallback(sasl_conn_t *conn, void *context, int id, sasl_secret_t **psecret) {
+    const SaslAuthenticatorImpl* const authenticator = (const SaslAuthenticatorImpl* const) context;
+
+    if (SASL_CB_PASS == id) {
+        const std::string password = authenticator->m_password;
+        const size_t length = password.length();
+        authenticator->m_secret->len = length;
+        std::memcpy(authenticator->m_secret->data, password.c_str(), length);
+        *psecret = authenticator->m_secret;
+    }
+   return SASL_OK;
+}
+
+SaslAuthenticatorImpl::SaslAuthenticatorImpl(const DrillUserProperties* const properties) :
+    m_properties(properties), m_pConnection(NULL), m_secret(NULL) {
+
+    { // for debugging purposes
+        const char **mechanisms = sasl_global_listmech();
+        int i = 0;
+        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Configured mechanisms: " << std::endl;)
+        while (mechanisms[i] != NULL) {
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << i << " : " << mechanisms[i] << std::endl;)
+            i++;
+        }
+    }
+}
+
+SaslAuthenticatorImpl::~SaslAuthenticatorImpl() {
+    if (m_secret) {
+        free(m_secret);
+    }
+    // may be used to negotiated security layers before disposing in the future
+    if (m_pConnection) {
+        sasl_dispose(&m_pConnection);
+    }
+    m_pConnection = NULL;
+}
+
+const std::map<std::string, std::string> SaslAuthenticatorImpl::MECHANISM_MAPPING = boost::assign::map_list_of
+    ("kerberos", "gssapi")
+    ("plain", "plain")
+;
+
+#define DEFAULT_SERVICE_NAME "drill"
+
+int SaslAuthenticatorImpl::init(const std::vector<std::string> mechanisms,
+                                std::string &chosenMech,
+                                const char **out,
+                                unsigned *outlen) {
+    // find and set parameters
+    std::string authMechanismToUse;
+    std::string serviceName;
+    std::string serviceHost;
+    for (size_t i = 0; i < m_properties->size(); i++) {
+        const std::string key = m_properties->keyAt(i);
+        const std::string value = m_properties->valueAt(i);
+
+        if (key == USERPROP_SERVICE_HOST) {
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Setting service host" << std::endl;)
+            serviceHost = value;
+        } else if (key == USERPROP_SERVICE_NAME) {
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Setting service name" << std::endl;)
+            serviceName = value;
+        } else if (key == USERPROP_PASSWORD) {
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Setting password" << std::endl;)
+            m_password = value;
+            m_secret = (sasl_secret_t *) malloc(sizeof(sasl_secret_t) + m_password.length());
+            authMechanismToUse = "plain";
+        } else if (key == USERPROP_USERNAME) {
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Setting name" << std::endl;)
+            m_username = value;
+        } else if (key == USERPROP_AUTH_MECHANISM) {
+            DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Setting auth mechanism" << std::endl;)
+            authMechanismToUse = value;
+        }
+    }
+    if (authMechanismToUse.empty()) {
+        return SASL_NOMECH;
+    }
+
+    // check if requested mechanism is supported by server
+    boost::algorithm::to_lower(authMechanismToUse);
+    bool isSupportedByServer = false;
+    for (size_t i = 0; i < mechanisms.size(); i++) {
+        std::string mechanism = mechanisms[i];
+        boost::algorithm::to_lower(mechanism);
+        if (authMechanismToUse == mechanism) {
+            isSupportedByServer = true;
+        }
+    }
+    if (!isSupportedByServer) {
+        return SASL_NOMECH;
+    }
+
+    // find the SASL name
+    const std::map<std::string, std::string>::const_iterator it =
+            SaslAuthenticatorImpl::MECHANISM_MAPPING.find(authMechanismToUse);
+    std::string saslMechanismToUse;
+    if (it == SaslAuthenticatorImpl::MECHANISM_MAPPING.end()) {
+        return SASL_NOMECH;
+    } else {
+        saslMechanismToUse = it->second;
+        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Requested SASL mechanism to use: " << saslMechanismToUse << std::endl;)
+    }
+
+    // setup callbacks and parameters
+    const sasl_callback_t callbacks[] = {
+        {
+            SASL_CB_USER, (sasl_callback_proc_t) &userNameCallback, (void *) &m_username
+        }, {
+            SASL_CB_AUTHNAME, (sasl_callback_proc_t) &userNameCallback, (void *) &m_username
+        }, {
+            SASL_CB_PASS, (sasl_callback_proc_t) &passwordCallback, (void *) this
+        }, {
+            SASL_CB_LIST_END, NULL, NULL
+        }
+    };
+    if (serviceName.empty()) {
+        serviceName = DEFAULT_SERVICE_NAME;
+    }
+
+    // create SASL client
+    int saslResult = sasl_client_new(serviceName.c_str(), serviceHost.c_str(), NULL /** iplocalport */,
+                                     NULL /** ipremoteport */, callbacks, 0 /** sec flags */, &m_pConnection);
+    if (saslResult == SASL_OK) {
+        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Initialized SASL client successfully. " << std::endl;)
+    } else {
+        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Initialized SASL client failed. Code: " << saslResult << std::endl;)
+        return saslResult;
+    }
+
+    // initiate; for now pass in only one mechanism
+    const char *mech;
+    saslResult = sasl_client_start(m_pConnection, saslMechanismToUse.c_str(), NULL /** no prompt */,
+                                   out, outlen, &mech);
+    if (saslResult == SASL_OK) {
+        chosenMech = authMechanismToUse;
+        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Chosen SASL mechanism: " << mech << std::endl;)
+    } else {
+        DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Failed to choose a mechanism. Code: " << saslResult << std::endl;)
+    }
+    return saslResult;
+}
+
+int SaslAuthenticatorImpl::step(const char* const in,
+                                const unsigned inlen,
+                                const char **out,
+                                unsigned *outlen) const {
+    return sasl_client_step(m_pConnection, in, inlen, NULL /** no prompt */, out, outlen);
+}
 } // namespace Drill
