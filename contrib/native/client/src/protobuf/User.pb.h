@@ -92,7 +92,8 @@ enum RpcType {
   PREPARED_STATEMENT = 23,
   REQ_META_FUNCTIONS = 8,
   RESP_FUNCTION_LIST = 9,
-  QUERY_RESULT = 10
+  QUERY_RESULT = 10,
+  SASL_MESSAGE = 24
 };
 bool RpcType_IsValid(int value);
 const RpcType RpcType_MIN = HANDSHAKE;
@@ -148,6 +149,31 @@ inline bool HandshakeStatus_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<HandshakeStatus>(
     HandshakeStatus_descriptor(), name, value);
 }
+<<<<<<< HEAD
+=======
+enum SaslStatus {
+  SASL_UNKNOWN = 0,
+  SASL_START = 1,
+  SASL_IN_PROGRESS = 2,
+  SASL_SUCCESS = 3,
+  SASL_FAILED = 4
+};
+bool SaslStatus_IsValid(int value);
+const SaslStatus SaslStatus_MIN = SASL_UNKNOWN;
+const SaslStatus SaslStatus_MAX = SASL_FAILED;
+const int SaslStatus_ARRAYSIZE = SaslStatus_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* SaslStatus_descriptor();
+inline const ::std::string& SaslStatus_Name(SaslStatus value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    SaslStatus_descriptor(), value);
+}
+inline bool SaslStatus_Parse(
+    const ::std::string& name, SaslStatus* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SaslStatus>(
+    SaslStatus_descriptor(), name, value);
+}
+>>>>>>> C++ stuff
 enum RequestStatus {
   UNKNOWN_STATUS = 0,
   OK = 1,
@@ -1125,6 +1151,25 @@ class BitToUserHandshake : public ::google::protobuf::Message {
   inline ::exec::user::RpcEndpointInfos* mutable_server_infos();
   inline ::exec::user::RpcEndpointInfos* release_server_infos();
   inline void set_allocated_server_infos(::exec::user::RpcEndpointInfos* server_infos);
+<<<<<<< HEAD
+=======
+
+  // repeated string authenticationMechanisms = 7;
+  inline int authenticationmechanisms_size() const;
+  inline void clear_authenticationmechanisms();
+  static const int kAuthenticationMechanismsFieldNumber = 7;
+  inline const ::std::string& authenticationmechanisms(int index) const;
+  inline ::std::string* mutable_authenticationmechanisms(int index);
+  inline void set_authenticationmechanisms(int index, const ::std::string& value);
+  inline void set_authenticationmechanisms(int index, const char* value);
+  inline void set_authenticationmechanisms(int index, const char* value, size_t size);
+  inline ::std::string* add_authenticationmechanisms();
+  inline void add_authenticationmechanisms(const ::std::string& value);
+  inline void add_authenticationmechanisms(const char* value);
+  inline void add_authenticationmechanisms(const char* value, size_t size);
+  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& authenticationmechanisms() const;
+  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_authenticationmechanisms();
+>>>>>>> C++ stuff
 
   // @@protoc_insertion_point(class_scope:exec.user.BitToUserHandshake)
  private:
@@ -1146,9 +1191,13 @@ class BitToUserHandshake : public ::google::protobuf::Message {
   ::std::string* errorid_;
   ::std::string* errormessage_;
   ::exec::user::RpcEndpointInfos* server_infos_;
+<<<<<<< HEAD
+=======
+  ::google::protobuf::RepeatedPtrField< ::std::string> authenticationmechanisms_;
+>>>>>>> C++ stuff
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
 
   friend void  protobuf_AddDesc_User_2eproto();
   friend void protobuf_AssignDesc_User_2eproto();
@@ -4779,6 +4828,177 @@ inline void BitToUserHandshake::set_allocated_errormessage(::std::string* errorm
 // optional .exec.user.RpcEndpointInfos server_infos = 6;
 inline bool BitToUserHandshake::has_server_infos() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
+<<<<<<< HEAD
+=======
+}
+inline void BitToUserHandshake::set_has_server_infos() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void BitToUserHandshake::clear_has_server_infos() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void BitToUserHandshake::clear_server_infos() {
+  if (server_infos_ != NULL) server_infos_->::exec::user::RpcEndpointInfos::Clear();
+  clear_has_server_infos();
+}
+inline const ::exec::user::RpcEndpointInfos& BitToUserHandshake::server_infos() const {
+  return server_infos_ != NULL ? *server_infos_ : *default_instance_->server_infos_;
+}
+inline ::exec::user::RpcEndpointInfos* BitToUserHandshake::mutable_server_infos() {
+  set_has_server_infos();
+  if (server_infos_ == NULL) server_infos_ = new ::exec::user::RpcEndpointInfos;
+  return server_infos_;
+}
+inline ::exec::user::RpcEndpointInfos* BitToUserHandshake::release_server_infos() {
+  clear_has_server_infos();
+  ::exec::user::RpcEndpointInfos* temp = server_infos_;
+  server_infos_ = NULL;
+  return temp;
+}
+inline void BitToUserHandshake::set_allocated_server_infos(::exec::user::RpcEndpointInfos* server_infos) {
+  delete server_infos_;
+  server_infos_ = server_infos;
+  if (server_infos) {
+    set_has_server_infos();
+  } else {
+    clear_has_server_infos();
+  }
+}
+
+// repeated string authenticationMechanisms = 7;
+inline int BitToUserHandshake::authenticationmechanisms_size() const {
+  return authenticationmechanisms_.size();
+}
+inline void BitToUserHandshake::clear_authenticationmechanisms() {
+  authenticationmechanisms_.Clear();
+}
+inline const ::std::string& BitToUserHandshake::authenticationmechanisms(int index) const {
+  return authenticationmechanisms_.Get(index);
+}
+inline ::std::string* BitToUserHandshake::mutable_authenticationmechanisms(int index) {
+  return authenticationmechanisms_.Mutable(index);
+}
+inline void BitToUserHandshake::set_authenticationmechanisms(int index, const ::std::string& value) {
+  authenticationmechanisms_.Mutable(index)->assign(value);
+}
+inline void BitToUserHandshake::set_authenticationmechanisms(int index, const char* value) {
+  authenticationmechanisms_.Mutable(index)->assign(value);
+}
+inline void BitToUserHandshake::set_authenticationmechanisms(int index, const char* value, size_t size) {
+  authenticationmechanisms_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* BitToUserHandshake::add_authenticationmechanisms() {
+  return authenticationmechanisms_.Add();
+}
+inline void BitToUserHandshake::add_authenticationmechanisms(const ::std::string& value) {
+  authenticationmechanisms_.Add()->assign(value);
+}
+inline void BitToUserHandshake::add_authenticationmechanisms(const char* value) {
+  authenticationmechanisms_.Add()->assign(value);
+}
+inline void BitToUserHandshake::add_authenticationmechanisms(const char* value, size_t size) {
+  authenticationmechanisms_.Add()->assign(reinterpret_cast<const char*>(value), size);
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+BitToUserHandshake::authenticationmechanisms() const {
+  return authenticationmechanisms_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+BitToUserHandshake::mutable_authenticationmechanisms() {
+  return &authenticationmechanisms_;
+}
+
+// -------------------------------------------------------------------
+
+// SaslMessage
+
+// optional string mechanism = 1;
+inline bool SaslMessage::has_mechanism() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SaslMessage::set_has_mechanism() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SaslMessage::clear_has_mechanism() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SaslMessage::clear_mechanism() {
+  if (mechanism_ != &::google::protobuf::internal::kEmptyString) {
+    mechanism_->clear();
+  }
+  clear_has_mechanism();
+}
+inline const ::std::string& SaslMessage::mechanism() const {
+  return *mechanism_;
+}
+inline void SaslMessage::set_mechanism(const ::std::string& value) {
+  set_has_mechanism();
+  if (mechanism_ == &::google::protobuf::internal::kEmptyString) {
+    mechanism_ = new ::std::string;
+  }
+  mechanism_->assign(value);
+}
+inline void SaslMessage::set_mechanism(const char* value) {
+  set_has_mechanism();
+  if (mechanism_ == &::google::protobuf::internal::kEmptyString) {
+    mechanism_ = new ::std::string;
+  }
+  mechanism_->assign(value);
+}
+inline void SaslMessage::set_mechanism(const char* value, size_t size) {
+  set_has_mechanism();
+  if (mechanism_ == &::google::protobuf::internal::kEmptyString) {
+    mechanism_ = new ::std::string;
+  }
+  mechanism_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* SaslMessage::mutable_mechanism() {
+  set_has_mechanism();
+  if (mechanism_ == &::google::protobuf::internal::kEmptyString) {
+    mechanism_ = new ::std::string;
+  }
+  return mechanism_;
+}
+inline ::std::string* SaslMessage::release_mechanism() {
+  clear_has_mechanism();
+  if (mechanism_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = mechanism_;
+    mechanism_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void SaslMessage::set_allocated_mechanism(::std::string* mechanism) {
+  if (mechanism_ != &::google::protobuf::internal::kEmptyString) {
+    delete mechanism_;
+  }
+  if (mechanism) {
+    set_has_mechanism();
+    mechanism_ = mechanism;
+  } else {
+    clear_has_mechanism();
+    mechanism_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional bytes data = 2;
+inline bool SaslMessage::has_data() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SaslMessage::set_has_data() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SaslMessage::clear_has_data() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SaslMessage::clear_data() {
+  if (data_ != &::google::protobuf::internal::kEmptyString) {
+    data_->clear();
+  }
+  clear_has_data();
+>>>>>>> C++ stuff
 }
 inline void BitToUserHandshake::set_has_server_infos() {
   _has_bits_[0] |= 0x00000010u;

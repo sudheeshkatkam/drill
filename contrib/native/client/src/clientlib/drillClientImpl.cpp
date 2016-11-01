@@ -571,7 +571,7 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
 
                     switch (challenge.status()) {
 
-                        case exec::user::SASL_AUTH_IN_PROGRESS: {
+                        case exec::user::SASL_IN_PROGRESS: {
                             DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Continuing SASL: received challenge." << std::endl;)
                             const char *in = challenge.data().c_str();
                             const unsigned inlen = challenge.data().length();
@@ -583,14 +583,14 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
                             exec::user::SaslStatus responseStatus;
                             switch (saslResult) {
                                 case SASL_CONTINUE:
-                                    responseStatus = exec::user::SaslStatus::SASL_AUTH_IN_PROGRESS;
+                                    responseStatus = exec::user::SaslStatus::SASL_IN_PROGRESS;
                                     break;
                                 case SASL_OK:
                                     // Server succeeds first
-                                    responseStatus = exec::user::SaslStatus::SASL_AUTH_IN_PROGRESS;
+                                    responseStatus = exec::user::SaslStatus::SASL_IN_PROGRESS;
                                     break;
                                 default:
-                                    responseStatus = exec::user::SaslStatus::SASL_AUTH_FAILED;
+                                    responseStatus = exec::user::SaslStatus::SASL_FAILED;
                                     break;
                             }
                             DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Continuing SASL: preparing response with status: "
@@ -611,7 +611,7 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
                             }
                             break;
                         }
-                        case exec::user::SASL_AUTH_SUCCESS: {
+                        case exec::user::SASL_SUCCESS: {
                             DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "SASL succeeded on server." << std::endl;)
                             if (saslResult == SASL_CONTINUE) { // client may need to evaluate once more
                                 const char *in = challenge.data().c_str();
