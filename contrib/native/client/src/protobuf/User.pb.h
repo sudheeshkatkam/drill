@@ -48,6 +48,7 @@ class RequestResults;
 class GetQueryPlanFragments;
 class QueryPlanFragments;
 class BitToUserHandshake;
+class SaslMessage;
 class LikeFilter;
 class GetCatalogsReq;
 class CatalogMetadata;
@@ -97,7 +98,7 @@ enum RpcType {
 };
 bool RpcType_IsValid(int value);
 const RpcType RpcType_MIN = HANDSHAKE;
-const RpcType RpcType_MAX = PREPARED_STATEMENT;
+const RpcType RpcType_MAX = SASL_MESSAGE;
 const int RpcType_ARRAYSIZE = RpcType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* RpcType_descriptor();
@@ -132,11 +133,12 @@ enum HandshakeStatus {
   SUCCESS = 1,
   RPC_VERSION_MISMATCH = 2,
   AUTH_FAILED = 3,
-  UNKNOWN_FAILURE = 4
+  UNKNOWN_FAILURE = 4,
+  AUTH_REQUIRED = 5
 };
 bool HandshakeStatus_IsValid(int value);
 const HandshakeStatus HandshakeStatus_MIN = SUCCESS;
-const HandshakeStatus HandshakeStatus_MAX = UNKNOWN_FAILURE;
+const HandshakeStatus HandshakeStatus_MAX = AUTH_REQUIRED;
 const int HandshakeStatus_ARRAYSIZE = HandshakeStatus_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* HandshakeStatus_descriptor();
@@ -149,8 +151,6 @@ inline bool HandshakeStatus_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<HandshakeStatus>(
     HandshakeStatus_descriptor(), name, value);
 }
-<<<<<<< HEAD
-=======
 enum SaslStatus {
   SASL_UNKNOWN = 0,
   SASL_START = 1,
@@ -173,7 +173,6 @@ inline bool SaslStatus_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<SaslStatus>(
     SaslStatus_descriptor(), name, value);
 }
->>>>>>> C++ stuff
 enum RequestStatus {
   UNKNOWN_STATUS = 0,
   OK = 1,
@@ -1151,8 +1150,6 @@ class BitToUserHandshake : public ::google::protobuf::Message {
   inline ::exec::user::RpcEndpointInfos* mutable_server_infos();
   inline ::exec::user::RpcEndpointInfos* release_server_infos();
   inline void set_allocated_server_infos(::exec::user::RpcEndpointInfos* server_infos);
-<<<<<<< HEAD
-=======
 
   // repeated string authenticationMechanisms = 7;
   inline int authenticationmechanisms_size() const;
@@ -1169,7 +1166,6 @@ class BitToUserHandshake : public ::google::protobuf::Message {
   inline void add_authenticationmechanisms(const char* value, size_t size);
   inline const ::google::protobuf::RepeatedPtrField< ::std::string>& authenticationmechanisms() const;
   inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_authenticationmechanisms();
->>>>>>> C++ stuff
 
   // @@protoc_insertion_point(class_scope:exec.user.BitToUserHandshake)
  private:
@@ -1191,10 +1187,7 @@ class BitToUserHandshake : public ::google::protobuf::Message {
   ::std::string* errorid_;
   ::std::string* errormessage_;
   ::exec::user::RpcEndpointInfos* server_infos_;
-<<<<<<< HEAD
-=======
   ::google::protobuf::RepeatedPtrField< ::std::string> authenticationmechanisms_;
->>>>>>> C++ stuff
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
@@ -1205,6 +1198,118 @@ class BitToUserHandshake : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static BitToUserHandshake* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class SaslMessage : public ::google::protobuf::Message {
+ public:
+  SaslMessage();
+  virtual ~SaslMessage();
+
+  SaslMessage(const SaslMessage& from);
+
+  inline SaslMessage& operator=(const SaslMessage& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SaslMessage& default_instance();
+
+  void Swap(SaslMessage* other);
+
+  // implements Message ----------------------------------------------
+
+  SaslMessage* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SaslMessage& from);
+  void MergeFrom(const SaslMessage& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional string mechanism = 1;
+  inline bool has_mechanism() const;
+  inline void clear_mechanism();
+  static const int kMechanismFieldNumber = 1;
+  inline const ::std::string& mechanism() const;
+  inline void set_mechanism(const ::std::string& value);
+  inline void set_mechanism(const char* value);
+  inline void set_mechanism(const char* value, size_t size);
+  inline ::std::string* mutable_mechanism();
+  inline ::std::string* release_mechanism();
+  inline void set_allocated_mechanism(::std::string* mechanism);
+
+  // optional bytes data = 2;
+  inline bool has_data() const;
+  inline void clear_data();
+  static const int kDataFieldNumber = 2;
+  inline const ::std::string& data() const;
+  inline void set_data(const ::std::string& value);
+  inline void set_data(const char* value);
+  inline void set_data(const void* value, size_t size);
+  inline ::std::string* mutable_data();
+  inline ::std::string* release_data();
+  inline void set_allocated_data(::std::string* data);
+
+  // optional .exec.user.SaslStatus status = 3;
+  inline bool has_status() const;
+  inline void clear_status();
+  static const int kStatusFieldNumber = 3;
+  inline ::exec::user::SaslStatus status() const;
+  inline void set_status(::exec::user::SaslStatus value);
+
+  // @@protoc_insertion_point(class_scope:exec.user.SaslMessage)
+ private:
+  inline void set_has_mechanism();
+  inline void clear_has_mechanism();
+  inline void set_has_data();
+  inline void clear_has_data();
+  inline void set_has_status();
+  inline void clear_has_status();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* mechanism_;
+  ::std::string* data_;
+  int status_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_User_2eproto();
+  friend void protobuf_AssignDesc_User_2eproto();
+  friend void protobuf_ShutdownFile_User_2eproto();
+
+  void InitAsDefaultInstance();
+  static SaslMessage* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -4828,8 +4933,6 @@ inline void BitToUserHandshake::set_allocated_errormessage(::std::string* errorm
 // optional .exec.user.RpcEndpointInfos server_infos = 6;
 inline bool BitToUserHandshake::has_server_infos() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
-<<<<<<< HEAD
-=======
 }
 inline void BitToUserHandshake::set_has_server_infos() {
   _has_bits_[0] |= 0x00000010u;
@@ -4998,40 +5101,82 @@ inline void SaslMessage::clear_data() {
     data_->clear();
   }
   clear_has_data();
->>>>>>> C++ stuff
 }
-inline void BitToUserHandshake::set_has_server_infos() {
-  _has_bits_[0] |= 0x00000010u;
+inline const ::std::string& SaslMessage::data() const {
+  return *data_;
 }
-inline void BitToUserHandshake::clear_has_server_infos() {
-  _has_bits_[0] &= ~0x00000010u;
-}
-inline void BitToUserHandshake::clear_server_infos() {
-  if (server_infos_ != NULL) server_infos_->::exec::user::RpcEndpointInfos::Clear();
-  clear_has_server_infos();
-}
-inline const ::exec::user::RpcEndpointInfos& BitToUserHandshake::server_infos() const {
-  return server_infos_ != NULL ? *server_infos_ : *default_instance_->server_infos_;
-}
-inline ::exec::user::RpcEndpointInfos* BitToUserHandshake::mutable_server_infos() {
-  set_has_server_infos();
-  if (server_infos_ == NULL) server_infos_ = new ::exec::user::RpcEndpointInfos;
-  return server_infos_;
-}
-inline ::exec::user::RpcEndpointInfos* BitToUserHandshake::release_server_infos() {
-  clear_has_server_infos();
-  ::exec::user::RpcEndpointInfos* temp = server_infos_;
-  server_infos_ = NULL;
-  return temp;
-}
-inline void BitToUserHandshake::set_allocated_server_infos(::exec::user::RpcEndpointInfos* server_infos) {
-  delete server_infos_;
-  server_infos_ = server_infos;
-  if (server_infos) {
-    set_has_server_infos();
-  } else {
-    clear_has_server_infos();
+inline void SaslMessage::set_data(const ::std::string& value) {
+  set_has_data();
+  if (data_ == &::google::protobuf::internal::kEmptyString) {
+    data_ = new ::std::string;
   }
+  data_->assign(value);
+}
+inline void SaslMessage::set_data(const char* value) {
+  set_has_data();
+  if (data_ == &::google::protobuf::internal::kEmptyString) {
+    data_ = new ::std::string;
+  }
+  data_->assign(value);
+}
+inline void SaslMessage::set_data(const void* value, size_t size) {
+  set_has_data();
+  if (data_ == &::google::protobuf::internal::kEmptyString) {
+    data_ = new ::std::string;
+  }
+  data_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* SaslMessage::mutable_data() {
+  set_has_data();
+  if (data_ == &::google::protobuf::internal::kEmptyString) {
+    data_ = new ::std::string;
+  }
+  return data_;
+}
+inline ::std::string* SaslMessage::release_data() {
+  clear_has_data();
+  if (data_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = data_;
+    data_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void SaslMessage::set_allocated_data(::std::string* data) {
+  if (data_ != &::google::protobuf::internal::kEmptyString) {
+    delete data_;
+  }
+  if (data) {
+    set_has_data();
+    data_ = data;
+  } else {
+    clear_has_data();
+    data_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional .exec.user.SaslStatus status = 3;
+inline bool SaslMessage::has_status() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SaslMessage::set_has_status() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SaslMessage::clear_has_status() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SaslMessage::clear_status() {
+  status_ = 0;
+  clear_has_status();
+}
+inline ::exec::user::SaslStatus SaslMessage::status() const {
+  return static_cast< ::exec::user::SaslStatus >(status_);
+}
+inline void SaslMessage::set_status(::exec::user::SaslStatus value) {
+  assert(::exec::user::SaslStatus_IsValid(value));
+  set_has_status();
+  status_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -8826,6 +8971,10 @@ inline const EnumDescriptor* GetEnumDescriptor< ::exec::user::QueryResultsMode>(
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::exec::user::HandshakeStatus>() {
   return ::exec::user::HandshakeStatus_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::exec::user::SaslStatus>() {
+  return ::exec::user::SaslStatus_descriptor();
 }
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::exec::user::RequestStatus>() {

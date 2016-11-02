@@ -372,11 +372,11 @@ void DrillClientImpl::handleHShakeReadTimeout(const boost::system::error_code & 
 
 void DrillClientImpl::readMessageHandler(const boost::system::error_code& err,
                                   size_t bytes_transferred,
-                                  InBoundRpcMessage& msg) {
+                                  rpc::InBoundRpcMessage& msg) {
     boost::system::error_code error=err;
     if (!err) {
         uint32_t length = 0;
-        int bytes_read = DrillClientImpl::s_decoder.LengthDecode(m_rbuf, &length);
+        int bytes_read = rpc::lengthDecode(m_rbuf, length);
         if (length > 0) {
             const size_t leftover = LEN_PREFIX_BUFLEN - bytes_read;
             ByteBuf_t b = m_rbuf + LEN_PREFIX_BUFLEN;
@@ -391,7 +391,7 @@ void DrillClientImpl::readMessageHandler(const boost::system::error_code& err,
                 bytesToRead -= dataBytesRead;
                 b += dataBytesRead;
             }
-            DrillClientImpl::s_decoder.Decode(m_rbuf + bytes_read, length, msg);
+            decode(m_rbuf + bytes_read, length, msg); // use return value
             DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Finished decoding: pbody size: " << msg.m_pbody.size() << std::endl;)
         } else {
             DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "DrillClientImpl::readMessage: ERR_CONN_RDFAIL. No reply.\n";)
@@ -407,7 +407,7 @@ void DrillClientImpl::readMessageHandler(const boost::system::error_code& err,
     }
 }
 
-void DrillClientImpl::readMessage(InBoundRpcMessage &msg) {
+void DrillClientImpl::readMessage(rpc::InBoundRpcMessage &msg) {
     if (m_rbuf == NULL) {
         m_rbuf = Utils::allocateBuffer(MAX_SOCK_RD_BUFSIZE);
     }
@@ -544,7 +544,7 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
                         boost::lock_guard<boost::mutex> lock(this->m_dcMutex);
                         const int32_t coordId = this->getNextCoordinationId();
 
-                        OutBoundRpcMessage out_msg(exec::rpc::REQUEST, exec::user::SASL_MESSAGE, coordId, &response);
+                        rpc::OutBoundRpcMessage out_msg(exec::rpc::REQUEST, exec::user::SASL_MESSAGE, coordId, &response);
                         sendSync(out_msg);
                         DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Sent SASL init response, id: " << coordId
                                                           << " result: " << saslResult << std::endl;)
@@ -558,7 +558,7 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
                     }
 
                     // receive and parse challenge
-                    InBoundRpcMessage inboundMessage;
+                    rpc::InBoundRpcMessage inboundMessage;
                     readMessage(inboundMessage);
                     if (m_pError) {
                         DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Something failed." << std::endl;)
@@ -604,7 +604,7 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
                                 boost::lock_guard<boost::mutex> lock(this->m_dcMutex);
                                 int32_t coordId = this->getNextCoordinationId();
 
-                                OutBoundRpcMessage out_msg(exec::rpc::REQUEST, exec::user::SASL_MESSAGE, coordId,
+                                rpc::OutBoundRpcMessage out_msg(exec::rpc::REQUEST, exec::user::SASL_MESSAGE, coordId,
                                                            &response);
                                 sendSync(out_msg);
                                 DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Sent SASL response, id: " << coordId << "\n";)
@@ -2303,7 +2303,7 @@ DrillClientImpl* PooledDrillClientImpl::getOneConnection(){
             int tries=0;
             connectionStatus_t ret=CONN_SUCCESS;
             while(pDrillClientImpl==NULL && tries++ < 3){
-                if((ret=connect(m_connectStr.c_str(), m_pUserProperties))==CONN_SUCCESS){
+                if((ret=connect(m_connectStr.c_str(), m_pUserProperties.get()))==CONN_SUCCESS){
                     boost::lock_guard<boost::mutex> lock(m_poolMutex);
                     pDrillClientImpl=m_clientConnections.back();
                     ret=pDrillClientImpl->validateHandshake(m_pUserProperties.get());

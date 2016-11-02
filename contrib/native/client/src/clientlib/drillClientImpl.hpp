@@ -465,8 +465,8 @@ class DrillClientImpl : public DrillClientImplBase{
         connectionStatus_t sendSync(rpc::OutBoundRpcMessage& msg);
         // handshake
         connectionStatus_t recvHandshake();
-        void readMessageHandler(const boost::system::error_code& err, size_t bytes_transferred, InBoundRpcMessage& msg);
-        void readMessage(InBoundRpcMessage &msg);
+        void readMessageHandler(const boost::system::error_code& err, size_t bytes_transferred, rpc::InBoundRpcMessage& msg);
+        void readMessage(rpc::InBoundRpcMessage &msg);
         void handleHandshake(ByteBuf_t b, const boost::system::error_code& err, std::size_t bytes_transferred );
         void handleHShakeReadTimeout(const boost::system::error_code & err);
         // starts the listener thread that receives responses/messages from the server
