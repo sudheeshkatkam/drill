@@ -36,7 +36,11 @@ import java.util.Map;
  * Plain SaslServer implementation. See https://tools.ietf.org/html/rfc4616
  */
 public class PlainServer implements SaslServer {
-  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PlainServer.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PlainServer.class);
+
+  private static final String UTF_8_NULL = "\u0000";
+
+  public static final String MECHANISM_NAME = "PLAIN";
 
   public static class PlainServerFactory implements SaslServerFactory {
 
@@ -44,7 +48,7 @@ public class PlainServer implements SaslServer {
     public SaslServer createSaslServer(final String mechanism, final String protocol, final String serverName,
                                        final Map<String, ?> props, final CallbackHandler cbh)
         throws SaslException {
-      return "PLAIN".equals(mechanism) ?
+      return MECHANISM_NAME.equals(mechanism) ?
           props == null || "false".equals(props.get(Sasl.POLICY_NOPLAINTEXT)) ?
               new PlainServer(cbh) :
               null :
@@ -54,7 +58,7 @@ public class PlainServer implements SaslServer {
     @Override
     public String[] getMechanismNames(final Map<String, ?> props) {
       return props == null || "false".equals(props.get(Sasl.POLICY_NOPLAINTEXT)) ?
-          new String[]{"PLAIN"} :
+          new String[]{MECHANISM_NAME} :
           new String[0];
     }
   }
@@ -64,7 +68,7 @@ public class PlainServer implements SaslServer {
 
     public PlainServerProvider() {
       super("PlainServer", 1.0, "PLAIN SASL Server Provider");
-      put("SaslServerFactory.PLAIN", PlainServerFactory.class.getName());
+      put("SaslServerFactory." + MECHANISM_NAME, PlainServerFactory.class.getName());
     }
   }
 
@@ -81,7 +85,7 @@ public class PlainServer implements SaslServer {
 
   @Override
   public String getMechanismName() {
-    return "PLAIN";
+    return MECHANISM_NAME;
   }
 
   @Override
@@ -94,16 +98,11 @@ public class PlainServer implements SaslServer {
       throw new SaslException("Received null response");
     }
 
-    final String payload;
-    try {
-      payload = new String(response, StandardCharsets.UTF_8);
-    } catch (final Exception e) {
-      throw new SaslException("Received corrupt response", e);
-    }
+    final String payload = new String(response, StandardCharsets.UTF_8);
 
     // Separator defined in PlainClient is 0
     // three parts: [ authorizationID, authenticationID, password ]
-    final String[] parts = payload.split("\u0000", 3);
+    final String[] parts = payload.split(UTF_8_NULL, 3);
     if (parts.length != 3) {
       throw new SaslException("Received corrupt response. Expected 3 parts, but received "
           + parts.length);

@@ -431,6 +431,8 @@ public final class SchemaUserProtos
                 if(message.hasClientInfos())
                     output.writeObject(8, message.getClientInfos(), org.apache.drill.exec.proto.SchemaUserProtos.RpcEndpointInfos.WRITE, false);
 
+                if(message.hasSupportSasl())
+                    output.writeBool(9, message.getSupportSasl(), false);
             }
             public boolean isInitialized(org.apache.drill.exec.proto.UserProtos.UserToBitHandshake message)
             {
@@ -497,6 +499,9 @@ public final class SchemaUserProtos
                             builder.setClientInfos(input.mergeObject(org.apache.drill.exec.proto.UserProtos.RpcEndpointInfos.newBuilder(), org.apache.drill.exec.proto.SchemaUserProtos.RpcEndpointInfos.MERGE));
 
                             break;
+                        case 9:
+                            builder.setSupportSasl(input.readBool());
+                            break;
                         default:
                             input.handleUnknownField(number, this);
                     }
@@ -545,6 +550,7 @@ public final class SchemaUserProtos
                 case 6: return "supportComplexTypes";
                 case 7: return "supportTimeout";
                 case 8: return "clientInfos";
+                case 9: return "supportSasl";
                 default: return null;
             }
         }
@@ -564,6 +570,7 @@ public final class SchemaUserProtos
             fieldMap.put("supportComplexTypes", 6);
             fieldMap.put("supportTimeout", 7);
             fieldMap.put("clientInfos", 8);
+            fieldMap.put("supportSasl", 9);
         }
     }
 

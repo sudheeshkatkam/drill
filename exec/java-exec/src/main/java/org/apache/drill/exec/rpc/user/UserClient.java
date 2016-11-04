@@ -116,6 +116,7 @@ public class UserClient extends BasicClientWithConnection<RpcType, UserToBitHand
         .setSupportTimeout(true)
         .setCredentials(credentials)
         .setClientInfos(UserRpcUtils.getRpcEndpointInfos(clientName))
+        .setSupportSasl(true)
         .setProperties(parameters.serializeForServer());
     this.parameters = parameters;
 

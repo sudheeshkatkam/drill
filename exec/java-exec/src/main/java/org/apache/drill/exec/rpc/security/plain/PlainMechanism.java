@@ -39,7 +39,7 @@ import java.util.Map;
 public class PlainMechanism implements AuthenticationMechanism {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PlainMechanism.class);
 
-  public static final String MECHANISM_NAME = "PLAIN";
+  public static final String MECHANISM_NAME = PlainServer.MECHANISM_NAME;
 
   static {
     Security.addProvider(new PlainServer.PlainServerProvider());

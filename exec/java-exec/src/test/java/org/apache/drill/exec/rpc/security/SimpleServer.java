@@ -23,6 +23,7 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.sasl.SaslException;
 import javax.security.sasl.SaslServer;
 import javax.security.sasl.SaslServerFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class SimpleServer implements SaslServer {
@@ -53,7 +54,7 @@ public class SimpleServer implements SaslServer {
     if (count == 0) { // first expect authorization ID
       //This SaslServer simply permits a client to authenticate according to whatever username
       //was supplied in client's response[]
-      authorizationId = new String(response);
+      authorizationId = new String(response, StandardCharsets.UTF_8);
     } else { // then expect (count + 1)
       final int number = Ints.fromByteArray(response);
       if (number != count + 1) {

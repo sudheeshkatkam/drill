@@ -70,7 +70,7 @@ public class UserRpcConfig {
         .build();
   }
 
-  public static final int RPC_VERSION = 6;
+  public static final int RPC_VERSION = 5;
 
   // prevent instantiation
   private UserRpcConfig() {

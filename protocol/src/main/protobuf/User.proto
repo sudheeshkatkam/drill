@@ -74,6 +74,7 @@ message UserToBitHandshake {
   optional bool support_complex_types = 6 [default = false];
   optional bool support_timeout = 7 [default = false];
   optional RpcEndpointInfos client_infos = 8;
+  optional bool support_sasl = 9 [default = false];
 }
 
 message RequestResults {

@@ -22,7 +22,6 @@ import java.net.SocketAddress;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.drill.common.config.ConnectionParameters;
 import org.apache.drill.common.config.DrillConfig;
 import org.apache.drill.exec.ExecConstants;
@@ -61,7 +60,6 @@ import javax.security.sasl.SaslServer;
 import com.google.protobuf.MessageLite;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoopGroup;
@@ -70,11 +68,6 @@ import io.netty.channel.socket.SocketChannel;
 public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UserServer.class);
   private static final String SERVER_NAME = "Apache Drill Server";
-
-  private static final ImmutableSet<Integer> SUPPORTED_RPC_VERSIONS = ImmutableSet.of(5, 6);
-
-  // for backward compatibility (<= 1.8) during authentication
-  private static final int NON_SASL_RPC_VERSION_SUPPORTED = 5;
 
   final UserWorker worker;
   final BufferAllocator alloc;
@@ -320,9 +313,9 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
             .setServerInfos(UserRpcUtils.getRpcEndpointInfos(SERVER_NAME));
 
         try {
-          if (!SUPPORTED_RPC_VERSIONS.contains(inbound.getRpcVersion())) {
-            final String errMsg = String.format("Invalid rpc version. Expected %s, actual %d.",
-                SUPPORTED_RPC_VERSIONS, inbound.getRpcVersion());
+          if (inbound.getRpcVersion() != UserRpcConfig.RPC_VERSION) {
+            final String errMsg = String.format("Invalid rpc version. Expected %d, actual %d.",
+                UserRpcConfig.RPC_VERSION, inbound.getRpcVersion());
 
             return handleFailure(respBuilder, HandshakeStatus.RPC_VERSION_MISMATCH, errMsg, null);
           }
@@ -335,10 +328,11 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
             return respBuilder.build();
           }
 
-          if (inbound.getRpcVersion() == NON_SASL_RPC_VERSION_SUPPORTED) { // for backward compatibility
+          final boolean clientSupportsSasl = inbound.hasSupportSasl() && inbound.getSupportSasl();
+          if (!clientSupportsSasl) { // for backward compatibility
             final String userName = inbound.getCredentials().getUserName();
             if (logger.isTraceEnabled()) {
-              logger.trace("User {} on connection {} is using an older client (Drill version <= 1.8).",
+              logger.trace("User {} on connection {} is likely using an older client.",
                   userName, connection.getRemoteAddress());
             }
             try {
@@ -360,8 +354,6 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
                   .authenticate(userName, password);
               connection.changeHandlerTo(handler);
               connection.finalizeSession(userName);
-              // behave like an older server as the client expects
-              respBuilder.setRpcVersion(NON_SASL_RPC_VERSION_SUPPORTED);
               respBuilder.setStatus(HandshakeStatus.SUCCESS);
               if (logger.isTraceEnabled()) {
                 logger.trace("Authenticated {} successfully using PLAIN from {}", userName,
@@ -376,6 +368,8 @@ public class UserServer extends BasicServer<RpcType, UserClientConnectionImpl> {
           // mention server's authentication capabilities
           respBuilder.addAllAuthenticationMechanisms(authFactory.getSupportedMechanisms());
 
+          // for now, this means PLAIN credentials will be sent over twice
+          // (during handshake and during sasl exchange)
           respBuilder.setStatus(HandshakeStatus.AUTH_REQUIRED);
           return respBuilder.build();
         } catch (Exception e) {

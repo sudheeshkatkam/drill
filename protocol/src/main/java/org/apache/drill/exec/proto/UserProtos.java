@@ -3847,6 +3847,16 @@ public final class UserProtos {
      * <code>optional .exec.user.RpcEndpointInfos client_infos = 8;</code>
      */
     org.apache.drill.exec.proto.UserProtos.RpcEndpointInfosOrBuilder getClientInfosOrBuilder();
+
+    // optional bool support_sasl = 9 [default = false];
+    /**
+     * <code>optional bool support_sasl = 9 [default = false];</code>
+     */
+    boolean hasSupportSasl();
+    /**
+     * <code>optional bool support_sasl = 9 [default = false];</code>
+     */
+    boolean getSupportSasl();
   }
   /**
    * Protobuf type {@code exec.user.UserToBitHandshake}
@@ -3967,6 +3977,11 @@ public final class UserProtos {
                 clientInfos_ = subBuilder.buildPartial();
               }
               bitField0_ |= 0x00000080;
+              break;
+            }
+            case 72: {
+              bitField0_ |= 0x00000100;
+              supportSasl_ = input.readBool();
               break;
             }
           }
@@ -4155,6 +4170,22 @@ public final class UserProtos {
       return clientInfos_;
     }
 
+    // optional bool support_sasl = 9 [default = false];
+    public static final int SUPPORT_SASL_FIELD_NUMBER = 9;
+    private boolean supportSasl_;
+    /**
+     * <code>optional bool support_sasl = 9 [default = false];</code>
+     */
+    public boolean hasSupportSasl() {
+      return ((bitField0_ & 0x00000100) == 0x00000100);
+    }
+    /**
+     * <code>optional bool support_sasl = 9 [default = false];</code>
+     */
+    public boolean getSupportSasl() {
+      return supportSasl_;
+    }
+
     private void initFields() {
       channel_ = org.apache.drill.exec.proto.UserBitShared.RpcChannel.USER;
       supportListening_ = false;
@@ -4164,6 +4195,7 @@ public final class UserProtos {
       supportComplexTypes_ = false;
       supportTimeout_ = false;
       clientInfos_ = org.apache.drill.exec.proto.UserProtos.RpcEndpointInfos.getDefaultInstance();
+      supportSasl_ = false;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -4207,6 +4239,9 @@ public final class UserProtos {
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         output.writeMessage(8, clientInfos_);
       }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        output.writeBool(9, supportSasl_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -4247,6 +4282,10 @@ public final class UserProtos {
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(8, clientInfos_);
+      }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(9, supportSasl_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -4395,6 +4434,8 @@ public final class UserProtos {
           clientInfosBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000080);
+        supportSasl_ = false;
+        bitField0_ = (bitField0_ & ~0x00000100);
         return this;
       }
 
@@ -4467,6 +4508,10 @@ public final class UserProtos {
         } else {
           result.clientInfos_ = clientInfosBuilder_.build();
         }
+        if (((from_bitField0_ & 0x00000100) == 0x00000100)) {
+          to_bitField0_ |= 0x00000100;
+        }
+        result.supportSasl_ = supportSasl_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -4506,6 +4551,9 @@ public final class UserProtos {
         }
         if (other.hasClientInfos()) {
           mergeClientInfos(other.getClientInfos());
+        }
+        if (other.hasSupportSasl()) {
+          setSupportSasl(other.getSupportSasl());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -5057,6 +5105,39 @@ public final class UserProtos {
           clientInfos_ = null;
         }
         return clientInfosBuilder_;
+      }
+
+      // optional bool support_sasl = 9 [default = false];
+      private boolean supportSasl_ ;
+      /**
+       * <code>optional bool support_sasl = 9 [default = false];</code>
+       */
+      public boolean hasSupportSasl() {
+        return ((bitField0_ & 0x00000100) == 0x00000100);
+      }
+      /**
+       * <code>optional bool support_sasl = 9 [default = false];</code>
+       */
+      public boolean getSupportSasl() {
+        return supportSasl_;
+      }
+      /**
+       * <code>optional bool support_sasl = 9 [default = false];</code>
+       */
+      public Builder setSupportSasl(boolean value) {
+        bitField0_ |= 0x00000100;
+        supportSasl_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bool support_sasl = 9 [default = false];</code>
+       */
+      public Builder clearSupportSasl() {
+        bitField0_ = (bitField0_ & ~0x00000100);
+        supportSasl_ = false;
+        onChanged();
+        return this;
       }
 
       // @@protoc_insertion_point(builder_scope:exec.user.UserToBitHandshake)
@@ -23294,7 +23375,7 @@ public final class UserProtos {
      *
      * <pre>
      *
-     * Defaults to READ_ONLU
+     * Defaults to READ_ONLY
      * </pre>
      */
     boolean hasUpdatability();
@@ -23303,7 +23384,7 @@ public final class UserProtos {
      *
      * <pre>
      *
-     * Defaults to READ_ONLU
+     * Defaults to READ_ONLY
      * </pre>
      */
     org.apache.drill.exec.proto.UserProtos.ColumnUpdatability getUpdatability();
@@ -24174,7 +24255,7 @@ public final class UserProtos {
      *
      * <pre>
      *
-     * Defaults to READ_ONLU
+     * Defaults to READ_ONLY
      * </pre>
      */
     public boolean hasUpdatability() {
@@ -24185,7 +24266,7 @@ public final class UserProtos {
      *
      * <pre>
      *
-     * Defaults to READ_ONLU
+     * Defaults to READ_ONLY
      * </pre>
      */
     public org.apache.drill.exec.proto.UserProtos.ColumnUpdatability getUpdatability() {
@@ -25935,7 +26016,7 @@ public final class UserProtos {
        *
        * <pre>
        *
-       * Defaults to READ_ONLU
+       * Defaults to READ_ONLY
        * </pre>
        */
       public boolean hasUpdatability() {
@@ -25946,7 +26027,7 @@ public final class UserProtos {
        *
        * <pre>
        *
-       * Defaults to READ_ONLU
+       * Defaults to READ_ONLY
        * </pre>
        */
       public org.apache.drill.exec.proto.UserProtos.ColumnUpdatability getUpdatability() {
@@ -25957,7 +26038,7 @@ public final class UserProtos {
        *
        * <pre>
        *
-       * Defaults to READ_ONLU
+       * Defaults to READ_ONLY
        * </pre>
        */
       public Builder setUpdatability(org.apache.drill.exec.proto.UserProtos.ColumnUpdatability value) {
@@ -25974,7 +26055,7 @@ public final class UserProtos {
        *
        * <pre>
        *
-       * Defaults to READ_ONLU
+       * Defaults to READ_ONLY
        * </pre>
        */
       public Builder clearUpdatability() {
@@ -30168,7 +30249,7 @@ public final class UserProtos {
       "ec.user.Property\"\210\001\n\020RpcEndpointInfos\022\014\n" +
       "\004name\030\001 \001(\t\022\017\n\007version\030\002 \001(\t\022\024\n\014majorVer" +
       "sion\030\003 \001(\r\022\024\n\014minorVersion\030\004 \001(\r\022\024\n\014patc" +
-      "hVersion\030\005 \001(\r\022\023\n\013application\030\006 \001(\t\"\317\002\n\022" +
+      "hVersion\030\005 \001(\r\022\023\n\013application\030\006 \001(\t\"\354\002\n\022" +
       "UserToBitHandshake\022.\n\007channel\030\001 \001(\0162\027.ex",
       "ec.shared.RpcChannel:\004USER\022\031\n\021support_li" +
       "stening\030\002 \001(\010\022\023\n\013rpc_version\030\003 \001(\005\0221\n\013cr" +
@@ -30177,126 +30258,127 @@ public final class UserProtos {
       "erProperties\022$\n\025support_complex_types\030\006 " +
       "\001(\010:\005false\022\036\n\017support_timeout\030\007 \001(\010:\005fal" +
       "se\0221\n\014client_infos\030\010 \001(\0132\033.exec.user.Rpc" +
-      "EndpointInfos\"S\n\016RequestResults\022&\n\010query" +
-      "_id\030\001 \001(\0132\024.exec.shared.QueryId\022\031\n\021maxim" +
-      "um_responses\030\002 \001(\005\"g\n\025GetQueryPlanFragme",
-      "nts\022\r\n\005query\030\001 \002(\t\022$\n\004type\030\002 \001(\0162\026.exec." +
-      "shared.QueryType\022\031\n\nsplit_plan\030\003 \001(\010:\005fa" +
-      "lse\"\316\001\n\022QueryPlanFragments\0223\n\006status\030\001 \002" +
-      "(\0162#.exec.shared.QueryResult.QueryState\022" +
-      "&\n\010query_id\030\002 \001(\0132\024.exec.shared.QueryId\022" +
-      "1\n\tfragments\030\003 \003(\0132\036.exec.bit.control.Pl" +
-      "anFragment\022(\n\005error\030\004 \001(\0132\031.exec.shared." +
-      "DrillPBError\"\321\001\n\022BitToUserHandshake\022\023\n\013r" +
-      "pc_version\030\002 \001(\005\022*\n\006status\030\003 \001(\0162\032.exec." +
-      "user.HandshakeStatus\022\017\n\007errorId\030\004 \001(\t\022\024\n",
-      "\014errorMessage\030\005 \001(\t\0221\n\014server_infos\030\006 \001(" +
-      "\0132\033.exec.user.RpcEndpointInfos\022 \n\030authen" +
-      "ticationMechanisms\030\007 \003(\t\"U\n\013SaslMessage\022" +
-      "\021\n\tmechanism\030\001 \001(\t\022\014\n\004data\030\002 \001(\014\022%\n\006stat" +
-      "us\030\003 \001(\0162\025.exec.user.SaslStatus\"-\n\nLikeF" +
-      "ilter\022\017\n\007pattern\030\001 \001(\t\022\016\n\006escape\030\002 \001(\t\"D" +
-      "\n\016GetCatalogsReq\0222\n\023catalog_name_filter\030" +
-      "\001 \001(\0132\025.exec.user.LikeFilter\"M\n\017CatalogM" +
-      "etadata\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013descrip" +
-      "tion\030\002 \001(\t\022\017\n\007connect\030\003 \001(\t\"\223\001\n\017GetCatal",
-      "ogsResp\022(\n\006status\030\001 \001(\0162\030.exec.user.Requ" +
-      "estStatus\022,\n\010catalogs\030\002 \003(\0132\032.exec.user." +
-      "CatalogMetadata\022(\n\005error\030\003 \001(\0132\031.exec.sh" +
-      "ared.DrillPBError\"v\n\rGetSchemasReq\0222\n\023ca" +
-      "talog_name_filter\030\001 \001(\0132\025.exec.user.Like" +
-      "Filter\0221\n\022schema_name_filter\030\002 \001(\0132\025.exe" +
-      "c.user.LikeFilter\"i\n\016SchemaMetadata\022\024\n\014c" +
-      "atalog_name\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t\022\r" +
-      "\n\005owner\030\003 \001(\t\022\014\n\004type\030\004 \001(\t\022\017\n\007mutable\030\005" +
-      " \001(\t\"\220\001\n\016GetSchemasResp\022(\n\006status\030\001 \001(\0162",
-      "\030.exec.user.RequestStatus\022*\n\007schemas\030\002 \003" +
-      "(\0132\031.exec.user.SchemaMetadata\022(\n\005error\030\003" +
-      " \001(\0132\031.exec.shared.DrillPBError\"\302\001\n\014GetT" +
-      "ablesReq\0222\n\023catalog_name_filter\030\001 \001(\0132\025." +
-      "exec.user.LikeFilter\0221\n\022schema_name_filt" +
-      "er\030\002 \001(\0132\025.exec.user.LikeFilter\0220\n\021table" +
-      "_name_filter\030\003 \001(\0132\025.exec.user.LikeFilte" +
-      "r\022\031\n\021table_type_filter\030\004 \003(\t\"\\\n\rTableMet" +
-      "adata\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013schema_na" +
-      "me\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t\022\014\n\004type\030\004 \001",
-      "(\t\"\215\001\n\rGetTablesResp\022(\n\006status\030\001 \001(\0162\030.e" +
-      "xec.user.RequestStatus\022(\n\006tables\030\002 \003(\0132\030" +
-      ".exec.user.TableMetadata\022(\n\005error\030\003 \001(\0132" +
-      "\031.exec.shared.DrillPBError\"\333\001\n\rGetColumn" +
-      "sReq\0222\n\023catalog_name_filter\030\001 \001(\0132\025.exec" +
-      ".user.LikeFilter\0221\n\022schema_name_filter\030\002" +
-      " \001(\0132\025.exec.user.LikeFilter\0220\n\021table_nam" +
-      "e_filter\030\003 \001(\0132\025.exec.user.LikeFilter\0221\n" +
-      "\022column_name_filter\030\004 \001(\0132\025.exec.user.Li" +
-      "keFilter\"\251\003\n\016ColumnMetadata\022\024\n\014catalog_n",
-      "ame\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t\022\022\n\ntable_" +
-      "name\030\003 \001(\t\022\023\n\013column_name\030\004 \001(\t\022\030\n\020ordin" +
-      "al_position\030\005 \001(\005\022\025\n\rdefault_value\030\006 \001(\t" +
-      "\022\023\n\013is_nullable\030\007 \001(\010\022\021\n\tdata_type\030\010 \001(\t" +
-      "\022\027\n\017char_max_length\030\t \001(\005\022\031\n\021char_octet_" +
-      "length\030\n \001(\005\022\031\n\021numeric_precision\030\013 \001(\005\022" +
-      "\037\n\027numeric_precision_radix\030\014 \001(\005\022\025\n\rnume" +
-      "ric_scale\030\r \001(\005\022\033\n\023date_time_precision\030\016" +
-      " \001(\005\022\025\n\rinterval_type\030\017 \001(\t\022\032\n\022interval_" +
-      "precision\030\020 \001(\005\022\023\n\013column_size\030\021 \001(\005\"\220\001\n",
-      "\016GetColumnsResp\022(\n\006status\030\001 \001(\0162\030.exec.u" +
-      "ser.RequestStatus\022*\n\007columns\030\002 \003(\0132\031.exe" +
-      "c.user.ColumnMetadata\022(\n\005error\030\003 \001(\0132\031.e" +
-      "xec.shared.DrillPBError\"/\n\032CreatePrepare" +
-      "dStatementReq\022\021\n\tsql_query\030\001 \001(\t\"\326\003\n\024Res" +
-      "ultColumnMetadata\022\024\n\014catalog_name\030\001 \001(\t\022" +
-      "\023\n\013schema_name\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t" +
-      "\022\023\n\013column_name\030\004 \001(\t\022\r\n\005label\030\005 \001(\t\022\021\n\t" +
-      "data_type\030\006 \001(\t\022\023\n\013is_nullable\030\007 \001(\010\022\021\n\t" +
-      "precision\030\010 \001(\005\022\r\n\005scale\030\t \001(\005\022\016\n\006signed",
-      "\030\n \001(\010\022\024\n\014display_size\030\013 \001(\005\022\022\n\nis_alias" +
-      "ed\030\014 \001(\010\0225\n\rsearchability\030\r \001(\0162\036.exec.u" +
-      "ser.ColumnSearchability\0223\n\014updatability\030" +
-      "\016 \001(\0162\035.exec.user.ColumnUpdatability\022\026\n\016" +
-      "auto_increment\030\017 \001(\010\022\030\n\020case_sensitivity" +
-      "\030\020 \001(\010\022\020\n\010sortable\030\021 \001(\010\022\022\n\nclass_name\030\022" +
-      " \001(\t\022\023\n\013is_currency\030\024 \001(\010\".\n\027PreparedSta" +
-      "tementHandle\022\023\n\013server_info\030\001 \001(\014\"\200\001\n\021Pr" +
-      "eparedStatement\0220\n\007columns\030\001 \003(\0132\037.exec." +
-      "user.ResultColumnMetadata\0229\n\rserver_hand",
-      "le\030\002 \001(\0132\".exec.user.PreparedStatementHa" +
-      "ndle\"\253\001\n\033CreatePreparedStatementResp\022(\n\006" +
-      "status\030\001 \001(\0162\030.exec.user.RequestStatus\0228" +
-      "\n\022prepared_statement\030\002 \001(\0132\034.exec.user.P" +
-      "reparedStatement\022(\n\005error\030\003 \001(\0132\031.exec.s" +
-      "hared.DrillPBError\"\353\001\n\010RunQuery\0221\n\014resul" +
-      "ts_mode\030\001 \001(\0162\033.exec.user.QueryResultsMo" +
-      "de\022$\n\004type\030\002 \001(\0162\026.exec.shared.QueryType" +
-      "\022\014\n\004plan\030\003 \001(\t\0221\n\tfragments\030\004 \003(\0132\036.exec" +
-      ".bit.control.PlanFragment\022E\n\031prepared_st",
-      "atement_handle\030\005 \001(\0132\".exec.user.Prepare" +
-      "dStatementHandle*\332\003\n\007RpcType\022\r\n\tHANDSHAK" +
-      "E\020\000\022\007\n\003ACK\020\001\022\013\n\007GOODBYE\020\002\022\r\n\tRUN_QUERY\020\003" +
-      "\022\020\n\014CANCEL_QUERY\020\004\022\023\n\017REQUEST_RESULTS\020\005\022" +
-      "\027\n\023RESUME_PAUSED_QUERY\020\013\022\034\n\030GET_QUERY_PL" +
-      "AN_FRAGMENTS\020\014\022\020\n\014GET_CATALOGS\020\016\022\017\n\013GET_" +
-      "SCHEMAS\020\017\022\016\n\nGET_TABLES\020\020\022\017\n\013GET_COLUMNS" +
-      "\020\021\022\035\n\031CREATE_PREPARED_STATEMENT\020\026\022\016\n\nQUE" +
-      "RY_DATA\020\006\022\020\n\014QUERY_HANDLE\020\007\022\030\n\024QUERY_PLA" +
-      "N_FRAGMENTS\020\r\022\014\n\010CATALOGS\020\022\022\013\n\007SCHEMAS\020\023",
-      "\022\n\n\006TABLES\020\024\022\013\n\007COLUMNS\020\025\022\026\n\022PREPARED_ST" +
-      "ATEMENT\020\027\022\026\n\022REQ_META_FUNCTIONS\020\010\022\026\n\022RES" +
-      "P_FUNCTION_LIST\020\t\022\020\n\014QUERY_RESULT\020\n\022\020\n\014S" +
-      "ASL_MESSAGE\020\030*#\n\020QueryResultsMode\022\017\n\013STR" +
-      "EAM_FULL\020\001*q\n\017HandshakeStatus\022\013\n\007SUCCESS" +
-      "\020\001\022\030\n\024RPC_VERSION_MISMATCH\020\002\022\017\n\013AUTH_FAI" +
-      "LED\020\003\022\023\n\017UNKNOWN_FAILURE\020\004\022\021\n\rAUTH_REQUI" +
-      "RED\020\005*g\n\nSaslStatus\022\020\n\014SASL_UNKNOWN\020\000\022\016\n" +
-      "\nSASL_START\020\001\022\024\n\020SASL_IN_PROGRESS\020\002\022\020\n\014S" +
-      "ASL_SUCCESS\020\003\022\017\n\013SASL_FAILED\020\004*D\n\rReques",
-      "tStatus\022\022\n\016UNKNOWN_STATUS\020\000\022\006\n\002OK\020\001\022\n\n\006F" +
-      "AILED\020\002\022\013\n\007TIMEOUT\020\003*Y\n\023ColumnSearchabil" +
-      "ity\022\031\n\025UNKNOWN_SEARCHABILITY\020\000\022\010\n\004NONE\020\001" +
-      "\022\010\n\004CHAR\020\002\022\n\n\006NUMBER\020\003\022\007\n\003ALL\020\004*K\n\022Colum" +
-      "nUpdatability\022\030\n\024UNKNOWN_UPDATABILITY\020\000\022" +
-      "\r\n\tREAD_ONLY\020\001\022\014\n\010WRITABLE\020\002B+\n\033org.apac" +
-      "he.drill.exec.protoB\nUserProtosH\001"
+      "EndpointInfos\022\033\n\014support_sasl\030\t \001(\010:\005fal" +
+      "se\"S\n\016RequestResults\022&\n\010query_id\030\001 \001(\0132\024" +
+      ".exec.shared.QueryId\022\031\n\021maximum_response",
+      "s\030\002 \001(\005\"g\n\025GetQueryPlanFragments\022\r\n\005quer" +
+      "y\030\001 \002(\t\022$\n\004type\030\002 \001(\0162\026.exec.shared.Quer" +
+      "yType\022\031\n\nsplit_plan\030\003 \001(\010:\005false\"\316\001\n\022Que" +
+      "ryPlanFragments\0223\n\006status\030\001 \002(\0162#.exec.s" +
+      "hared.QueryResult.QueryState\022&\n\010query_id" +
+      "\030\002 \001(\0132\024.exec.shared.QueryId\0221\n\tfragment" +
+      "s\030\003 \003(\0132\036.exec.bit.control.PlanFragment\022" +
+      "(\n\005error\030\004 \001(\0132\031.exec.shared.DrillPBErro" +
+      "r\"\321\001\n\022BitToUserHandshake\022\023\n\013rpc_version\030" +
+      "\002 \001(\005\022*\n\006status\030\003 \001(\0162\032.exec.user.Handsh",
+      "akeStatus\022\017\n\007errorId\030\004 \001(\t\022\024\n\014errorMessa" +
+      "ge\030\005 \001(\t\0221\n\014server_infos\030\006 \001(\0132\033.exec.us" +
+      "er.RpcEndpointInfos\022 \n\030authenticationMec" +
+      "hanisms\030\007 \003(\t\"U\n\013SaslMessage\022\021\n\tmechanis" +
+      "m\030\001 \001(\t\022\014\n\004data\030\002 \001(\014\022%\n\006status\030\003 \001(\0162\025." +
+      "exec.user.SaslStatus\"-\n\nLikeFilter\022\017\n\007pa" +
+      "ttern\030\001 \001(\t\022\016\n\006escape\030\002 \001(\t\"D\n\016GetCatalo" +
+      "gsReq\0222\n\023catalog_name_filter\030\001 \001(\0132\025.exe" +
+      "c.user.LikeFilter\"M\n\017CatalogMetadata\022\024\n\014" +
+      "catalog_name\030\001 \001(\t\022\023\n\013description\030\002 \001(\t\022",
+      "\017\n\007connect\030\003 \001(\t\"\223\001\n\017GetCatalogsResp\022(\n\006" +
+      "status\030\001 \001(\0162\030.exec.user.RequestStatus\022," +
+      "\n\010catalogs\030\002 \003(\0132\032.exec.user.CatalogMeta" +
+      "data\022(\n\005error\030\003 \001(\0132\031.exec.shared.DrillP" +
+      "BError\"v\n\rGetSchemasReq\0222\n\023catalog_name_" +
+      "filter\030\001 \001(\0132\025.exec.user.LikeFilter\0221\n\022s" +
+      "chema_name_filter\030\002 \001(\0132\025.exec.user.Like" +
+      "Filter\"i\n\016SchemaMetadata\022\024\n\014catalog_name" +
+      "\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t\022\r\n\005owner\030\003 \001" +
+      "(\t\022\014\n\004type\030\004 \001(\t\022\017\n\007mutable\030\005 \001(\t\"\220\001\n\016Ge",
+      "tSchemasResp\022(\n\006status\030\001 \001(\0162\030.exec.user" +
+      ".RequestStatus\022*\n\007schemas\030\002 \003(\0132\031.exec.u" +
+      "ser.SchemaMetadata\022(\n\005error\030\003 \001(\0132\031.exec" +
+      ".shared.DrillPBError\"\302\001\n\014GetTablesReq\0222\n" +
+      "\023catalog_name_filter\030\001 \001(\0132\025.exec.user.L" +
+      "ikeFilter\0221\n\022schema_name_filter\030\002 \001(\0132\025." +
+      "exec.user.LikeFilter\0220\n\021table_name_filte" +
+      "r\030\003 \001(\0132\025.exec.user.LikeFilter\022\031\n\021table_" +
+      "type_filter\030\004 \003(\t\"\\\n\rTableMetadata\022\024\n\014ca" +
+      "talog_name\030\001 \001(\t\022\023\n\013schema_name\030\002 \001(\t\022\022\n",
+      "\ntable_name\030\003 \001(\t\022\014\n\004type\030\004 \001(\t\"\215\001\n\rGetT" +
+      "ablesResp\022(\n\006status\030\001 \001(\0162\030.exec.user.Re" +
+      "questStatus\022(\n\006tables\030\002 \003(\0132\030.exec.user." +
+      "TableMetadata\022(\n\005error\030\003 \001(\0132\031.exec.shar" +
+      "ed.DrillPBError\"\333\001\n\rGetColumnsReq\0222\n\023cat" +
+      "alog_name_filter\030\001 \001(\0132\025.exec.user.LikeF" +
+      "ilter\0221\n\022schema_name_filter\030\002 \001(\0132\025.exec" +
+      ".user.LikeFilter\0220\n\021table_name_filter\030\003 " +
+      "\001(\0132\025.exec.user.LikeFilter\0221\n\022column_nam" +
+      "e_filter\030\004 \001(\0132\025.exec.user.LikeFilter\"\251\003",
+      "\n\016ColumnMetadata\022\024\n\014catalog_name\030\001 \001(\t\022\023" +
+      "\n\013schema_name\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t\022" +
+      "\023\n\013column_name\030\004 \001(\t\022\030\n\020ordinal_position" +
+      "\030\005 \001(\005\022\025\n\rdefault_value\030\006 \001(\t\022\023\n\013is_null" +
+      "able\030\007 \001(\010\022\021\n\tdata_type\030\010 \001(\t\022\027\n\017char_ma" +
+      "x_length\030\t \001(\005\022\031\n\021char_octet_length\030\n \001(" +
+      "\005\022\031\n\021numeric_precision\030\013 \001(\005\022\037\n\027numeric_" +
+      "precision_radix\030\014 \001(\005\022\025\n\rnumeric_scale\030\r" +
+      " \001(\005\022\033\n\023date_time_precision\030\016 \001(\005\022\025\n\rint" +
+      "erval_type\030\017 \001(\t\022\032\n\022interval_precision\030\020",
+      " \001(\005\022\023\n\013column_size\030\021 \001(\005\"\220\001\n\016GetColumns" +
+      "Resp\022(\n\006status\030\001 \001(\0162\030.exec.user.Request" +
+      "Status\022*\n\007columns\030\002 \003(\0132\031.exec.user.Colu" +
+      "mnMetadata\022(\n\005error\030\003 \001(\0132\031.exec.shared." +
+      "DrillPBError\"/\n\032CreatePreparedStatementR" +
+      "eq\022\021\n\tsql_query\030\001 \001(\t\"\326\003\n\024ResultColumnMe" +
+      "tadata\022\024\n\014catalog_name\030\001 \001(\t\022\023\n\013schema_n" +
+      "ame\030\002 \001(\t\022\022\n\ntable_name\030\003 \001(\t\022\023\n\013column_" +
+      "name\030\004 \001(\t\022\r\n\005label\030\005 \001(\t\022\021\n\tdata_type\030\006" +
+      " \001(\t\022\023\n\013is_nullable\030\007 \001(\010\022\021\n\tprecision\030\010",
+      " \001(\005\022\r\n\005scale\030\t \001(\005\022\016\n\006signed\030\n \001(\010\022\024\n\014d" +
+      "isplay_size\030\013 \001(\005\022\022\n\nis_aliased\030\014 \001(\010\0225\n" +
+      "\rsearchability\030\r \001(\0162\036.exec.user.ColumnS" +
+      "earchability\0223\n\014updatability\030\016 \001(\0162\035.exe" +
+      "c.user.ColumnUpdatability\022\026\n\016auto_increm" +
+      "ent\030\017 \001(\010\022\030\n\020case_sensitivity\030\020 \001(\010\022\020\n\010s" +
+      "ortable\030\021 \001(\010\022\022\n\nclass_name\030\022 \001(\t\022\023\n\013is_" +
+      "currency\030\024 \001(\010\".\n\027PreparedStatementHandl" +
+      "e\022\023\n\013server_info\030\001 \001(\014\"\200\001\n\021PreparedState" +
+      "ment\0220\n\007columns\030\001 \003(\0132\037.exec.user.Result",
+      "ColumnMetadata\0229\n\rserver_handle\030\002 \001(\0132\"." +
+      "exec.user.PreparedStatementHandle\"\253\001\n\033Cr" +
+      "eatePreparedStatementResp\022(\n\006status\030\001 \001(" +
+      "\0162\030.exec.user.RequestStatus\0228\n\022prepared_" +
+      "statement\030\002 \001(\0132\034.exec.user.PreparedStat" +
+      "ement\022(\n\005error\030\003 \001(\0132\031.exec.shared.Drill" +
+      "PBError\"\353\001\n\010RunQuery\0221\n\014results_mode\030\001 \001" +
+      "(\0162\033.exec.user.QueryResultsMode\022$\n\004type\030" +
+      "\002 \001(\0162\026.exec.shared.QueryType\022\014\n\004plan\030\003 " +
+      "\001(\t\0221\n\tfragments\030\004 \003(\0132\036.exec.bit.contro",
+      "l.PlanFragment\022E\n\031prepared_statement_han" +
+      "dle\030\005 \001(\0132\".exec.user.PreparedStatementH" +
+      "andle*\332\003\n\007RpcType\022\r\n\tHANDSHAKE\020\000\022\007\n\003ACK\020" +
+      "\001\022\013\n\007GOODBYE\020\002\022\r\n\tRUN_QUERY\020\003\022\020\n\014CANCEL_" +
+      "QUERY\020\004\022\023\n\017REQUEST_RESULTS\020\005\022\027\n\023RESUME_P" +
+      "AUSED_QUERY\020\013\022\034\n\030GET_QUERY_PLAN_FRAGMENT" +
+      "S\020\014\022\020\n\014GET_CATALOGS\020\016\022\017\n\013GET_SCHEMAS\020\017\022\016" +
+      "\n\nGET_TABLES\020\020\022\017\n\013GET_COLUMNS\020\021\022\035\n\031CREAT" +
+      "E_PREPARED_STATEMENT\020\026\022\016\n\nQUERY_DATA\020\006\022\020" +
+      "\n\014QUERY_HANDLE\020\007\022\030\n\024QUERY_PLAN_FRAGMENTS",
+      "\020\r\022\014\n\010CATALOGS\020\022\022\013\n\007SCHEMAS\020\023\022\n\n\006TABLES\020" +
+      "\024\022\013\n\007COLUMNS\020\025\022\026\n\022PREPARED_STATEMENT\020\027\022\026" +
+      "\n\022REQ_META_FUNCTIONS\020\010\022\026\n\022RESP_FUNCTION_" +
+      "LIST\020\t\022\020\n\014QUERY_RESULT\020\n\022\020\n\014SASL_MESSAGE" +
+      "\020\030*#\n\020QueryResultsMode\022\017\n\013STREAM_FULL\020\001*" +
+      "q\n\017HandshakeStatus\022\013\n\007SUCCESS\020\001\022\030\n\024RPC_V" +
+      "ERSION_MISMATCH\020\002\022\017\n\013AUTH_FAILED\020\003\022\023\n\017UN" +
+      "KNOWN_FAILURE\020\004\022\021\n\rAUTH_REQUIRED\020\005*g\n\nSa" +
+      "slStatus\022\020\n\014SASL_UNKNOWN\020\000\022\016\n\nSASL_START" +
+      "\020\001\022\024\n\020SASL_IN_PROGRESS\020\002\022\020\n\014SASL_SUCCESS",
+      "\020\003\022\017\n\013SASL_FAILED\020\004*D\n\rRequestStatus\022\022\n\016" +
+      "UNKNOWN_STATUS\020\000\022\006\n\002OK\020\001\022\n\n\006FAILED\020\002\022\013\n\007" +
+      "TIMEOUT\020\003*Y\n\023ColumnSearchability\022\031\n\025UNKN" +
+      "OWN_SEARCHABILITY\020\000\022\010\n\004NONE\020\001\022\010\n\004CHAR\020\002\022" +
+      "\n\n\006NUMBER\020\003\022\007\n\003ALL\020\004*K\n\022ColumnUpdatabili" +
+      "ty\022\030\n\024UNKNOWN_UPDATABILITY\020\000\022\r\n\tREAD_ONL" +
+      "Y\020\001\022\014\n\010WRITABLE\020\002B+\n\033org.apache.drill.ex" +
+      "ec.protoB\nUserProtosH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -30326,7 +30408,7 @@ public final class UserProtos {
           internal_static_exec_user_UserToBitHandshake_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_user_UserToBitHandshake_descriptor,
-              new java.lang.String[] { "Channel", "SupportListening", "RpcVersion", "Credentials", "Properties", "SupportComplexTypes", "SupportTimeout", "ClientInfos", });
+              new java.lang.String[] { "Channel", "SupportListening", "RpcVersion", "Credentials", "Properties", "SupportComplexTypes", "SupportTimeout", "ClientInfos", "SupportSasl", });
           internal_static_exec_user_RequestResults_descriptor =
             getDescriptor().getMessageTypes().get(4);
           internal_static_exec_user_RequestResults_fieldAccessorTable = new

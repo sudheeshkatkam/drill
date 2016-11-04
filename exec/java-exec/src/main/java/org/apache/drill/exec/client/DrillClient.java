@@ -74,6 +74,7 @@ import org.apache.drill.exec.proto.UserProtos.RpcEndpointInfos;
 import org.apache.drill.exec.proto.UserProtos.RpcType;
 import org.apache.drill.exec.proto.UserProtos.RunQuery;
 import org.apache.drill.exec.proto.helper.QueryIdHelper;
+import org.apache.drill.exec.rpc.ChannelClosedException;
 import org.apache.drill.exec.rpc.ConnectionThrottle;
 import org.apache.drill.exec.rpc.DrillRpcFuture;
 import org.apache.drill.exec.rpc.NamedThreadFactory;
@@ -101,7 +102,7 @@ public class DrillClient implements Closeable, ConnectionThrottle {
 
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DrillClient.class);
 
-  protected static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
   private final DrillConfig config;
   private UserClient client;
   private ConnectionParameters parameters;
@@ -245,9 +246,7 @@ public class DrillClient implements Closeable, ConnectionThrottle {
       }
 
       final ArrayList<DrillbitEndpoint> endpoints = new ArrayList<>(clusterCoordinator.getAvailableEndpoints());
-      if (endpoints.isEmpty()) {
-        throw new IllegalStateException("No Drillbits found through ZooKeeper. Check connection parameters?");
-      }
+      checkState(!endpoints.isEmpty(), "No Drillbits found through ZooKeeper. Check connection parameters?");
       // shuffle the collection then get the first endpoint
       Collections.shuffle(endpoints);
       endpoint = endpoints.iterator().next();
@@ -625,7 +624,7 @@ public class DrillClient implements Closeable, ConnectionThrottle {
     client.submitQuery(resultsListener, newBuilder().setResultsMode(STREAM_FULL).setType(type).setPlan(plan).build());
   }
 
-  protected class ListHoldingResultsListener implements UserResultsListener {
+  private class ListHoldingResultsListener implements UserResultsListener {
     private final Vector<QueryDataBatch> results = new Vector<>();
     private final SettableFuture<List<QueryDataBatch>> future = SettableFuture.create();
     private final UserProtos.RunQuery query ;
@@ -637,13 +636,30 @@ public class DrillClient implements Closeable, ConnectionThrottle {
 
     @Override
     public void submissionFailed(UserException ex) {
-      logger.debug("Submission failed.", ex);
-      future.setException(ex);
-      future.set(results);
+      // or  !client.isActive()
+      if (ex.getCause() instanceof ChannelClosedException) {
+        if (reconnect()) {
+          try {
+            client.submitQuery(this, query);
+          } catch (Exception e) {
+            fail(e);
+          }
+        } else {
+          fail(ex);
+        }
+      } else {
+        fail(ex);
+      }
     }
 
     @Override
     public void queryCompleted(QueryState state) {
+      future.set(results);
+    }
+
+    private void fail(Exception ex) {
+      logger.debug("Submission failed.", ex);
+      future.setException(ex);
       future.set(results);
     }
 

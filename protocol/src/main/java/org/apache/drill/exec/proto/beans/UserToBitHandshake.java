@@ -48,6 +48,7 @@ public final class UserToBitHandshake implements Externalizable, Message<UserToB
 
     static final Boolean DEFAULT_SUPPORT_COMPLEX_TYPES = new Boolean(false);
     static final Boolean DEFAULT_SUPPORT_TIMEOUT = new Boolean(false);
+    static final Boolean DEFAULT_SUPPORT_SASL = new Boolean(false);
     
     private RpcChannel channel;
     private Boolean supportListening;
@@ -57,6 +58,7 @@ public final class UserToBitHandshake implements Externalizable, Message<UserToB
     private Boolean supportComplexTypes = DEFAULT_SUPPORT_COMPLEX_TYPES;
     private Boolean supportTimeout = DEFAULT_SUPPORT_TIMEOUT;
     private RpcEndpointInfos clientInfos;
+    private Boolean supportSasl = DEFAULT_SUPPORT_SASL;
 
     public UserToBitHandshake()
     {
@@ -169,6 +171,19 @@ public final class UserToBitHandshake implements Externalizable, Message<UserToB
         return this;
     }
 
+    // supportSasl
+
+    public Boolean getSupportSasl()
+    {
+        return supportSasl;
+    }
+
+    public UserToBitHandshake setSupportSasl(Boolean supportSasl)
+    {
+        this.supportSasl = supportSasl;
+        return this;
+    }
+
     // java serialization
 
     public void readExternal(ObjectInput in) throws IOException
@@ -250,6 +265,9 @@ public final class UserToBitHandshake implements Externalizable, Message<UserToB
                     message.clientInfos = input.mergeObject(message.clientInfos, RpcEndpointInfos.getSchema());
                     break;
 
+                case 9:
+                    message.supportSasl = input.readBool();
+                    break;
                 default:
                     input.handleUnknownField(number, this);
             }   
@@ -285,6 +303,9 @@ public final class UserToBitHandshake implements Externalizable, Message<UserToB
         if(message.clientInfos != null)
              output.writeObject(8, message.clientInfos, RpcEndpointInfos.getSchema(), false);
 
+
+        if(message.supportSasl != null && message.supportSasl != DEFAULT_SUPPORT_SASL)
+            output.writeBool(9, message.supportSasl, false);
     }
 
     public String getFieldName(int number)
@@ -299,6 +320,7 @@ public final class UserToBitHandshake implements Externalizable, Message<UserToB
             case 6: return "supportComplexTypes";
             case 7: return "supportTimeout";
             case 8: return "clientInfos";
+            case 9: return "supportSasl";
             default: return null;
         }
     }
@@ -320,6 +342,7 @@ public final class UserToBitHandshake implements Externalizable, Message<UserToB
         __fieldMap.put("supportComplexTypes", 6);
         __fieldMap.put("supportTimeout", 7);
         __fieldMap.put("clientInfos", 8);
+        __fieldMap.put("supportSasl", 9);
     }
     
 }

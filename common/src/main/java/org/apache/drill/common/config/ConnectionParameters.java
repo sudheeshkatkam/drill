@@ -59,7 +59,8 @@ public final class ConnectionParameters {
       ImmutableSet.of(ZOOKEEPER_CONNECTION, DRILLBIT_CONNECTION, SCHEMA, USER, PASSWORD, IMPERSONATION_TARGET,
           AUTH_MECHANISM, SERVICE_PRINCIPAL, SERVICE_NAME, SERVICE_HOST, REALM, KEYTAB);
 
-  public static final ImmutableSet<String> ACCEPTED_BY_SERVER = ImmutableSet.of(SCHEMA, IMPERSONATION_TARGET);
+  public static final ImmutableSet<String> ACCEPTED_BY_SERVER = ImmutableSet.of(USER /** deprecated */,
+      PASSWORD /** deprecated */, SCHEMA, IMPERSONATION_TARGET);
 
   private final Properties properties; // keys must be lower case
 
