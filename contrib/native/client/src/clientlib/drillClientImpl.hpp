@@ -51,9 +51,6 @@
 #include "User.pb.h"
 #include "UserBitShared.pb.h"
 
-#include "sasl/sasl.h"
-#include "sasl/saslplug.h"
-
 namespace Drill {
 
 class DrillClientImpl;
@@ -675,33 +672,6 @@ class PooledDrillClientImpl : public DrillClientImplBase{
         std::vector<std::string> m_drillbits;
 
         boost::shared_ptr<DrillUserProperties> m_pUserProperties;//Keep a copy of user properties
-};
-
-class SaslAuthenticatorImpl {
-
-    public:
-
-        static const std::map<std::string, std::string> MECHANISM_MAPPING;
-
-        SaslAuthenticatorImpl(const DrillUserProperties* const properties);
-
-        ~SaslAuthenticatorImpl();
-
-        int init(const std::vector<std::string> mechanisms, std::string &chosenMech,
-                 const char **out, unsigned *outlen);
-
-        int step(const char* const in, const unsigned inlen, const char **out, unsigned *outlen) const;
-
-        static int passwordCallback(sasl_conn_t *conn, void *context, int id, sasl_secret_t **psecret);
-
-        static int userNameCallback(void *context, int id, const char **result, unsigned int *len);
-
-    private:
-        const DrillUserProperties* const m_properties;
-        sasl_conn_t* m_pConnection;
-        std::string m_username;
-        std::string m_password;
-        sasl_secret_t* m_secret;
 };
 
 } // namespace Drill

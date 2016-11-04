@@ -39,16 +39,15 @@ DrillClientError* DrillClientError::getErrorObject(const exec::shared::DrillPBEr
 DrillClientInitializer::DrillClientInitializer(){
     GOOGLE_PROTOBUF_VERIFY_VERSION;
     srand(time(NULL));
-    sasl_client_init(NULL);
 }
 
 DrillClientInitializer::~DrillClientInitializer(){
     google::protobuf::ShutdownProtobufLibrary();
-    sasl_client_done();
 }
 
 // Initialize static member of DrillClientConfig
 logLevel_t DrillClientConfig::s_logLevel=LOG_ERROR;
+const char* DrillClientConfig::s_saslPluginPath = NULL;
 uint64_t DrillClientConfig::s_bufferLimit=MAX_MEM_ALLOC_SIZE;
 int32_t DrillClientConfig::s_socketTimeout=0;
 int32_t DrillClientConfig::s_handshakeTimeout=5;
@@ -75,6 +74,16 @@ void DrillClientConfig::setLogLevel(logLevel_t l){
     s_logLevel=l;
     getLogger().m_level=l;
     //boost::log::core::get()->set_filter(boost::log::trivial::severity >= s_logLevel);
+}
+
+void DrillClientConfig::setSaslPluginPath(const char *path){
+    boost::lock_guard<boost::mutex> configLock(DrillClientConfig::s_mutex);
+    s_saslPluginPath = path;
+}
+
+const char* DrillClientConfig::getSaslPluginPath(){
+    boost::lock_guard<boost::mutex> configLock(DrillClientConfig::s_mutex);
+    return s_saslPluginPath;
 }
 
 void DrillClientConfig::setBufferLimit(uint64_t l){

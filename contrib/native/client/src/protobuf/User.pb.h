@@ -688,6 +688,13 @@ class UserToBitHandshake : public ::google::protobuf::Message {
   inline ::exec::user::RpcEndpointInfos* release_client_infos();
   inline void set_allocated_client_infos(::exec::user::RpcEndpointInfos* client_infos);
 
+  // optional bool support_sasl = 9 [default = false];
+  inline bool has_support_sasl() const;
+  inline void clear_support_sasl();
+  static const int kSupportSaslFieldNumber = 9;
+  inline bool support_sasl() const;
+  inline void set_support_sasl(bool value);
+
   // @@protoc_insertion_point(class_scope:exec.user.UserToBitHandshake)
  private:
   inline void set_has_channel();
@@ -706,6 +713,8 @@ class UserToBitHandshake : public ::google::protobuf::Message {
   inline void clear_has_support_timeout();
   inline void set_has_client_infos();
   inline void clear_has_client_infos();
+  inline void set_has_support_sasl();
+  inline void clear_has_support_sasl();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -717,9 +726,10 @@ class UserToBitHandshake : public ::google::protobuf::Message {
   bool support_listening_;
   bool support_complex_types_;
   bool support_timeout_;
+  bool support_sasl_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(9 + 31) / 32];
 
   friend void  protobuf_AddDesc_User_2eproto();
   friend void protobuf_AssignDesc_User_2eproto();
@@ -4428,6 +4438,28 @@ inline void UserToBitHandshake::set_allocated_client_infos(::exec::user::RpcEndp
   } else {
     clear_has_client_infos();
   }
+}
+
+// optional bool support_sasl = 9 [default = false];
+inline bool UserToBitHandshake::has_support_sasl() const {
+  return (_has_bits_[0] & 0x00000100u) != 0;
+}
+inline void UserToBitHandshake::set_has_support_sasl() {
+  _has_bits_[0] |= 0x00000100u;
+}
+inline void UserToBitHandshake::clear_has_support_sasl() {
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline void UserToBitHandshake::clear_support_sasl() {
+  support_sasl_ = false;
+  clear_has_support_sasl();
+}
+inline bool UserToBitHandshake::support_sasl() const {
+  return support_sasl_;
+}
+inline void UserToBitHandshake::set_support_sasl(bool value) {
+  set_has_support_sasl();
+  support_sasl_ = value;
 }
 
 // -------------------------------------------------------------------

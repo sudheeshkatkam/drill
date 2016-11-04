@@ -29,8 +29,8 @@ set (CLIENTLIB_SRC_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/errmsgs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/logger.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/utils.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/zookeeperClient.cpp
-    )
+    ${CMAKE_CURRENT_SOURCE_DIR}/saslAuthenticatorImpl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/zookeeperClient.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../include )
 include_directories(${PROTOBUF_INCLUDE_DIR})
