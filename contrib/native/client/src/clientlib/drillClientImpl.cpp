@@ -529,7 +529,7 @@ connectionStatus_t DrillClientImpl::validateHandshake(DrillUserProperties* prope
 
                 // initiate SASL exchange
                 saslResult = saslAuthenticator.init(m_mechanisms, chosenMech, &out, &outlen);
-                if (saslResult != SASL_OK) {
+                if (saslResult != SASL_OK || saslResult != SASL_CONTINUE) {
                     DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Authenticator init failed. Code: "
                                                       << saslResult << std::endl;)
                     return handleConnError(CONN_AUTH_FAILED,
