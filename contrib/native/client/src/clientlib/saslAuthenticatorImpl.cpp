@@ -195,7 +195,7 @@ int SaslAuthenticatorImpl::init(const std::vector<std::string> mechanisms,
     const char *mech;
     saslResult = sasl_client_start(m_pConnection, saslMechanismToUse.c_str(), NULL /** no prompt */,
                                    out, outlen, &mech);
-    if (saslResult == SASL_OK) {
+    if (saslResult == SASL_OK || saslResult == SASL_CONTINUE) {
         chosenMech = authMechanismToUse;
         DRILL_MT_LOG(DRILL_LOG(LOG_TRACE) << "Chosen SASL mechanism: " << mech << std::endl;)
     } else {
