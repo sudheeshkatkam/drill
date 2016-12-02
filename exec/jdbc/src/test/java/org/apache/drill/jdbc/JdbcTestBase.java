@@ -115,6 +115,7 @@ public class JdbcTestBase extends ExecTest {
   protected static void changeSchema(Connection conn, String schema) {
     final String query = String.format("use %s", schema);
     try ( Statement s = conn.createStatement() ) {
+      @SuppressWarnings("unused")
       ResultSet r = s.executeQuery(query);
       // TODO:  Purge nextUntilEnd(...) and calls when remaining fragment
       // race conditions are fixed (not just DRILL-2245 fixes).
