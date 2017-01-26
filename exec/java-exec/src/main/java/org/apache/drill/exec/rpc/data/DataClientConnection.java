@@ -24,12 +24,13 @@ import java.util.UUID;
 
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.proto.BitData.RpcType;
-import org.apache.drill.exec.rpc.RemoteConnection;
+import org.apache.drill.exec.rpc.AbstractClientConnection;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
 
 import com.google.protobuf.MessageLite;
 
-public class DataClientConnection extends RemoteConnection{
+// data connection on client-side (i.e. bit making request or sending data)
+public class DataClientConnection extends AbstractClientConnection {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataClientConnection.class);
 
   private final DataClient client;
@@ -38,7 +39,6 @@ public class DataClientConnection extends RemoteConnection{
   public DataClientConnection(SocketChannel channel, DataClient client) {
     super(channel, "data client");
     this.client = client;
-    // we use a local listener pool unless a global one is provided.
     this.id = UUID.randomUUID();
   }
 
@@ -47,10 +47,10 @@ public class DataClientConnection extends RemoteConnection{
     return client.getAllocator();
   }
 
-  public <SEND extends MessageLite, RECEIVE extends MessageLite> void send(RpcOutcomeListener<RECEIVE> outcomeListener, RpcType rpcType,
-      SEND protobufBody, Class<RECEIVE> clazz, ByteBuf... dataBodies) {
+  public <SEND extends MessageLite, RECEIVE extends MessageLite>
+  void send(RpcOutcomeListener<RECEIVE> outcomeListener, RpcType rpcType, SEND protobufBody, Class<RECEIVE> clazz,
+            ByteBuf... dataBodies) {
     client.send(outcomeListener, this, rpcType, protobufBody, clazz, dataBodies);
-
   }
 
   @Override
@@ -82,6 +82,4 @@ public class DataClientConnection extends RemoteConnection{
     }
     return true;
   }
-
-
 }
