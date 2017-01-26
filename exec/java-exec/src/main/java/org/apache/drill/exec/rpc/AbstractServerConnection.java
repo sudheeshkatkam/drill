@@ -84,7 +84,7 @@ public abstract class AbstractServerConnection<C extends AbstractServerConnectio
   }
 
   @Override
-  public void finalizeSession() throws IOException {
+  public void finalizeSaslSession() throws IOException {
     final String authorizationID = getSaslServer().getAuthorizationID();
     final String remoteShortName = new HadoopKerberosName(authorizationID).getShortName();
     final String localShortName = UserGroupInformation.getLoginUser().getShortUserName();
