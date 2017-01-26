@@ -55,6 +55,18 @@ public class CaseInsensitiveMap<VALUE> implements Map<String, VALUE> {
   }
 
   /**
+   * Returns a new instance of {@link java.util.HashMap}, with key case-insensitivity, of expected size.
+   * See {@link java.util.HashMap}.
+   *
+   * @param expectedSize expected size
+   * @param <VALUE> type of values to be stored in the map
+   * @return key case-insensitive hash map
+   */
+  public static <VALUE> CaseInsensitiveMap<VALUE> newHashMapWithExpectedSize(final int expectedSize) {
+    return new CaseInsensitiveMap<>(Maps.<String, VALUE>newHashMapWithExpectedSize(expectedSize));
+  }
+
+  /**
    * Returns a new instance of {@link ImmutableMap} with key case-insensitivity. This map is built from the given
    * map. See {@link ImmutableMap}.
    *
