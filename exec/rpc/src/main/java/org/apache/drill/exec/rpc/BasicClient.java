@@ -34,7 +34,6 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 
 import java.net.SocketAddress;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.drill.exec.memory.BufferAllocator;
@@ -46,7 +45,8 @@ import com.google.protobuf.Internal.EnumLite;
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
 
-public abstract class BasicClient<T extends EnumLite, R extends RemoteConnection, HANDSHAKE_SEND extends MessageLite, HANDSHAKE_RESPONSE extends MessageLite>
+public abstract class BasicClient<T extends EnumLite, R extends ClientConnection,
+                                  HANDSHAKE_SEND extends MessageLite, HANDSHAKE_RESPONSE extends MessageLite>
     extends RpcBus<T, R> {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BasicClient.class);
 
@@ -155,7 +155,9 @@ public abstract class BasicClient<T extends EnumLite, R extends RemoteConnection
 
   protected abstract void validateHandshake(HANDSHAKE_RESPONSE validateHandshake) throws RpcException;
 
-  protected abstract void finalizeConnection(HANDSHAKE_RESPONSE handshake, R connection);
+  protected void finalizeConnection(HANDSHAKE_RESPONSE handshake, R connection) {
+    // no-op
+  }
 
   public <SEND extends MessageLite, RECEIVE extends MessageLite> void send(RpcOutcomeListener<RECEIVE> listener,
       T rpcType, SEND protobufBody, Class<RECEIVE> clazz, ByteBuf... dataBodies) {
@@ -165,6 +167,11 @@ public abstract class BasicClient<T extends EnumLite, R extends RemoteConnection
   public <SEND extends MessageLite, RECEIVE extends MessageLite> DrillRpcFuture<RECEIVE> send(T rpcType,
       SEND protobufBody, Class<RECEIVE> clazz, ByteBuf... dataBodies) {
     return super.send(connection, rpcType, protobufBody, clazz, dataBodies);
+  }
+
+  // the command itself must be "run" by the caller (to avoid calling inEventLoop)
+  protected <M extends MessageLite> RpcCommand<M, R> getInitialCommand(final RpcCommand<M, R> command) {
+    return command;
   }
 
   protected void connectAsClient(RpcConnectionHandler<R> connectionListener, HANDSHAKE_SEND handshakeValue,
@@ -256,11 +263,12 @@ public abstract class BasicClient<T extends EnumLite, R extends RemoteConnection
       public void success(HANDSHAKE_RESPONSE value, ByteBuf buffer) {
         // logger.debug("Handshake received. {}", value);
         try {
-          BasicClient.this.validateHandshake(value);
-          BasicClient.this.finalizeConnection(value, connection);
+          validateHandshake(value);
+          finalizeConnection(value, connection);
           l.connectionSucceeded(connection);
           // logger.debug("Handshake completed succesfully.");
-        } catch (RpcException ex) {
+        } catch (Exception ex) {
+          logger.debug("Failure while validating handshake", ex);
           l.connectionFailed(FailureType.HANDSHAKE_VALIDATION, ex);
         }
       }
