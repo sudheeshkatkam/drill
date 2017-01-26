@@ -17,7 +17,11 @@
  */
 package org.apache.drill.exec.impersonation;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.typesafe.config.ConfigValueFactory;
+import org.apache.drill.common.config.DrillConfig;
+import org.apache.drill.common.config.DrillProperties;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.dotdrill.DotDrillType;
 import org.apache.drill.exec.proto.UserBitShared;
@@ -55,11 +59,21 @@ public class TestInboundImpersonation extends BaseTestImpersonation {
   public static void setup() throws Exception {
     startMiniDfsCluster(TestInboundImpersonation.class.getSimpleName());
     Properties props = cloneDefaultTestConfigProperties();
-    props.setProperty(ExecConstants.IMPERSONATION_ENABLED, Boolean.toString(true));
-    props.setProperty(ExecConstants.USER_AUTHENTICATION_ENABLED, Boolean.toString(true));
-    props.setProperty(ExecConstants.USER_AUTHENTICATOR_IMPL, UserAuthenticatorTestImpl.TYPE);
+    final DrillConfig newConfig = new DrillConfig(DrillConfig.create(cloneDefaultTestConfigProperties())
+        .withValue(ExecConstants.USER_AUTHENTICATION_ENABLED,
+            ConfigValueFactory.fromAnyRef(true))
+        .withValue(ExecConstants.USER_AUTHENTICATOR_IMPL,
+            ConfigValueFactory.fromAnyRef(UserAuthenticatorTestImpl.TYPE))
+        .withValue(ExecConstants.AUTHENTICATION_MECHANISMS,
+            ConfigValueFactory.fromIterable(Lists.newArrayList("plain")))
+        .withValue(ExecConstants.IMPERSONATION_ENABLED,
+            ConfigValueFactory.fromAnyRef(true)),
+        false);
 
-    startDrillCluster(props);
+    final Properties connectionProps = new Properties();
+    connectionProps.setProperty(DrillProperties.USER, "anonymous");
+    connectionProps.setProperty(DrillProperties.PASSWORD, "anything works!");
+    updateTestCluster(1, newConfig, connectionProps);
     addMiniDfsBasedStorage(createTestWorkspaces());
     createTestData();
   }
