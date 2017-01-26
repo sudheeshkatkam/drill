@@ -33,7 +33,7 @@ import com.google.protobuf.MessageLite;
 /**
  * Manager all connections between two particular bits.
  */
-public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConnection, OUTBOUND_HANDSHAKE extends MessageLite>
+public abstract class ReconnectingConnection<CONNECTION_TYPE extends ClientConnection, OUTBOUND_HANDSHAKE extends MessageLite>
     implements Closeable {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ReconnectingConnection.class);
 
@@ -78,7 +78,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
       } else {
 //        logger.debug("No connection active, opening client connection.");
         BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> client = getNewClient();
-        ConnectionListeningFuture<R, C> future = new ConnectionListeningFuture<R, C>(cmd);
+        ConnectionListeningFuture<R> future = new ConnectionListeningFuture<>(client.getInitialCommand(cmd));
         client.connectAsClient(future, handshake, host, port);
         future.waitAndRun();
 //        logger.debug("Connection available and active, command now being run inline.");
@@ -88,12 +88,13 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
     }
   }
 
-  public class ConnectionListeningFuture<R extends MessageLite, C extends RpcCommand<R, CONNECTION_TYPE>> extends
-      AbstractFuture<CONNECTION_TYPE> implements RpcConnectionHandler<CONNECTION_TYPE> {
+  public class ConnectionListeningFuture<R extends MessageLite>
+      extends AbstractFuture<CONNECTION_TYPE>
+      implements RpcConnectionHandler<CONNECTION_TYPE> {
 
-    private C cmd;
+    private RpcCommand<R, CONNECTION_TYPE> cmd;
 
-    public ConnectionListeningFuture(C cmd) {
+    public ConnectionListeningFuture(RpcCommand<R, CONNECTION_TYPE> cmd) {
       super();
       this.cmd = cmd;
     }
@@ -146,7 +147,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
     }
 
     @Override
-    public void connectionFailed(org.apache.drill.exec.rpc.RpcConnectionHandler.FailureType type, Throwable t) {
+    public void connectionFailed(FailureType type, Throwable t) {
       set(null);
       cmd.connectionFailed(type, t);
     }
@@ -220,49 +221,6 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
     CONNECTION_TYPE c = connectionHolder.getAndSet(null);
     if (c != null) {
       c.getChannel().close();
-    }
-  }
-
-  /**
-   * Decorate a connection creation so that we capture a success and keep it available for future requests. If we have
-   * raced and another is already available... we return that one and close things down on this one.
-   */
-  private class ConnectionListeningDecorator implements RpcConnectionHandler<CONNECTION_TYPE> {
-
-    private final RpcConnectionHandler<CONNECTION_TYPE> delegate;
-
-    public ConnectionListeningDecorator(RpcConnectionHandler<CONNECTION_TYPE> delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public void connectionSucceeded(CONNECTION_TYPE incoming) {
-      CONNECTION_TYPE connection = connectionHolder.get();
-      while (true) {
-        boolean setted = connectionHolder.compareAndSet(null, incoming);
-        if (setted) {
-          connection = incoming;
-          break;
-        }
-        connection = connectionHolder.get();
-        if (connection != null) {
-          break;
-        }
-      }
-
-      if (connection == incoming) {
-        delegate.connectionSucceeded(connection);
-      } else {
-        // close the incoming because another channel was created in the mean time (unless this is a self connection).
-        logger.debug("Closing incoming connection because a connection was already set.");
-        incoming.getChannel().close();
-        delegate.connectionSucceeded(connection);
-      }
-    }
-
-    @Override
-    public void connectionFailed(org.apache.drill.exec.rpc.RpcConnectionHandler.FailureType type, Throwable t) {
-      delegate.connectionFailed(type, t);
     }
   }
 

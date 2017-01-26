@@ -158,11 +158,6 @@ public abstract class BasicServer<T extends EnumLite, C extends RemoteConnection
   }
 
   @Override
-  protected Response handle(C connection, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException {
-    return null;
-  }
-
-  @Override
   public <SEND extends MessageLite, RECEIVE extends MessageLite> DrillRpcFuture<RECEIVE> send(C connection, T rpcType,
       SEND protobufBody, Class<RECEIVE> clazz, ByteBuf... dataBodies) {
     return super.send(connection, rpcType, protobufBody, clazz, dataBodies);
