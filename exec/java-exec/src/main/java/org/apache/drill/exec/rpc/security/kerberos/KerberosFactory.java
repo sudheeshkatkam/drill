@@ -59,7 +59,6 @@ public class KerberosFactory implements AuthenticatorFactory {
     final Configuration conf = new Configuration();
     conf.set(CommonConfigurationKeys.HADOOP_SECURITY_AUTHENTICATION,
         UserGroupInformation.AuthenticationMethod.KERBEROS.toString());
-    conf.set("hadoop.login", "kerberos"); // TODO (MAPR specific)
     UserGroupInformation.setConfiguration(conf);
 
     final String keytab = (String) properties.get(DrillProperties.KEYTAB);
