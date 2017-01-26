@@ -20,10 +20,7 @@ package org.apache.drill.exec.rpc.control;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
-import org.apache.drill.exec.server.BootStrapContext;
-import org.apache.drill.exec.work.batch.ControlMessageHandler;
 
 import com.google.common.collect.Maps;
 
@@ -32,24 +29,19 @@ public class ConnectionManagerRegistry implements Iterable<ControlConnectionMana
 
   private final ConcurrentMap<DrillbitEndpoint, ControlConnectionManager> registry = Maps.newConcurrentMap();
 
-  private final ControlMessageHandler handler;
-  private final BootStrapContext context;
-  private volatile DrillbitEndpoint localEndpoint;
-  private final BufferAllocator allocator;
+  private final BitConnectionConfigImpl config;
 
-  public ConnectionManagerRegistry(BufferAllocator allocator, ControlMessageHandler handler, BootStrapContext context) {
-    super();
-    this.handler = handler;
-    this.context = context;
-    this.allocator = allocator;
+  public ConnectionManagerRegistry(BitConnectionConfigImpl config) {
+    this.config = config;
   }
 
-  public ControlConnectionManager getConnectionManager(DrillbitEndpoint endpoint) {
-    assert localEndpoint != null : "DrillbitEndpoint must be set before a connection manager can be retrieved";
-    ControlConnectionManager m = registry.get(endpoint);
+  public ControlConnectionManager getConnectionManager(DrillbitEndpoint remoteEndpoint) {
+    assert config.getLocalEndpoint() != null :
+        "DrillbitEndpoint must be set before a connection manager can be retrieved";
+    ControlConnectionManager m = registry.get(remoteEndpoint);
     if (m == null) {
-      m = new ControlConnectionManager(allocator, endpoint, localEndpoint, handler, context);
-      ControlConnectionManager m2 = registry.putIfAbsent(endpoint, m);
+      m = new ControlConnectionManager(config, remoteEndpoint);
+      final ControlConnectionManager m2 = registry.putIfAbsent(remoteEndpoint, m);
       if (m2 != null) {
         m = m2;
       }
@@ -61,10 +53,6 @@ public class ConnectionManagerRegistry implements Iterable<ControlConnectionMana
   @Override
   public Iterator<ControlConnectionManager> iterator() {
     return registry.values().iterator();
-  }
-
-  public void setEndpoint(DrillbitEndpoint endpoint) {
-    this.localEndpoint = endpoint;
   }
 
 }
