@@ -97,6 +97,7 @@ public interface ExecConstants {
   String PAM_AUTHENTICATOR_PROFILES = "drill.exec.security.user.auth.pam_profiles";
   String BIT_AUTHENTICATION_ENABLED = "drill.exec.security.bit.auth.enabled";
   String BIT_AUTHENTICATION_MECHANISM = "drill.exec.security.bit.auth.mechanism";
+  String USE_CLUSTER_ID_AS_KERBEROS_INSTANCE_NAME = "drill.exec.security.bit.auth.use_cluster_id";
   /** Size of JDBC batch queue (in batches) above which throttling begins. */
   String JDBC_BATCH_QUEUE_THROTTLING_THRESHOLD =
       "drill.jdbc.batch_queue_throttling_threshold";
