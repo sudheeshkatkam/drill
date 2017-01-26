@@ -20,7 +20,7 @@ package org.apache.drill.exec.rpc;
 public interface RpcConnectionHandler<T extends RemoteConnection> {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RpcConnectionHandler.class);
 
-  public static enum FailureType{CONNECTION, HANDSHAKE_COMMUNICATION, HANDSHAKE_VALIDATION}
+  public static enum FailureType{CONNECTION, HANDSHAKE_COMMUNICATION, HANDSHAKE_VALIDATION, AUTHENTICATION}
 
   public void connectionSucceeded(T connection);
   public void connectionFailed(FailureType type, Throwable t);

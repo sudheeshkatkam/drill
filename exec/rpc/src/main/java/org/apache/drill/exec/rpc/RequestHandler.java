@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,37 +17,29 @@
  */
 package org.apache.drill.exec.rpc;
 
-import io.netty.channel.Channel;
-import org.apache.drill.exec.memory.BufferAllocator;
-import org.apache.drill.exec.proto.UserBitShared;
+import io.netty.buffer.ByteBuf;
 
-import java.net.SocketAddress;
+/**
+ * Handlers should not maintain any internal state.
+ *
+ * @param <C>
+ */
+public interface RequestHandler<C extends ServerConnection> {
 
-public interface RemoteConnection extends ConnectionThrottle, AutoCloseable {
-
-  boolean inEventLoop();
-
-  String getName();
-
-  BufferAllocator getAllocator();
-
-  Channel getChannel();
-
-  boolean blockOnNotWritable(RpcOutcomeListener<?> listener);
-
-  boolean isActive();
-
-  <V> RpcOutcome<V> getAndRemoveRpcOutcome(int rpcType, int coordinationId, Class<V> clazz);
-
-  <V> ChannelListenerWithCoordinationId createNewRpcListener(RpcOutcomeListener<V> handler, Class<V> clazz);
-
-  void recordRemoteFailure(int coordinationId, UserBitShared.DrillPBError failure);
-
-  void channelClosed(RpcException ex);
-
-  SocketAddress getRemoteAddress();
-
-  @Override
-  void close();
+  /**
+   * Handle request of given type (rpcType) with message (pBody) and optional data (dBody)
+   * from the connection, and return the appropriate response. There may be side effects on
+   * the connection object, but not on the parameters.
+   *
+   * @param connection remote connection
+   * @param rpcType    rpc type
+   * @param pBody      message
+   * @param dBody      data, maybe null
+   * @param sender     used to {@link ResponseSender#send send} the response
+   * @return response to the request
+   * @throws RpcException
+   */
+  void handle(C connection, int rpcType, ByteBuf pBody, ByteBuf dBody, ResponseSender sender)
+      throws RpcException;
 
 }

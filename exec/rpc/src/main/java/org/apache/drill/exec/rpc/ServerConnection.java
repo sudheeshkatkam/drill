@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,37 +17,21 @@
  */
 package org.apache.drill.exec.rpc;
 
-import io.netty.channel.Channel;
-import org.apache.drill.exec.memory.BufferAllocator;
-import org.apache.drill.exec.proto.UserBitShared;
+import javax.security.sasl.SaslServer;
+import java.io.IOException;
 
-import java.net.SocketAddress;
+public interface ServerConnection<C extends ServerConnection> extends RemoteConnection {
 
-public interface RemoteConnection extends ConnectionThrottle, AutoCloseable {
+  // init only once
+  void initSaslServer(String mechanismName) throws IOException;
 
-  boolean inEventLoop();
+  // get only after setting
+  SaslServer getSaslServer();
 
-  String getName();
+  void finalizeSession() throws IOException;
 
-  BufferAllocator getAllocator();
+  RequestHandler<C> getCurrentHandler();
 
-  Channel getChannel();
-
-  boolean blockOnNotWritable(RpcOutcomeListener<?> listener);
-
-  boolean isActive();
-
-  <V> RpcOutcome<V> getAndRemoveRpcOutcome(int rpcType, int coordinationId, Class<V> clazz);
-
-  <V> ChannelListenerWithCoordinationId createNewRpcListener(RpcOutcomeListener<V> handler, Class<V> clazz);
-
-  void recordRemoteFailure(int coordinationId, UserBitShared.DrillPBError failure);
-
-  void channelClosed(RpcException ex);
-
-  SocketAddress getRemoteAddress();
-
-  @Override
-  void close();
+  void changeHandlerTo(RequestHandler<C> handler);
 
 }

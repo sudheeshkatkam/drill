@@ -61,11 +61,8 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
   protected abstract MessageLite getResponseDefaultInstance(int rpcType) throws RpcException;
 
-  protected void handle(C connection, int rpcType, ByteBuf pBody, ByteBuf dBody, ResponseSender sender) throws RpcException{
-    sender.send(handle(connection, rpcType, pBody, dBody));
-  }
-
-  protected abstract Response handle(C connection, int rpcType, ByteBuf pBody, ByteBuf dBody) throws RpcException;
+  protected abstract void handle(C connection, int rpcType, ByteBuf pBody, ByteBuf dBody, ResponseSender sender)
+      throws RpcException;
 
   protected final RpcConfig rpcConfig;
 
@@ -163,12 +160,10 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
         msg = String.format("Channel closed %s <--> %s.", future.channel().localAddress(), future.channel().remoteAddress());
       }
 
-      final ChannelClosedException ex = future.cause() != null ? new ChannelClosedException(msg, future.cause()) : new ChannelClosedException(msg);
-      try {
-        clientConnection.closeSession();
-      } finally {
-        clientConnection.channelClosed(ex);
-      }
+      final ChannelClosedException ex = future.cause() != null ?
+          new ChannelClosedException(msg, future.cause()) :
+          new ChannelClosedException(msg);
+      clientConnection.channelClosed(ex);
     }
 
   }
