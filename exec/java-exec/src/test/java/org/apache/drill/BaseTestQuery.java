@@ -132,6 +132,10 @@ public class BaseTestQuery extends ExecTest {
   }
 
   protected static void updateTestCluster(int newDrillbitCount, DrillConfig newConfig) {
+    updateTestCluster(newDrillbitCount, newConfig, null);
+  }
+
+  protected static void updateTestCluster(int newDrillbitCount, DrillConfig newConfig, Properties properties) {
     Preconditions.checkArgument(newDrillbitCount > 0, "Number of Drillbits must be at least one");
     if (drillbitCount != newDrillbitCount || config != null) {
       // TODO: Currently we have to shutdown the existing Drillbit cluster before starting a new one with the given
@@ -144,7 +148,7 @@ public class BaseTestQuery extends ExecTest {
           // of the @BeforeClass method of test class.
           config = newConfig;
         }
-        openClient();
+        openClient(properties);
       } catch(Exception e) {
         throw new RuntimeException("Failure while updating the test Drillbit cluster.", e);
       }
@@ -180,6 +184,10 @@ public class BaseTestQuery extends ExecTest {
   }
 
   private static void openClient() throws Exception {
+    openClient(null);
+  }
+
+  private static void openClient(Properties properties) throws Exception {
     allocator = RootAllocatorFactory.newRoot(config);
     if (config.hasPath(ENABLE_FULL_CACHE) && config.getBoolean(ENABLE_FULL_CACHE)) {
       serviceSet = RemoteServiceSet.getServiceSetWithFullCache(config, allocator);
@@ -199,7 +207,7 @@ public class BaseTestQuery extends ExecTest {
       TestUtilities.makeDfsTmpSchemaImmutable(pluginRegistry);
     }
 
-    client = QueryTestUtil.createClient(config,  serviceSet, MAX_WIDTH_PER_NODE, null);
+    client = QueryTestUtil.createClient(config,  serviceSet, MAX_WIDTH_PER_NODE, properties);
   }
 
   /**
