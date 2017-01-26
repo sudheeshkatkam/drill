@@ -18,6 +18,7 @@
 package org.apache.drill.exec.rpc.user;
 
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractCheckedFuture;
 import com.google.common.util.concurrent.CheckedFuture;
@@ -190,7 +191,7 @@ public class UserClient extends BasicClient<RpcType, UserClient.UserToBitConnect
               connection.close(); // to ensure connection is dropped
             }
             if (e instanceof ExecutionException) {
-              final Throwable cause = e.getCause();
+              final Throwable cause = Throwables.getRootCause(e);
               if (cause instanceof SaslException) {
                 return new SaslException("Authentication failed: " + cause.getMessage(), cause);
               }
