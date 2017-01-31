@@ -23,7 +23,7 @@
 #include <boost/thread.hpp>
 #include "drill/drillc.hpp"
 
-int nOptions=13;
+int nOptions=14;
 
 struct Option{
     char name[32];
@@ -42,7 +42,8 @@ struct Option{
     {"hshakeTimeout", "Handshake timeout (second).", false},
     {"queryTimeout", "Query timeout (second).", false},
     {"user", "Username", false},
-    {"password", "Password", false}
+    {"password", "Password", false},
+    {"saslPluginPath", "Path to where SASL plugins are installed", false}
 };
 
 std::map<std::string, std::string> qsOptionValues;
@@ -284,6 +285,7 @@ int main(int argc, char* argv[]) {
         std::string queryTimeout=qsOptionValues["queryTimeout"];
         std::string user=qsOptionValues["user"];
         std::string password=qsOptionValues["password"];
+        std::string saslPluginPath=qsOptionValues["saslPluginPath"];
 
         Drill::QueryType type;
 
@@ -342,6 +344,9 @@ int main(int argc, char* argv[]) {
         }
         if (!queryTimeout.empty()){
             Drill::DrillClientConfig::setQueryTimeout(atoi(queryTimeout.c_str()));
+        }
+        if (!saslPluginPath.empty()){
+            Drill::DrillClientConfig::setSaslPluginPath(saslPluginPath.c_str());
         }
 
         Drill::DrillUserProperties props;
