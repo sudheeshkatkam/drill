@@ -31,10 +31,13 @@ namespace Drill {
 #define KERBEROS_SIMPLE_NAME "kerberos"
 #define KERBEROS_SASL_NAME "gssapi"
 #define PLAIN_NAME "plain"
+#define MAPR_SECURITY_SIMPLE_NAME "maprsasl"
+#define MAPR_SECURITY_SASL_NAME "mapr-security"
 
 const std::map<std::string, std::string> SaslAuthenticatorImpl::MECHANISM_MAPPING = boost::assign::map_list_of
     (KERBEROS_SIMPLE_NAME, KERBEROS_SASL_NAME)
     (PLAIN_NAME, PLAIN_NAME)
+    (MAPR_SECURITY_SIMPLE_NAME, MAPR_SECURITY_SASL_NAME)
 ;
 
 boost::mutex SaslAuthenticatorImpl::s_mutex;
