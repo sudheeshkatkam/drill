@@ -66,6 +66,7 @@ public class DrillbitContext implements AutoCloseable {
   // operator table for standard SQL operators and functions, Drill built-in UDFs
   private final DrillOperatorTable table;
 
+  private final QueryProfileStoreContext profileStore;
 
   public DrillbitContext(
       DrillbitEndpoint endpoint,
@@ -97,6 +98,12 @@ public class DrillbitContext implements AutoCloseable {
 
     // This operator table is built once and used for all queries which do not need dynamic UDF support.
     this.table = new DrillOperatorTable(functionRegistry, systemOptions);
+
+    this.profileStore = new QueryProfileStoreContext(context.getConfig(), provider, coord);
+  }
+
+  public QueryProfileStoreContext getProfileStoreContext() {
+    return profileStore;
   }
 
   public FunctionImplementationRegistry getFunctionImplementationRegistry() {
